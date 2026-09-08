@@ -19,11 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     userPoints: 450,
   };
 
-  // Backend API Base Configuration (Production VPS with IONOS SSL + Local dev fallback)
-  const PRODUCTION_API_URL = 'https://api.wafatalk.com/api';
-  const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://127.0.0.1:4000/api'
-    : PRODUCTION_API_URL;
+  // Backend API Base Configuration (Hosted on IONOS VPS)
+  const API_BASE_URL = 'https://api.wafatalk.com/api';
 
   // Mock Salons Data
   const salonsData = [
