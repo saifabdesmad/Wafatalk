@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  username     String        @unique
+  email        String        @unique
+  passwordHash String
+  displayName  String
+  avatarUrl    String?
+  bio          String?
+  wafaPoints   Int           @default(150)
+  role         String        @default("USER") // USER, MODERATOR, ADMIN
+  status       String        @default("OFFLINE") // ONLINE, IDLE, OFFLINE, IN_SALON
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  ownedSalons   Salon[]       @relation("SalonOwner")
+  memberships   SalonMember[]
+  messages      Message[]
+  friendships   Friendship[]  @relation("UserFriendships")
+  sentGifts     GiftLog[]     @relation("SentGifts")
+  receivedGifts GiftLog[]     @relation("ReceivedGifts")
+}
+
+model Salon {
+  id           String        @id @default(uuid())
+  name         String
+  slug         String        @unique
+  description  String?
+  category     String        @default("chill") // vocal, chill, gaming, music, private
+  bannerUrl    String?
+  isPrivate    Boolean       @default(false)
+  passwordHash String?
+  maxMembers   Int           @default(50)
+  ownerId      String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  owner        User          @relation("SalonOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      SalonMember[]
+  messages     Message[]
+  gifts        GiftLog[]
+}
+
+model SalonMember {
+  salonId   String
+  userId    String
+  role      String   @default("LISTENER") // OWNER, ADMIN, SPEAKER, LISTENER
+  isMuted   Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([salonId, userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  salonId   String
+  userId    String
+  content   String
+  type      String   @default("TEXT") // TEXT, SYSTEM, GIFT, IMAGE
+  metadata  String?  // JSON formatted metadata
+  createdAt DateTime @default(now())
+
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Friendship {
+  userId    String
+  friendId  String
+  status    String   @default("PENDING") // PENDING, ACCEPTED, BLOCKED
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, friendId])
+}
+
+model GiftLog {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String?
+  salonId    String
+  giftType   String   // heart, star, crown, rocket, diamond
+  costPoints Int      @default(10)
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("SentGifts", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User?    @relation("ReceivedGifts", fields: [receiverId], references: [id])
+  salon      Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+}
