@@ -19,11 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     userPoints: 450,
   };
 
-  // Backend API Base Configuration (Local PC + Cloudflare HTTPS Tunnel)
-  const CLOUD_TUNNEL_URL = 'https://postings-above-across-pmid.trycloudflare.com/api';
+  // Backend API Base Configuration (Production VPS with IONOS SSL + Local dev fallback)
+  const PRODUCTION_API_URL = 'https://api.wafatalk.com/api';
   const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://127.0.0.1:4000/api'
-    : CLOUD_TUNNEL_URL;
+    : PRODUCTION_API_URL;
 
   // Mock Salons Data
   const salonsData = [
