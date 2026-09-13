@@ -98,11 +98,17 @@ export class MailerService {
         console.log(`✅ Email de vérification délivré avec succès à ${email}`);
         return true;
       } catch (err: any) {
-        console.warn(`⚠️ Échec d'envoi SMTP (${err.message}). Code OTP disponible en console de dev.`);
+        console.error(`❌ Échec d'envoi SMTP vers ${email} : ${err.message}`);
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error(`Échec de l'envoi de l'e-mail (${err.message}). Veuillez vérifier l'adresse saisie ou réessayer.`);
+        }
         return true;
       }
     } else {
-      console.log(`ℹ️ Mode Développement / Local : SMTP non configuré, code disponible en console ci-dessus.`);
+      console.warn(`⚠️ SMTP non configuré dans l'environnement ! Code OTP : ${code}`);
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error("Le serveur SMTP n'est pas encore configuré sur le serveur (SMTP_HOST/USER manquants dans .env).");
+      }
       return true;
     }
   }

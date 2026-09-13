@@ -63,6 +63,7 @@ async function buildApp() {
     status: 'ok',
     service: 'WafaTalk Backend',
     version: '1.0.0',
+    smtpConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
     timestamp: new Date().toISOString(),
   }));
 
