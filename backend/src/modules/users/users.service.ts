@@ -42,6 +42,42 @@ export class UsersService {
     });
   }
 
+  static async discoverUsers(currentUserId: string, search?: string) {
+    const users = await prisma.user.findMany({
+      where: {
+        id: { not: currentUserId },
+        ...(search ? {
+          OR: [
+            { username: { contains: search } },
+            { displayName: { contains: search } },
+          ]
+        } : {}),
+      },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        country: true,
+        status: true,
+        role: true,
+      },
+      take: 60,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      name: u.displayName || u.username,
+      avatar: u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username)}`,
+      country: u.country || 'FR',
+      status: u.status.toLowerCase(),
+      role: u.role === 'ADMIN' ? 'Admin WafaTalk' : u.role === 'MODERATOR' ? 'Modérateur' : 'Membre',
+      room: 'Disponible',
+    }));
+  }
+
   static async sendGift(senderId: string, salonId: string, giftType: string, costPoints: number) {
     const sender = await prisma.user.findUnique({ where: { id: senderId } });
     if (!sender) throw new Error('Utilisateur expéditeur introuvable.');

@@ -1,9 +1,85 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service.js';
-import { loginSchema, registerSchema, updateProfileSchema } from './auth.schema.js';
+import {
+  loginSchema,
+  registerSchema,
+  updateProfileSchema,
+  sendVerificationSchema,
+  verifyAndRegisterSchema,
+  resendVerificationSchema,
+} from './auth.schema.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  // Register
+  // Step 1: Send Verification OTP to Email
+  fastify.post('/send-verification', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = sendVerificationSchema.parse(request.body);
+      const result = await AuthService.sendVerificationCode(input);
+      return reply.code(200).send(result);
+    } catch (error: any) {
+      let message = 'Erreur lors de l\'envoi du code de vérification';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
+    }
+  });
+
+  // Step 2: Verify OTP & Finalize Account Creation
+  fastify.post('/verify-and-register', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = verifyAndRegisterSchema.parse(request.body);
+      const user = await AuthService.verifyAndRegister(input);
+      const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
+
+      reply.setCookie('token', token, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      });
+
+      return reply.code(201).send({
+        success: true,
+        message: 'Compte vérifié et créé avec succès ! Bienvenue sur WafaTalk 🎈',
+        token,
+        user,
+      });
+    } catch (error: any) {
+      let message = 'Erreur lors de la validation du code';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
+    }
+  });
+
+  // Resend OTP Code
+  fastify.post('/resend-code', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = resendVerificationSchema.parse(request.body);
+      const result = await AuthService.sendVerificationCode({
+        email: input.email,
+        username: input.username || input.email.split('@')[0],
+      });
+      return reply.code(200).send(result);
+    } catch (error: any) {
+      let message = 'Erreur lors du renvoi du code';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
+    }
+  });
+
+  // Direct Register (Fallback / Legacy API)
   fastify.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const input = registerSchema.parse(request.body);

@@ -18,8 +18,11 @@ model User {
   wafaPoints   Int           @default(150)
   role         String        @default("USER") // USER, MODERATOR, ADMIN
   status       String        @default("OFFLINE") // ONLINE, IDLE, OFFLINE, IN_SALON
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  birthDate        DateTime?
+  country          String?
+  isEmailVerified  Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   ownedSalons   Salon[]       @relation("SalonOwner")
   memberships   SalonMember[]
@@ -27,6 +30,23 @@ model User {
   friendships   Friendship[]  @relation("UserFriendships")
   sentGifts     GiftLog[]     @relation("SentGifts")
   receivedGifts GiftLog[]     @relation("ReceivedGifts")
+
+  conversationsInitiated Conversation[]  @relation("User1Conversations")
+  conversationsReceived  Conversation[]  @relation("User2Conversations")
+  directMessages         DirectMessage[]
+  callsMade              CallSession[]   @relation("CallsMade")
+  callsReceived          CallSession[]   @relation("CallsReceived")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
 
 model Salon {
@@ -98,4 +118,57 @@ model GiftLog {
   sender     User     @relation("SentGifts", fields: [senderId], references: [id], onDelete: Cascade)
   receiver   User?    @relation("ReceivedGifts", fields: [receiverId], references: [id])
   salon      Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id          String          @id @default(uuid())
+  user1Id     String
+  user2Id     String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user1       User            @relation("User1Conversations", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2       User            @relation("User2Conversations", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages    DirectMessage[]
+  calls       CallSession[]
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+}
+
+model DirectMessage {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           String       @default("TEXT") // TEXT, IMAGE, GIFT, SYSTEM, CALL_LOG
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model CallSession {
+  id             String       @id @default(uuid())
+  conversationId String
+  callerId       String
+  receiverId     String
+  type           String       // "AUDIO" | "VIDEO"
+  status         String       @default("COMPLETED") // "MISSED" | "COMPLETED" | "REJECTED" | "BUSY"
+  durationSec    Int          @default(0)
+  startedAt      DateTime     @default(now())
+  endedAt        DateTime?
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  caller         User         @relation("CallsMade", fields: [callerId], references: [id], onDelete: Cascade)
+  receiver       User         @relation("CallsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([callerId])
+  @@index([receiverId])
 }

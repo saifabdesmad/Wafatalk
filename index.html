@@ -197,15 +197,23 @@
               <p class="form-desc">Créez votre profil en quelques secondes et retrouvez vos proches.</p>
             </div>
 
+            <!-- Anti-Bot Honeypot Field (invisible to real users) -->
+            <input type="text" id="regHoneypot" name="company_website_url" style="display:none !important; position:absolute; left:-9999px; opacity:0; pointer-events:none;" tabindex="-1" autocomplete="off" aria-hidden="true">
+
             <!-- Username Field -->
             <div class="input-group">
-              <label for="regUsername">Pseudo WafaTalk</label>
+              <div class="label-with-action">
+                <label for="regUsername">Pseudo WafaTalk</label>
+                <span class="field-subtext">Lettres, chiffres, "-" et "_"</span>
+              </div>
               <div class="input-field-wrap">
                 <span class="input-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </span>
-                <input type="text" id="regUsername" placeholder="Ex: Rayan_94" required autocomplete="nickname">
+                <input type="text" id="regUsername" placeholder="Ex: Rayan_94 ou Rayan-94" required autocomplete="nickname" maxlength="30" spellcheck="false">
+                <span id="regUsernameStatus" class="username-status-badge hidden"></span>
               </div>
+              <div id="regUsernameHint" class="username-rule-hint hidden"></div>
             </div>
 
             <!-- Email Field -->
@@ -216,6 +224,45 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                 </span>
                 <input type="email" id="regEmail" placeholder="rayan@exemple.com" required autocomplete="email">
+              </div>
+            </div>
+
+            <!-- Date of Birth Field -->
+            <div class="input-group">
+              <label for="regBirthDate">Date de naissance</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">🎂</span>
+                <input type="date" id="regBirthDate" required max="2013-12-31" min="1920-01-01">
+              </div>
+            </div>
+
+            <!-- Country Field with Real Visual Flags & Search -->
+            <div class="input-group country-picker-group">
+              <label for="countryPickerTrigger">Pays de résidence</label>
+              <div class="country-picker-wrap" id="countryPickerWrap">
+                <button type="button" class="country-picker-trigger" id="countryPickerTrigger" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="selected-flag-wrap" id="selectedFlagWrap">
+                    <span class="default-globe">🌍</span>
+                  </span>
+                  <span class="selected-country-name" id="selectedCountryName">Choisir un pays...</span>
+                  <svg class="picker-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <!-- Hidden actual input for form submission & validation -->
+                <input type="hidden" id="regCountry" name="country" required value="">
+
+                <!-- Dropdown Popover Menu with Real Flag Images -->
+                <div class="country-dropdown-menu hidden" id="countryDropdownMenu" role="listbox">
+                  <div class="country-search-header">
+                    <svg class="search-mini-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" class="country-search-input" id="countrySearchInput" placeholder="Rechercher un pays..." autocomplete="off">
+                    <button type="button" class="country-search-clear hidden" id="btnClearCountrySearch" aria-label="Effacer">✕</button>
+                  </div>
+
+                  <div class="country-options-scroll" id="countryOptionsScroll">
+                    <!-- Rendered dynamically with real SVG/PNG flags from FlagCDN -->
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -237,12 +284,30 @@
               </div>
             </div>
 
-            <!-- Terms acceptance -->
+            <!-- Confirm Password Field -->
+            <div class="input-group">
+              <label for="regPasswordConfirm">Confirmer le mot de passe</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </span>
+                <input type="password" id="regPasswordConfirm" placeholder="Retapez votre mot de passe" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <div id="passwordMatchHint" class="password-match-hint hidden"></div>
+            </div>
+
+            <!-- Terms acceptance (UNCHECKED by default) -->
             <div class="form-extra-row">
-              <label class="custom-checkbox">
-                <input type="checkbox" id="regTerms" required checked>
+              <label class="custom-checkbox terms-checkbox-row">
+                <input type="checkbox" id="regTerms" required>
                 <span class="checkmark"></span>
-                <span class="checkbox-label">J'accepte la charte communautaire et les CGU</span>
+                <span class="checkbox-label">
+                  J'accepte la <a href="terms.html" class="terms-inline-link" id="btnOpenTermsModal">charte & les CGU</a> ainsi que la <a href="privacy.html" target="_blank" class="terms-inline-link">politique de confidentialité</a>
+                </span>
               </label>
             </div>
 
@@ -372,15 +437,25 @@
                 <span class="user-status-dot online"></span>
               </div>
               <div class="user-info-text">
-                <span class="user-name" id="navUserName">Alexandre</span>
+                <div class="user-name-row">
+                  <span class="user-name" id="navUserName">Alexandre</span>
+                  <span id="navUserCountryFlag" class="user-country-flag" title="Pays">🇫🇷</span>
+                </div>
                 <span class="user-tag">VIP Gold 🌟</span>
               </div>
               <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="dropdown-menu profile-dropdown hidden" id="profileDropdown">
               <div class="profile-dropdown-header">
-                <p class="profile-full-name" id="menuFullName">Alexandre Moreau</p>
+                <div class="profile-name-row">
+                  <p class="profile-full-name" id="menuFullName">Alexandre Moreau</p>
+                  <span id="menuCountryFlag" class="user-country-flag">🇫🇷</span>
+                </div>
                 <p class="profile-email-text" id="menuEmail">alexandre@wafatalk.com</p>
+                <div class="profile-country-pill" id="menuCountryWrap">
+                  <span class="country-pill-icon">🌍</span>
+                  <span id="menuCountryName">France</span>
+                </div>
               </div>
               <div class="profile-dropdown-divider"></div>
               <a href="#" class="dropdown-item" id="btnViewProfile">
@@ -825,8 +900,343 @@
   </div>
 
 
+  <!-- In-App Terms & Conditions Modal -->
+  <div class="modal-overlay hidden" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+    <div class="modal-container terms-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: var(--teal-soft-bg); color: var(--teal-primary); font-size: 1.3rem;">
+          📜
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="termsModalTitle">Charte Communautaire & CGU</h2>
+          <p class="gift-modal-desc">Veuillez prendre connaissance des règles fondamentales de WafaTalk.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseTermsModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="terms-modal-body">
+        <div class="terms-modal-scroll">
+          <div class="terms-callout">
+            <strong>Bienvenue sur WafaTalk !</strong> En rejoignant notre communauté, vous vous engagez à respecter les principes de bienveillance, de sécurité et d'authenticité.
+          </div>
+          
+          <h4 class="terms-heading">1. Âge légal & Date de Naissance (13 ans minimum)</h4>
+          <p>L'accès à WafaTalk est strictement réservé aux personnes âgées d'au moins 13 ans. Vous attestez sur l'honneur de la véracité de votre date de naissance et de votre pays de résidence.</p>
+
+          <h4 class="terms-heading">2. Respect mutuel & Salons Vocaux</h4>
+          <p>Tolérance zéro pour les insultes, harcèlement, propos discriminatoires ou diffamatoires. L'enregistrement de la voix d'autres membres sans leur consentement exprès est formellement interdit.</p>
+
+          <h4 class="terms-heading">3. WafaPoints & Cadeaux d'amitié</h4>
+          <p>Les WafaPoints et cadeaux sont virtuels, réservés à l'animation des salons et sans contrepartie monétaire réelle. Ils ne sont ni remboursables ni échangeables contre de l'argent réel.</p>
+
+          <h4 class="terms-heading">4. Protection des Données & Confidentialité</h4>
+          <p>Vos mots de passe sont chiffrés via bcrypt. Les flux vocaux en direct ne sont ni enregistrés ni exploités commercialement. Vos données sont protégées conformément au RGPD.</p>
+        </div>
+
+        <div class="terms-modal-actions">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="terms.html" target="_blank" class="btn btn-secondary btn-sm" id="btnOpenFullTermsPage">
+              <span>CGU complètes ↗</span>
+            </a>
+            <a href="privacy.html" target="_blank" class="btn btn-secondary btn-sm">
+              <span>Politique RGPD 🛡️</span>
+            </a>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="btnAcceptTermsModal">
+            <span>J'ai compris et j'accepte</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Verification OTP Modal (Anti-Bot Protection) -->
+  <div class="modal-overlay hidden" id="emailVerificationModal" role="dialog" aria-modal="true" aria-labelledby="otpModalTitle">
+    <div class="modal-container otp-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(16, 185, 129, 0.12); color: var(--success-color); font-size: 1.4rem;">
+          🛡️
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="otpModalTitle">Vérification de votre e-mail</h2>
+          <p class="gift-modal-desc">Protection anti-bot et validation de compte</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseOtpModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="otp-modal-body">
+        <div class="otp-banner">
+          <span class="otp-banner-icon">📩</span>
+          <div class="otp-banner-text">
+            Un code sécurisé à 6 chiffres a été envoyé à :<br>
+            <strong id="otpTargetEmail" class="otp-highlight-email">utilisateur@exemple.com</strong>
+          </div>
+          <button type="button" class="btn-change-email" id="btnChangeRegEmail" title="Modifier l'adresse email">Modifier</button>
+        </div>
+
+        <div class="otp-instruction">
+          Entrez le code de vérification reçu dans votre boîte de réception :
+        </div>
+
+        <!-- 6 Segmented OTP Input Boxes -->
+        <div class="otp-inputs-row" id="otpInputsRow">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="0" autocomplete="one-time-code" autofocus>
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="1" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="2" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="3" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="4" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="5" autocomplete="off">
+        </div>
+
+        <!-- Dynamic hint / error -->
+        <div id="otpStatusHint" class="otp-status-hint hidden"></div>
+
+        <!-- Timer & Resend Controls -->
+        <div class="otp-meta-row">
+          <span class="otp-timer" id="otpTimer">⏱️ Expire dans 10:00</span>
+          <button type="button" class="btn-resend-otp" id="btnResendOtp" disabled>
+            <span>Renvoyer le code</span>
+            <span id="resendCountdownText" class="resend-countdown">(40s)</span>
+          </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="otp-modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelOtpModal" style="flex: 1;">
+            <span>Annuler</span>
+          </button>
+          <button type="button" class="btn btn-primary btn-shine" id="btnSubmitOtp" style="flex: 2;">
+            <span class="btn-text">Vérifier & Activer</span>
+            <div class="btn-spinner hidden" id="otpSpinner"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : 1-ON-1 DIRECT SALON (PRIVATE CHAT & DMS)             -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="directChatModal" role="dialog" aria-modal="true" aria-labelledby="dmFriendName">
+    <div class="modal-container dm-modal-container glass-panel">
+      <!-- DM Header -->
+      <div class="dm-header">
+        <div class="dm-user-profile-wrap">
+          <div class="dm-avatar-container">
+            <img src="" alt="Avatar ami" class="dm-avatar-img" id="dmFriendAvatar">
+            <span class="dm-status-indicator online" id="dmFriendStatusDot"></span>
+          </div>
+          <div class="dm-user-meta">
+            <div class="dm-name-row">
+              <h3 class="dm-user-name" id="dmFriendName">Ami WafaTalk</h3>
+              <span class="dm-country-flag" id="dmFriendFlag">🌍</span>
+            </div>
+            <span class="dm-status-label" id="dmFriendStatusText">En ligne</span>
+          </div>
+        </div>
+
+        <div class="dm-header-actions">
+          <button type="button" class="icon-btn dm-call-btn audio-call" id="btnStartAudioCall" title="Démarrer un appel vocal" aria-label="Appel vocal">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          </button>
+          <button type="button" class="icon-btn dm-call-btn video-call" id="btnStartVideoCall" title="Démarrer un appel vidéo" aria-label="Appel vidéo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          </button>
+          <button type="button" class="icon-btn modal-close-btn" id="btnCloseDirectChat" aria-label="Fermer le salon privé">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- DM Messages Body -->
+      <div class="dm-body">
+        <div class="dm-messages-scroll" id="dmMessagesScroll">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="dm-typing-indicator hidden" id="dmTypingIndicator">
+          <span class="typing-dots"><span></span><span></span><span></span></span>
+          <span class="typing-text" id="dmTypingText">est en train d'écrire...</span>
+        </div>
+      </div>
+
+      <!-- DM Input Bar -->
+      <form id="dmMessageForm" class="dm-input-bar">
+        <button type="button" class="icon-btn emoji-trigger" id="btnDmEmoji" title="Émojis">😊</button>
+        <input type="text" id="dmTextInput" placeholder="Envoyer un message privé sécurisé..." autocomplete="off" required>
+        <button type="submit" class="btn btn-primary btn-sm btn-send-dm" id="btnSendDm" aria-label="Envoyer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : INCOMING CALL (AUDIO & VIDEO RINGING)                -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay incoming-call-overlay hidden" id="incomingCallModal" role="dialog" aria-modal="true">
+    <div class="incoming-call-card glass-panel">
+      <div class="call-pulse-avatar-wrap">
+        <div class="pulse-ring ring-1"></div>
+        <div class="pulse-ring ring-2"></div>
+        <div class="pulse-ring ring-3"></div>
+        <img src="" alt="Appelant" class="call-caller-avatar" id="incomingCallerAvatar">
+      </div>
+
+      <h3 class="incoming-caller-name" id="incomingCallerName">Ami WafaTalk</h3>
+      <div class="incoming-call-type-badge" id="incomingCallTypeBadge">
+        <span class="badge-icon">📞</span>
+        <span id="incomingCallTypeText">Appel vocal entrant...</span>
+      </div>
+
+      <div class="incoming-call-actions">
+        <button type="button" class="btn-call-action btn-call-decline" id="btnDeclineIncomingCall" title="Refuser l'appel">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+          <span>Refuser</span>
+        </button>
+
+        <button type="button" class="btn-call-action btn-call-accept pulse" id="btnAcceptIncomingCall" title="Décrocher">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <span>Décrocher</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : ACTIVE CALL EXPERIENCE (AUDIO / VIDEO WEBRTC)         -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay active-call-overlay hidden" id="activeCallModal" role="dialog" aria-modal="true">
+    <div class="active-call-container glass-panel">
+      <!-- Call Header -->
+      <div class="active-call-header">
+        <div class="active-call-user-info">
+          <img src="" alt="Correspondant" class="active-call-avatar-mini" id="activeCallPeerAvatar">
+          <div>
+            <h3 class="active-call-peer-name" id="activeCallPeerName">Ami WafaTalk</h3>
+            <span class="active-call-encrypted-tag">🔒 Chiffré de bout en bout P2P</span>
+          </div>
+        </div>
+
+        <div class="active-call-meta-center">
+          <div class="call-timer-badge" id="callDurationBadge">
+            <span class="timer-live-dot pulse"></span>
+            <span id="callDurationTimer">00:00</span>
+          </div>
+        </div>
+
+        <div class="active-call-top-actions">
+          <button type="button" class="icon-btn" id="btnMinimizeCall" title="Réduire l'appel (Picture-in-Picture)" aria-label="Réduire">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Call Main Stage -->
+      <div class="active-call-stage">
+        <!-- Audio Mode Visualizer Stage -->
+        <div class="call-audio-stage" id="callAudioStage">
+          <div class="audio-call-avatars-row">
+            <div class="audio-avatar-card is-local">
+              <div class="avatar-ring-wrap" id="localAudioAvatarRing">
+                <img src="" alt="Moi" class="audio-stage-avatar" id="localAudioAvatar">
+              </div>
+              <span class="audio-stage-name">Moi</span>
+              <span class="audio-stage-mic-status" id="localMicBadge">Micro actif</span>
+            </div>
+
+            <div class="audio-stage-connector">
+              <div class="audio-wave-bars">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+
+            <div class="audio-avatar-card is-peer">
+              <div class="avatar-ring-wrap" id="peerAudioAvatarRing">
+                <img src="" alt="Correspondant" class="audio-stage-avatar" id="peerAudioAvatar">
+              </div>
+              <span class="audio-stage-name" id="peerAudioName">Ami</span>
+              <span class="audio-stage-mic-status" id="peerMicBadge">En ligne</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Mode WebRTC Stage -->
+        <div class="call-video-stage hidden" id="callVideoStage">
+          <!-- Remote Video Feed (Full) -->
+          <div class="remote-video-wrap" id="remoteVideoWrap">
+            <video id="remoteVideo" autoplay playsinline class="remote-video-el"></video>
+            <div class="video-placeholder hidden" id="remoteVideoPlaceholder">
+              <img src="" alt="Correspondant" class="video-placeholder-avatar" id="remotePlaceholderAvatar">
+              <p>Caméra du correspondant désactivée</p>
+            </div>
+          </div>
+
+          <!-- Local Video Feed (Floating PiP) -->
+          <div class="local-video-pip" id="localVideoPip">
+            <video id="localVideo" autoplay playsinline muted class="local-video-el"></video>
+            <div class="local-video-placeholder hidden" id="localVideoPlaceholder">
+              <span>Caméra coupée</span>
+            </div>
+            <button type="button" class="btn-flip-camera hidden" id="btnFlipCamera" title="Changer de caméra">🔄</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Controls Bar -->
+      <div class="active-call-controls-bar glass-panel">
+        <button type="button" class="call-ctrl-btn active" id="btnCallToggleMic" title="Microphone">
+          <svg class="mic-on-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <svg class="mic-off-icon hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span class="ctrl-label">Micro</span>
+        </button>
+
+        <button type="button" class="call-ctrl-btn" id="btnCallToggleCamera" title="Activer / Couper la caméra">
+          <svg class="camera-on-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          <svg class="camera-off-icon hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          <span class="ctrl-label">Caméra</span>
+        </button>
+
+        <button type="button" class="call-ctrl-btn" id="btnCallShareScreen" title="Partager l'écran">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          <span class="ctrl-label">Écran</span>
+        </button>
+
+        <button type="button" class="call-ctrl-btn btn-call-hangup" id="btnCallHangup" title="Raccrocher">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+          <span class="ctrl-label">Raccrocher</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MINI FLOATING CALL WIDGET (DURING MINIMIZATION)               -->
+  <!-- ============================================================ -->
+  <div class="mini-call-widget glass-card hidden" id="miniCallWidget">
+    <div class="mini-call-content" id="btnRestoreCall">
+      <img src="" alt="Ami" class="mini-call-avatar" id="miniCallAvatar">
+      <div class="mini-call-info">
+        <span class="mini-call-name" id="miniCallName">Ami</span>
+        <span class="mini-call-time" id="miniCallTime">00:00</span>
+      </div>
+    </div>
+    <div class="mini-call-actions">
+      <button type="button" class="mini-call-btn" id="btnMiniToggleMic" title="Micro">🎙️</button>
+      <button type="button" class="mini-call-btn btn-mini-hangup" id="btnMiniHangup" title="Raccrocher">🔴</button>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Socket.IO Client Library -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
   <!-- Main JavaScript File -->
   <script src="app.js"></script>

@@ -1,4 +1,6 @@
 // Comprehensive Auth Test Script for WafaTalk
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 const API_BASE = 'http://127.0.0.1:4000/api';
 
 async function runTests() {
@@ -86,12 +88,15 @@ async function runTests() {
         username: testUser,
         email: testGmail,
         password: 'Password123!',
-        displayName: 'Wafa Tester'
+        displayName: 'Wafa Tester',
+        birthDate: '2001-05-14',
+        country: 'FR',
+        termsAccepted: true,
       })
     });
     const data = await res.json();
-    if (res.status === 201 && data.success && data.token && data.user.email === testGmail) {
-      console.log(`✅ Test 5: Register with Gmail (${testGmail}) successful`);
+    if (res.status === 201 && data.success && data.token && data.user.email === testGmail && data.user.country === 'FR' && data.user.birthDate) {
+      console.log(`✅ Test 5: Register with birthDate, country, terms (${testGmail}) successful`);
       newGmailToken = data.token;
       passed++;
     } else {
@@ -189,7 +194,169 @@ async function runTests() {
     failed++;
   }
 
+  // Test 10: Reject invalid username containing forbidden characters (spaces, special symbols, etc.)
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'invalid user@94!',
+        email: `invalid.user.${Date.now()}@test.com`,
+        password: 'Password123!',
+        birthDate: '2000-01-01',
+        country: 'FR',
+        termsAccepted: true
+      })
+    });
+    const data = await res.json();
+    if (res.status === 400 && data.success === false) {
+      console.log('✅ Test 10: Username with illegal characters correctly rejected with 400');
+      passed++;
+    } else {
+      throw new Error(`Expected 400 rejection, got ${res.status}: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    console.error('❌ Test 10 FAILED:', err.message);
+    failed++;
+  }
+
+  // Test 11: Accept valid username with uppercase, lowercase, numbers, hyphen and underscore
+  const validSpecialUser = `User_Name-99_${Date.now().toString().slice(-3)}`;
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: validSpecialUser,
+        email: `valid.${Date.now()}@test.com`,
+        password: 'Password123!',
+        birthDate: '1998-07-22',
+        country: 'MA',
+        termsAccepted: true
+      })
+    });
+    const data = await res.json();
+    if (res.status === 201 && data.success && data.user.username === validSpecialUser) {
+      console.log(`✅ Test 11: Valid username with [a-zA-Z0-9_-] (${validSpecialUser}) accepted`);
+      passed++;
+    } else {
+      throw new Error(JSON.stringify(data));
+    }
+  } catch (err) {
+    console.error('❌ Test 11 FAILED:', err.message);
+    failed++;
+  }
+
+  // Test 12: Send verification OTP code
+  const verifyEmail = `otp.user.${Date.now()}@test.com`;
+  const verifyUsername = `WafaOtp_${Date.now().toString().slice(-4)}`;
+  let capturedOtp = null;
+  try {
+    const res = await fetch(`${API_BASE}/auth/send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: verifyEmail,
+        username: verifyUsername,
+      })
+    });
+    const data = await res.json();
+    const verif = await prisma.emailVerification.findUnique({ where: { email: verifyEmail.toLowerCase() } });
+    if (res.status === 200 && data.success && verif?.code) {
+      console.log(`✅ Test 12: /api/auth/send-verification generated OTP and dispatched email to ${verifyEmail}`);
+      capturedOtp = verif.code;
+      passed++;
+    } else {
+      throw new Error(`Expected 200 and db entry, got ${res.status}: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    console.error('❌ Test 12 FAILED:', err.message);
+    failed++;
+  }
+
+  // Test 13: Prevent sending verification code to an already registered email (e.g. alexandre)
+  try {
+    const res = await fetch(`${API_BASE}/auth/send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'alexandre@wafatalk.com',
+        username: `new_user_${Date.now().toString().slice(-3)}`,
+      })
+    });
+    const data = await res.json();
+    if (res.status === 400 && data.success === false) {
+      console.log('✅ Test 13: Duplicate email correctly blocked before sending verification code');
+      passed++;
+    } else {
+      throw new Error(`Expected 400 rejection, got ${res.status}: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    console.error('❌ Test 13 FAILED:', err.message);
+    failed++;
+  }
+
+  // Test 14: Reject incorrect OTP code
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify-and-register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: verifyEmail,
+        code: '000000',
+        username: verifyUsername,
+        password: 'Password123!',
+        birthDate: '1999-03-12',
+        country: 'FR',
+        termsAccepted: true,
+      })
+    });
+    const data = await res.json();
+    if (res.status === 400 && data.success === false) {
+      console.log('✅ Test 14: Incorrect OTP code rejected with 400');
+      passed++;
+    } else {
+      throw new Error(`Expected 400 rejection, got ${res.status}: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    console.error('❌ Test 14 FAILED:', err.message);
+    failed++;
+  }
+
+  // Test 15: Complete registration with valid OTP code
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify-and-register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: verifyEmail,
+        code: capturedOtp,
+        username: verifyUsername,
+        password: 'Password123!',
+        birthDate: '1999-03-12',
+        country: 'FR',
+        termsAccepted: true,
+      })
+    });
+    const data = await res.json();
+    if (res.status === 201 && data.success && data.token && data.user.isEmailVerified === true) {
+      console.log(`✅ Test 15: Account verified and created successfully (isEmailVerified=true)`);
+      passed++;
+    } else {
+      throw new Error(`Expected 201 with verified user, got ${res.status}: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    console.error('❌ Test 15 FAILED:', err.message);
+    failed++;
+  }
+
+  await prisma.$disconnect();
   console.log(`\n--- Test Results: ${passed} PASSED, ${failed} FAILED ---`);
+  if (failed === 0) {
+    console.log('🎉 ALL AUTH & EMAIL VERIFICATION TESTS PASSED PERFECTLY!');
+  } else {
+    process.exit(1);
+  }
 }
 
 runTests();

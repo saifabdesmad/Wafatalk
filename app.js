@@ -19,8 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
     userPoints: 450,
   };
 
-  // Backend API Base Configuration (Hosted on IONOS VPS)
-  const API_BASE_URL = 'https://api.wafatalk.com/api';
+  // Backend API Base Configuration (Local Dev auto-switch & Production IONOS VPS)
+  const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+    ? 'http://127.0.0.1:4000/api'
+    : 'https://api.wafatalk.com/api';
+
+  const SOCKET_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+    ? 'http://127.0.0.1:4000'
+    : 'https://api.wafatalk.com';
 
   // Mock Salons Data
   const salonsData = [
@@ -115,13 +121,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
-  // Mock Friends Data
+  // Seeded & Connected Friends Data with Real DB IDs & Flags
   const friendsData = [
-    { name: 'Sarah B.', role: 'En vocal', status: 'in-room', room: 'Chill & Discussion', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' },
-    { name: 'Youssef K.', role: 'En ligne', status: 'online', room: 'Disponible', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80' },
-    { name: 'Lina M.', role: 'En vocal', status: 'in-room', room: 'Gaming Squads', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80' },
-    { name: 'Karim D.', role: 'Absent', status: 'idle', room: 'Retour dans 10m', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80' },
-    { name: 'Inès T.', role: 'En ligne', status: 'online', room: 'Écoute de la musique', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=80&auto=format&fit=crop&q=80' }
+    { id: 'user-sarah', username: 'sarah_b', name: 'Sarah B.', role: 'En vocal', status: 'online', room: 'Chill & Discussion', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80', country: 'FR' },
+    { id: 'user-youssef', username: 'youssef_k', name: 'Youssef K.', role: 'En ligne', status: 'online', room: 'Disponible', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80', country: 'MA' },
+    { id: 'user-lina', username: 'lina_m', name: 'Lina M.', role: 'En vocal', status: 'online', room: 'Gaming Squads', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80', country: 'DZ' },
+    { id: 'user-karim', username: 'karim_d', name: 'Karim D.', role: 'Absent', status: 'idle', room: 'Retour dans 10m', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80', country: 'TN' },
+    { id: 'user-alexandre', username: 'alexandre', name: 'Alexandre', role: 'En ligne', status: 'online', room: 'Admin WafaTalk', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', country: 'FR' }
   ];
 
   // Stage Voices Simulation in Room
@@ -163,6 +169,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordToggleBtns = document.querySelectorAll('.password-toggle-btn');
   const regPasswordInput = document.getElementById('regPassword');
   const strengthFill = document.getElementById('strengthFill');
+
+  // Registration Elements
+  const regUsernameInput = document.getElementById('regUsername');
+  const regUsernameStatus = document.getElementById('regUsernameStatus');
+  const regUsernameHint = document.getElementById('regUsernameHint');
+  const regBirthDateInput = document.getElementById('regBirthDate');
+  const regCountryInput = document.getElementById('regCountry');
+  const countryPickerWrap = document.getElementById('countryPickerWrap');
+  const countryPickerTrigger = document.getElementById('countryPickerTrigger');
+  const selectedFlagWrap = document.getElementById('selectedFlagWrap');
+  const selectedCountryName = document.getElementById('selectedCountryName');
+  const countryDropdownMenu = document.getElementById('countryDropdownMenu');
+  const countrySearchInput = document.getElementById('countrySearchInput');
+  const btnClearCountrySearch = document.getElementById('btnClearCountrySearch');
+  const countryOptionsScroll = document.getElementById('countryOptionsScroll');
+  const regPasswordConfirmInput = document.getElementById('regPasswordConfirm');
+  const passwordMatchHint = document.getElementById('passwordMatchHint');
+  const regTermsCheckbox = document.getElementById('regTerms');
+  const btnOpenTermsModal = document.getElementById('btnOpenTermsModal');
+  const termsModal = document.getElementById('termsModal');
+  const btnAcceptTermsModal = document.getElementById('btnAcceptTermsModal');
+
+  // Email Verification & Anti-Bot Elements
+  const regHoneypot = document.getElementById('regHoneypot');
+  const emailVerificationModal = document.getElementById('emailVerificationModal');
+  const btnCloseOtpModal = document.getElementById('btnCloseOtpModal');
+  const btnCancelOtpModal = document.getElementById('btnCancelOtpModal');
+  const otpTargetEmail = document.getElementById('otpTargetEmail');
+  const btnChangeRegEmail = document.getElementById('btnChangeRegEmail');
+  const otpInputsRow = document.getElementById('otpInputsRow');
+  const otpDigitInputs = document.querySelectorAll('.otp-digit-input');
+  const otpStatusHint = document.getElementById('otpStatusHint');
+  const otpTimer = document.getElementById('otpTimer');
+  const btnResendOtp = document.getElementById('btnResendOtp');
+  const resendCountdownText = document.getElementById('resendCountdownText');
+  const btnSubmitOtp = document.getElementById('btnSubmitOtp');
+  const otpSpinner = document.getElementById('otpSpinner');
 
   // Salons Hub Elements
   const salonsGrid = document.getElementById('salonsGrid');
@@ -293,6 +336,722 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Complete Global Countries Dataset with ISO codes & dial prefixes
+  const COUNTRIES = [
+    // Frequent / Popular
+    { code: 'FR', name: 'France', dial: '+33', popular: true },
+    { code: 'MA', name: 'Maroc', dial: '+212', popular: true },
+    { code: 'DZ', name: 'Algérie', dial: '+213', popular: true },
+    { code: 'TN', name: 'Tunisie', dial: '+216', popular: true },
+    { code: 'BE', name: 'Belgique', dial: '+32', popular: true },
+    { code: 'CH', name: 'Suisse', dial: '+41', popular: true },
+    { code: 'CA', name: 'Canada', dial: '+1', popular: true },
+    { code: 'SN', name: 'Sénégal', dial: '+221', popular: true },
+    { code: 'CI', name: "Côte d'Ivoire", dial: '+225', popular: true },
+    { code: 'CM', name: 'Cameroun', dial: '+237', popular: true },
+    { code: 'ML', name: 'Mali', dial: '+223', popular: true },
+    { code: 'GN', name: 'Guinée', dial: '+224', popular: true },
+    { code: 'MG', name: 'Madagascar', dial: '+261', popular: true },
+    { code: 'CD', name: 'RD Congo', dial: '+243', popular: true },
+    { code: 'CG', name: 'Congo', dial: '+242', popular: true },
+    { code: 'TG', name: 'Togo', dial: '+228', popular: true },
+    { code: 'BJ', name: 'Bénin', dial: '+229', popular: true },
+    { code: 'BF', name: 'Burkina Faso', dial: '+226', popular: true },
+    { code: 'NE', name: 'Niger', dial: '+227', popular: true },
+    { code: 'GA', name: 'Gabon', dial: '+241', popular: true },
+    { code: 'LB', name: 'Liban', dial: '+961', popular: true },
+    { code: 'EG', name: 'Égypte', dial: '+20', popular: true },
+    { code: 'SA', name: 'Arabie Saoudite', dial: '+966', popular: true },
+    { code: 'AE', name: 'Émirats Arabes Unis', dial: '+971', popular: true },
+    { code: 'US', name: 'États-Unis', dial: '+1', popular: true },
+    { code: 'GB', name: 'Royaume-Uni', dial: '+44', popular: true },
+    { code: 'DE', name: 'Allemagne', dial: '+49', popular: true },
+    { code: 'ES', name: 'Espagne', dial: '+34', popular: true },
+    { code: 'IT', name: 'Italie', dial: '+39', popular: true },
+    { code: 'PT', name: 'Portugal', dial: '+351', popular: true },
+    { code: 'TR', name: 'Turquie', dial: '+90', popular: true },
+
+    // Complete A-Z world list
+    { code: 'AF', name: 'Afghanistan', dial: '+93' },
+    { code: 'ZA', name: 'Afrique du Sud', dial: '+27' },
+    { code: 'AL', name: 'Albanie', dial: '+355' },
+    { code: 'AD', name: 'Andorre', dial: '+376' },
+    { code: 'AO', name: 'Angola', dial: '+244' },
+    { code: 'AG', name: 'Antigua-et-Barbuda', dial: '+1268' },
+    { code: 'AR', name: 'Argentine', dial: '+54' },
+    { code: 'AM', name: 'Arménie', dial: '+374' },
+    { code: 'AU', name: 'Australie', dial: '+61' },
+    { code: 'AT', name: 'Autriche', dial: '+43' },
+    { code: 'AZ', name: 'Azerbaïdjan', dial: '+994' },
+    { code: 'BS', name: 'Bahamas', dial: '+1242' },
+    { code: 'BH', name: 'Bahreïn', dial: '+973' },
+    { code: 'BD', name: 'Bangladesh', dial: '+880' },
+    { code: 'BB', name: 'Barbade', dial: '+1246' },
+    { code: 'BZ', name: 'Belize', dial: '+501' },
+    { code: 'BT', name: 'Bhoutan', dial: '+975' },
+    { code: 'BY', name: 'Biélorussie', dial: '+375' },
+    { code: 'MM', name: 'Birmanie (Myanmar)', dial: '+95' },
+    { code: 'BO', name: 'Bolivie', dial: '+591' },
+    { code: 'BA', name: 'Bosnie-Herzégovine', dial: '+387' },
+    { code: 'BW', name: 'Botswana', dial: '+267' },
+    { code: 'BR', name: 'Brésil', dial: '+55' },
+    { code: 'BN', name: 'Brunei', dial: '+673' },
+    { code: 'BG', name: 'Bulgarie', dial: '+359' },
+    { code: 'BI', name: 'Burundi', dial: '+257' },
+    { code: 'KH', name: 'Cambodge', dial: '+855' },
+    { code: 'CV', name: 'Cap-Vert', dial: '+238' },
+    { code: 'CL', name: 'Chili', dial: '+56' },
+    { code: 'CN', name: 'Chine', dial: '+86' },
+    { code: 'CY', name: 'Chypre', dial: '+357' },
+    { code: 'CO', name: 'Colombie', dial: '+57' },
+    { code: 'KM', name: 'Comores', dial: '+269' },
+    { code: 'KP', name: 'Corée du Nord', dial: '+850' },
+    { code: 'KR', name: 'Corée du Sud', dial: '+82' },
+    { code: 'CR', name: 'Costa Rica', dial: '+506' },
+    { code: 'HR', name: 'Croatie', dial: '+385' },
+    { code: 'CU', name: 'Cuba', dial: '+53' },
+    { code: 'DK', name: 'Danemark', dial: '+45' },
+    { code: 'DJ', name: 'Djibouti', dial: '+253' },
+    { code: 'DM', name: 'Dominique', dial: '+1767' },
+    { code: 'EC', name: 'Équateur', dial: '+593' },
+    { code: 'ER', name: 'Érythrée', dial: '+291' },
+    { code: 'EE', name: 'Estonie', dial: '+372' },
+    { code: 'SZ', name: 'Eswatini', dial: '+268' },
+    { code: 'ET', name: 'Éthiopie', dial: '+251' },
+    { code: 'FJ', name: 'Fidji', dial: '+679' },
+    { code: 'FI', name: 'Finlande', dial: '+358' },
+    { code: 'GM', name: 'Gambie', dial: '+220' },
+    { code: 'GE', name: 'Géorgie', dial: '+995' },
+    { code: 'GH', name: 'Ghana', dial: '+233' },
+    { code: 'GR', name: 'Grèce', dial: '+30' },
+    { code: 'GD', name: 'Grenade', dial: '+1473' },
+    { code: 'GT', name: 'Guatemala', dial: '+502' },
+    { code: 'GW', name: 'Guinée-Bissau', dial: '+245' },
+    { code: 'GQ', name: 'Guinée équatoriale', dial: '+240' },
+    { code: 'GY', name: 'Guyana', dial: '+592' },
+    { code: 'HT', name: 'Haïti', dial: '+509' },
+    { code: 'HN', name: 'Honduras', dial: '+504' },
+    { code: 'HU', name: 'Hongrie', dial: '+36' },
+    { code: 'IN', name: 'Inde', dial: '+91' },
+    { code: 'ID', name: 'Indonésie', dial: '+62' },
+    { code: 'IQ', name: 'Irak', dial: '+964' },
+    { code: 'IR', name: 'Iran', dial: '+98' },
+    { code: 'IE', name: 'Irlande', dial: '+353' },
+    { code: 'IS', name: 'Islande', dial: '+354' },
+    { code: 'IL', name: 'Israël', dial: '+972' },
+    { code: 'JM', name: 'Jamaïque', dial: '+1876' },
+    { code: 'JP', name: 'Japon', dial: '+81' },
+    { code: 'JO', name: 'Jordanie', dial: '+962' },
+    { code: 'KZ', name: 'Kazakhstan', dial: '+7' },
+    { code: 'KE', name: 'Kenya', dial: '+254' },
+    { code: 'KG', name: 'Kirghizistan', dial: '+996' },
+    { code: 'KI', name: 'Kiribati', dial: '+686' },
+    { code: 'KW', name: 'Koweït', dial: '+965' },
+    { code: 'LA', name: 'Laos', dial: '+856' },
+    { code: 'LS', name: 'Lesotho', dial: '+266' },
+    { code: 'LV', name: 'Lettonie', dial: '+371' },
+    { code: 'LR', name: 'Libéria', dial: '+231' },
+    { code: 'LY', name: 'Libye', dial: '+218' },
+    { code: 'LI', name: 'Liechtenstein', dial: '+423' },
+    { code: 'LT', name: 'Lituanie', dial: '+370' },
+    { code: 'LU', name: 'Luxembourg', dial: '+352' },
+    { code: 'MK', name: 'Macédoine du Nord', dial: '+389' },
+    { code: 'MY', name: 'Malaisie', dial: '+60' },
+    { code: 'MW', name: 'Malawi', dial: '+265' },
+    { code: 'MV', name: 'Maldives', dial: '+960' },
+    { code: 'MT', name: 'Malte', dial: '+356' },
+    { code: 'MU', name: 'Maurice', dial: '+230' },
+    { code: 'MR', name: 'Mauritanie', dial: '+222' },
+    { code: 'MX', name: 'Mexique', dial: '+52' },
+    { code: 'FM', name: 'Micronésie', dial: '+691' },
+    { code: 'MD', name: 'Moldavie', dial: '+373' },
+    { code: 'MC', name: 'Monaco', dial: '+377' },
+    { code: 'MN', name: 'Mongolie', dial: '+976' },
+    { code: 'ME', name: 'Monténégro', dial: '+382' },
+    { code: 'MZ', name: 'Mozambique', dial: '+258' },
+    { code: 'NA', name: 'Namibie', dial: '+264' },
+    { code: 'NR', name: 'Nauru', dial: '+674' },
+    { code: 'NP', name: 'Népal', dial: '+977' },
+    { code: 'NI', name: 'Nicaragua', dial: '+505' },
+    { code: 'NE', name: 'Niger', dial: '+227' },
+    { code: 'NG', name: 'Nigeria', dial: '+234' },
+    { code: 'NO', name: 'Norvège', dial: '+47' },
+    { code: 'NZ', name: 'Nouvelle-Zélande', dial: '+64' },
+    { code: 'OM', name: 'Oman', dial: '+968' },
+    { code: 'UG', name: 'Ouganda', dial: '+256' },
+    { code: 'UZ', name: 'Ouzbékistan', dial: '+998' },
+    { code: 'PK', name: 'Pakistan', dial: '+92' },
+    { code: 'PW', name: 'Palaos', dial: '+680' },
+    { code: 'PS', name: 'Palestine', dial: '+970' },
+    { code: 'PA', name: 'Panama', dial: '+507' },
+    { code: 'PG', name: 'Papouasie-Nouvelle-Guinée', dial: '+675' },
+    { code: 'PY', name: 'Paraguay', dial: '+595' },
+    { code: 'NL', name: 'Pays-Bas', dial: '+31' },
+    { code: 'PE', name: 'Pérou', dial: '+51' },
+    { code: 'PH', name: 'Philippines', dial: '+63' },
+    { code: 'PL', name: 'Pologne', dial: '+48' },
+    { code: 'QA', name: 'Qatar', dial: '+974' },
+    { code: 'CF', name: 'République Centrafricaine', dial: '+236' },
+    { code: 'DO', name: 'République Dominicaine', dial: '+1809' },
+    { code: 'CZ', name: 'République Tchèque', dial: '+420' },
+    { code: 'RO', name: 'Roumanie', dial: '+40' },
+    { code: 'RU', name: 'Russie', dial: '+7' },
+    { code: 'RW', name: 'Rwanda', dial: '+250' },
+    { code: 'KN', name: 'Saint-Christophe-et-Niévès', dial: '+1869' },
+    { code: 'LC', name: 'Sainte-Lucie', dial: '+1758' },
+    { code: 'SM', name: 'Saint-Marin', dial: '+378' },
+    { code: 'VC', name: 'Saint-Vincent-et-les-Grenadines', dial: '+1784' },
+    { code: 'SB', name: 'Salomon', dial: '+677' },
+    { code: 'SV', name: 'Salvador', dial: '+503' },
+    { code: 'WS', name: 'Samoa', dial: '+685' },
+    { code: 'ST', name: 'São Tomé-et-Príncipe', dial: '+239' },
+    { code: 'RS', name: 'Serbie', dial: '+381' },
+    { code: 'SC', name: 'Seychelles', dial: '+248' },
+    { code: 'SL', name: 'Sierra Leone', dial: '+232' },
+    { code: 'SG', name: 'Singapour', dial: '+65' },
+    { code: 'SK', name: 'Slovaquie', dial: '+421' },
+    { code: 'SI', name: 'Slovénie', dial: '+386' },
+    { code: 'SO', name: 'Somalie', dial: '+252' },
+    { code: 'SD', name: 'Soudan', dial: '+249' },
+    { code: 'SS', name: 'Soudan du Sud', dial: '+211' },
+    { code: 'LK', name: 'Sri Lanka', dial: '+94' },
+    { code: 'SE', name: 'Suède', dial: '+46' },
+    { code: 'SR', name: 'Surinam', dial: '+597' },
+    { code: 'SY', name: 'Syrie', dial: '+963' },
+    { code: 'TJ', name: 'Tadjikistan', dial: '+992' },
+    { code: 'TW', name: 'Taïwan', dial: '+886' },
+    { code: 'TZ', name: 'Tanzanie', dial: '+255' },
+    { code: 'TD', name: 'Tchad', dial: '+235' },
+    { code: 'TH', name: 'Thaïlande', dial: '+66' },
+    { code: 'TL', name: 'Timor Oriental', dial: '+670' },
+    { code: 'TG', name: 'Togo', dial: '+228' },
+    { code: 'TO', name: 'Tonga', dial: '+676' },
+    { code: 'TT', name: 'Trinité-et-Tobago', dial: '+1868' },
+    { code: 'TM', name: 'Turkménistan', dial: '+993' },
+    { code: 'TV', name: 'Tuvalu', dial: '+688' },
+    { code: 'UA', name: 'Ukraine', dial: '+380' },
+    { code: 'UY', name: 'Uruguay', dial: '+598' },
+    { code: 'VU', name: 'Vanuatu', dial: '+678' },
+    { code: 'VA', name: 'Vatican', dial: '+379' },
+    { code: 'VE', name: 'Venezuela', dial: '+58' },
+    { code: 'VN', name: 'Vietnam', dial: '+84' },
+    { code: 'YE', name: 'Yémen', dial: '+967' },
+    { code: 'ZM', name: 'Zambie', dial: '+260' },
+    { code: 'ZW', name: 'Zimbabwe', dial: '+263' }
+  ];
+
+  // Country Flag Image Tag Generator
+  function getFlagImgTag(countryCode, alt = '') {
+    if (!countryCode) return '<span class="default-globe">🌍</span>';
+    const code = countryCode.trim().toLowerCase();
+    return `<img src="https://flagcdn.com/w40/${code}.png" class="country-flag-img" alt="${alt || countryCode}" loading="lazy" onerror="this.outerHTML='🌍'">`;
+  }
+
+  // Graphical Country Picker Controller
+  let activeCountryCode = '';
+
+  function selectCountry(country) {
+    activeCountryCode = country.code;
+    if (regCountryInput) regCountryInput.value = country.code;
+    if (selectedFlagWrap) selectedFlagWrap.innerHTML = getFlagImgTag(country.code, country.name);
+    if (selectedCountryName) selectedCountryName.textContent = country.name;
+    closeCountryDropdown();
+  }
+
+  function renderCountryOptions(filter = '') {
+    if (!countryOptionsScroll) return;
+    const cleanFilter = filter.trim().toLowerCase();
+    
+    const matches = COUNTRIES.filter(c => 
+      c.name.toLowerCase().includes(cleanFilter) || 
+      c.code.toLowerCase().includes(cleanFilter) ||
+      c.dial.includes(cleanFilter)
+    );
+
+    if (matches.length === 0) {
+      countryOptionsScroll.innerHTML = `<div class="no-countries-found">Aucun pays trouvé pour « ${filter} »</div>`;
+      return;
+    }
+
+    let html = '';
+    // If no search filter, show popular section first
+    if (!cleanFilter) {
+      html += `<div class="country-group-label">🌟 Pays Fréquents</div>`;
+      COUNTRIES.filter(c => c.popular).forEach(c => {
+        const isSel = c.code === activeCountryCode ? 'selected' : '';
+        html += `
+          <div class="country-option-item ${isSel}" data-code="${c.code}">
+            <img src="https://flagcdn.com/w40/${c.code.toLowerCase()}.png" class="country-flag-img" alt="${c.name}" loading="lazy">
+            <span class="country-name-text">${c.name}</span>
+            <span class="country-code-pill">${c.dial}</span>
+          </div>
+        `;
+      });
+      html += `<div class="country-group-label" style="margin-top: 6px;">🌐 Tous les Pays</div>`;
+    }
+
+    matches.forEach(c => {
+      const isSel = c.code === activeCountryCode ? 'selected' : '';
+      html += `
+        <div class="country-option-item ${isSel}" data-code="${c.code}">
+          <img src="https://flagcdn.com/w40/${c.code.toLowerCase()}.png" class="country-flag-img" alt="${c.name}" loading="lazy">
+          <span class="country-name-text">${c.name}</span>
+          <span class="country-code-pill">${c.dial}</span>
+        </div>
+      `;
+    });
+
+    countryOptionsScroll.innerHTML = html;
+
+    // Attach click listeners to option items
+    countryOptionsScroll.querySelectorAll('.country-option-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const code = item.getAttribute('data-code');
+        const found = COUNTRIES.find(c => c.code === code);
+        if (found) selectCountry(found);
+      });
+    });
+  }
+
+  function resetCountryPicker() {
+    activeCountryCode = '';
+    if (regCountryInput) regCountryInput.value = '';
+    if (selectedFlagWrap) selectedFlagWrap.innerHTML = '<span class="default-globe">🌍</span>';
+    if (selectedCountryName) selectedCountryName.textContent = 'Choisir un pays...';
+    closeCountryDropdown();
+  }
+
+  function openCountryDropdown() {
+    countryDropdownMenu?.classList.remove('hidden');
+    countryPickerWrap?.classList.add('open');
+    countryPickerTrigger?.setAttribute('aria-expanded', 'true');
+    renderCountryOptions(countrySearchInput?.value || '');
+    
+    // Prevent horizontal shift on auth card
+    const card = document.querySelector('.auth-card');
+    if (card) card.scrollLeft = 0;
+    const authScr = document.getElementById('authScreen');
+    if (authScr) authScr.scrollLeft = 0;
+
+    setTimeout(() => {
+      countrySearchInput?.focus({ preventScroll: true });
+    }, 40);
+  }
+
+  function closeCountryDropdown() {
+    countryDropdownMenu?.classList.add('hidden');
+    countryPickerWrap?.classList.remove('open');
+    countryPickerTrigger?.setAttribute('aria-expanded', 'false');
+
+    const card = document.querySelector('.auth-card');
+    if (card) card.scrollLeft = 0;
+  }
+
+  countryPickerTrigger?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (countryPickerWrap?.classList.contains('open')) {
+      closeCountryDropdown();
+    } else {
+      openCountryDropdown();
+    }
+  });
+
+  countrySearchInput?.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (btnClearCountrySearch) {
+      btnClearCountrySearch.classList.toggle('hidden', !val);
+    }
+    renderCountryOptions(val);
+  });
+
+  btnClearCountrySearch?.addEventListener('click', () => {
+    if (countrySearchInput) countrySearchInput.value = '';
+    btnClearCountrySearch.classList.add('hidden');
+    renderCountryOptions('');
+    countrySearchInput?.focus();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (countryPickerWrap && !countryPickerWrap.contains(e.target)) {
+      closeCountryDropdown();
+    }
+  });
+
+  // Age calculation helper (returns age in years)
+  function calculateAge(birthDateString) {
+    if (!birthDateString) return 0;
+    const birthDate = new Date(birthDateString);
+    if (isNaN(birthDate.getTime())) return 0;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
+  // Real-Time Username Restriction Verifier
+  // Allowed: letters uppercase and lowercase [a-zA-Z], numbers [0-9], hyphen [-], underscore [_]
+  const USERNAME_ALLOWED_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+  function validateUsernameLive() {
+    if (!regUsernameInput) return;
+    const val = regUsernameInput.value.trim();
+
+    if (!val) {
+      if (regUsernameHint) regUsernameHint.className = 'username-rule-hint hidden';
+      if (regUsernameStatus) {
+        regUsernameStatus.className = 'username-status-badge hidden';
+        regUsernameStatus.textContent = '';
+      }
+      regUsernameInput.classList.remove('has-error', 'has-valid');
+      return;
+    }
+
+    // Check for forbidden characters
+    if (!USERNAME_ALLOWED_REGEX.test(val)) {
+      regUsernameInput.classList.add('has-error');
+      regUsernameInput.classList.remove('has-valid');
+      if (regUsernameStatus) {
+        regUsernameStatus.className = 'username-status-badge invalid';
+        regUsernameStatus.textContent = '✕';
+      }
+      if (regUsernameHint) {
+        regUsernameHint.className = 'username-rule-hint invalid';
+        regUsernameHint.innerHTML = '<span>✕</span><span>Seuls les lettres (A-Z, a-z), chiffres (0-9), tirets (-) et underscores (_) sont autorisés.</span>';
+      }
+      return;
+    }
+
+    // Check length requirements
+    if (val.length < 3) {
+      regUsernameInput.classList.remove('has-error', 'has-valid');
+      if (regUsernameStatus) {
+        regUsernameStatus.className = 'username-status-badge invalid';
+        regUsernameStatus.textContent = `${val.length}/3`;
+      }
+      if (regUsernameHint) {
+        regUsernameHint.className = 'username-rule-hint info';
+        regUsernameHint.innerHTML = `<span>ℹ️</span><span>Au moins 3 caractères requis (${val.length}/3).</span>`;
+      }
+      return;
+    }
+
+    if (val.length > 30) {
+      regUsernameInput.classList.add('has-error');
+      regUsernameInput.classList.remove('has-valid');
+      if (regUsernameStatus) {
+        regUsernameStatus.className = 'username-status-badge invalid';
+        regUsernameStatus.textContent = '30 max';
+      }
+      if (regUsernameHint) {
+        regUsernameHint.className = 'username-rule-hint invalid';
+        regUsernameHint.innerHTML = '<span>✕</span><span>Le pseudo ne peut pas dépasser 30 caractères.</span>';
+      }
+      return;
+    }
+
+    // Valid
+    regUsernameInput.classList.remove('has-error');
+    regUsernameInput.classList.add('has-valid');
+    if (regUsernameStatus) {
+      regUsernameStatus.className = 'username-status-badge valid';
+      regUsernameStatus.textContent = '✓';
+    }
+    if (regUsernameHint) {
+      regUsernameHint.className = 'username-rule-hint valid';
+      regUsernameHint.innerHTML = `<span>✓</span><span>Pseudo valide et conforme (${val.length}/30).</span>`;
+    }
+  }
+
+  regUsernameInput?.addEventListener('input', validateUsernameLive);
+
+  // Real-Time Password Confirmation Match Verifier
+  function checkPasswordMatch() {
+    if (!regPasswordConfirmInput || !passwordMatchHint) return;
+    const pwd = regPasswordInput?.value || '';
+    const confirmPwd = regPasswordConfirmInput.value;
+
+    if (!confirmPwd) {
+      passwordMatchHint.className = 'password-match-hint hidden';
+      passwordMatchHint.textContent = '';
+      return;
+    }
+
+    passwordMatchHint.classList.remove('hidden');
+    if (pwd === confirmPwd) {
+      passwordMatchHint.className = 'password-match-hint match';
+      passwordMatchHint.innerHTML = '<span>✓</span><span>Les mots de passe correspondent parfaitement.</span>';
+    } else {
+      passwordMatchHint.className = 'password-match-hint mismatch';
+      passwordMatchHint.innerHTML = '<span>✕</span><span>Les mots de passe ne correspondent pas.</span>';
+    }
+  }
+
+  regPasswordInput?.addEventListener('input', checkPasswordMatch);
+  regPasswordConfirmInput?.addEventListener('input', checkPasswordMatch);
+
+  // In-App Terms & Conditions Modal handlers
+  btnOpenTermsModal?.addEventListener('click', (e) => {
+    e.preventDefault();
+    termsModal?.classList.remove('hidden');
+  });
+
+  btnCloseTermsModal?.addEventListener('click', () => {
+    termsModal?.classList.add('hidden');
+  });
+
+  btnAcceptTermsModal?.addEventListener('click', () => {
+    if (regTermsCheckbox) {
+      regTermsCheckbox.checked = true;
+    }
+    termsModal?.classList.add('hidden');
+    showToast('Charte communautaire & CGU acceptées ! ✅', 'teal');
+  });
+
+  termsModal?.addEventListener('click', (e) => {
+    if (e.target === termsModal) {
+      termsModal.classList.add('hidden');
+    }
+  });
+
+  // =========================================================================
+  // EMAIL VERIFICATION & 6-DIGIT OTP CONTROLLER (ANTI-BOT)
+  // =========================================================================
+  let pendingRegistrationData = null;
+  let otpExpiryTimer = null;
+  let otpResendTimer = null;
+  let otpExpirySeconds = 600; // 10 minutes
+  let otpResendCooldown = 40; // 40 seconds
+
+  function openEmailVerificationModal(email, debugCode) {
+    if (!emailVerificationModal) return;
+    emailVerificationModal.classList.remove('hidden');
+    if (otpTargetEmail) otpTargetEmail.textContent = email;
+
+    // Reset inputs
+    otpDigitInputs.forEach(input => {
+      input.value = '';
+      input.classList.remove('filled', 'error');
+    });
+    if (otpStatusHint) otpStatusHint.className = 'otp-status-hint hidden';
+
+    // Focus first input
+    setTimeout(() => {
+      otpDigitInputs[0]?.focus();
+    }, 150);
+
+    // Start Expiry Timer (10 minutes)
+    clearInterval(otpExpiryTimer);
+    otpExpirySeconds = 600;
+    updateOtpTimerDisplay();
+    otpExpiryTimer = setInterval(() => {
+      otpExpirySeconds--;
+      updateOtpTimerDisplay();
+      if (otpExpirySeconds <= 0) {
+        clearInterval(otpExpiryTimer);
+        showOtpError('Le code a expiré. Veuillez demander un nouveau code.');
+      }
+    }, 1000);
+
+    // Start Resend Cooldown (40 seconds)
+    startResendCooldown();
+  }
+
+  function updateOtpTimerDisplay() {
+    if (!otpTimer) return;
+    const mins = Math.floor(otpExpirySeconds / 60);
+    const secs = otpExpirySeconds % 60;
+    otpTimer.textContent = `⏱️ Expire dans ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  function startResendCooldown() {
+    if (!btnResendOtp) return;
+    clearInterval(otpResendTimer);
+    otpResendCooldown = 40;
+    btnResendOtp.disabled = true;
+    if (resendCountdownText) resendCountdownText.textContent = `(${otpResendCooldown}s)`;
+
+    otpResendTimer = setInterval(() => {
+      otpResendCooldown--;
+      if (resendCountdownText) resendCountdownText.textContent = `(${otpResendCooldown}s)`;
+      if (otpResendCooldown <= 0) {
+        clearInterval(otpResendTimer);
+        btnResendOtp.disabled = false;
+        if (resendCountdownText) resendCountdownText.textContent = '';
+      }
+    }, 1000);
+  }
+
+  function closeEmailVerificationModal() {
+    if (!emailVerificationModal) return;
+    emailVerificationModal.classList.add('hidden');
+    clearInterval(otpExpiryTimer);
+    clearInterval(otpResendTimer);
+  }
+
+  function showOtpError(message) {
+    if (otpStatusHint) {
+      otpStatusHint.className = 'otp-status-hint error';
+      otpStatusHint.innerHTML = `<span>✕</span><span>${message}</span>`;
+    }
+    otpDigitInputs.forEach(i => i.classList.add('error'));
+    shakeElement(emailVerificationModal.querySelector('.modal-container'));
+    playTone(220, 'sawtooth', 0.25);
+  }
+
+  // Handle 6-digit OTP Inputs events
+  otpDigitInputs.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      const val = input.value.replace(/\D/g, '');
+      input.value = val ? val[0] : '';
+      input.classList.toggle('filled', !!input.value);
+      input.classList.remove('error');
+      if (otpStatusHint) otpStatusHint.className = 'otp-status-hint hidden';
+
+      // Auto advance to next box
+      if (input.value && index < otpDigitInputs.length - 1) {
+        otpDigitInputs[index + 1].focus();
+      }
+
+      // Check if all filled
+      const fullCode = Array.from(otpDigitInputs).map(i => i.value).join('');
+      if (fullCode.length === 6) {
+        btnSubmitOtp?.focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        if (!input.value && index > 0) {
+          otpDigitInputs[index - 1].value = '';
+          otpDigitInputs[index - 1].classList.remove('filled', 'error');
+          otpDigitInputs[index - 1].focus();
+        } else {
+          input.value = '';
+          input.classList.remove('filled', 'error');
+        }
+      } else if (e.key === 'ArrowLeft' && index > 0) {
+        otpDigitInputs[index - 1].focus();
+      } else if (e.key === 'ArrowRight' && index < otpDigitInputs.length - 1) {
+        otpDigitInputs[index + 1].focus();
+      }
+    });
+
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text');
+      const digits = paste.replace(/\D/g, '').slice(0, 6);
+      if (digits) {
+        digits.split('').forEach((char, dIdx) => {
+          if (otpDigitInputs[dIdx]) {
+            otpDigitInputs[dIdx].value = char;
+            otpDigitInputs[dIdx].classList.add('filled');
+            otpDigitInputs[dIdx].classList.remove('error');
+          }
+        });
+        const targetIndex = Math.min(digits.length, 5);
+        otpDigitInputs[targetIndex].focus();
+        if (digits.length === 6) {
+          btnSubmitOtp?.focus();
+        }
+      }
+    });
+  });
+
+  // Modal actions
+  btnCloseOtpModal?.addEventListener('click', closeEmailVerificationModal);
+  btnCancelOtpModal?.addEventListener('click', closeEmailVerificationModal);
+
+  btnChangeRegEmail?.addEventListener('click', () => {
+    closeEmailVerificationModal();
+    const regEmailInput = document.getElementById('regEmail');
+    regEmailInput?.focus();
+    regEmailInput?.select();
+  });
+
+  // Resend code handler
+  btnResendOtp?.addEventListener('click', async () => {
+    if (!pendingRegistrationData || btnResendOtp.disabled) return;
+    btnResendOtp.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/resend-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pendingRegistrationData.email,
+          username: pendingRegistrationData.username,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Nouveau code de vérification envoyé par e-mail ! 📩', 'teal');
+        startResendCooldown();
+      } else {
+        showToast(data.message || 'Erreur lors du renvoi du code', 'coral');
+      }
+    } catch (err) {
+      showToast('Impossible de renvoyer le code. Vérifiez votre connexion.', 'coral');
+    }
+  });
+
+  // Submit OTP Verification & Register
+  btnSubmitOtp?.addEventListener('click', async () => {
+    if (!pendingRegistrationData) return;
+    const code = Array.from(otpDigitInputs).map(i => i.value.trim()).join('');
+
+    if (code.length !== 6) {
+      showOtpError('Veuillez saisir les 6 chiffres du code.');
+      return;
+    }
+
+    btnSubmitOtp.disabled = true;
+    if (otpSpinner) otpSpinner.classList.remove('hidden');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/verify-and-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pendingRegistrationData,
+          code,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.token && data.user) {
+        closeEmailVerificationModal();
+        formRegister.reset();
+        resetCountryPicker();
+        if (regUsernameHint) regUsernameHint.className = 'username-rule-hint hidden';
+        if (regUsernameStatus) regUsernameStatus.className = 'username-status-badge hidden';
+        regUsernameInput?.classList.remove('has-error', 'has-valid');
+        if (passwordMatchHint) passwordMatchHint.className = 'password-match-hint hidden';
+        if (strengthFill) strengthFill.style.width = '0%';
+
+        data.user.country = data.user.country || pendingRegistrationData.country;
+        data.user.countryName = pendingRegistrationData.countryName;
+        data.user.birthDate = data.user.birthDate || pendingRegistrationData.birthDate;
+
+        setAuthSession(data.token, data.user);
+        authenticateUser(data.user, true);
+        showToast(`Compte vérifié et activé ! Bienvenue ${data.user.displayName || pendingRegistrationData.username} 🎈`, 'success');
+        playTone(520, 'sine', 0.25);
+        return;
+      } else {
+        showOtpError(data.message || 'Code de vérification incorrect.');
+      }
+    } catch (err) {
+      showOtpError('Erreur de connexion au serveur. Réessayez.');
+    } finally {
+      btnSubmitOtp.disabled = false;
+      if (otpSpinner) otpSpinner.classList.add('hidden');
+    }
+  });
+
   // Shake Element on Error Feedback
   function shakeElement(el) {
     if (!el) return;
@@ -316,6 +1075,10 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('wafatalk_token');
     localStorage.removeItem('wafatalk_user');
     state.currentUser = null;
+    if (socket) {
+      socket.disconnect();
+      socket = null;
+    }
   }
 
   // Successful Login Transition to Hub
@@ -343,6 +1106,12 @@ document.addEventListener('DOMContentLoaded', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       hubScreen.style.opacity = '1';
 
+      // Connect user to real-time Socket.IO Gateway
+      const token = getAuthToken();
+      if (token) {
+        initSocketConnection(token);
+      }
+
       // Update UI with real user info
       const navUserName = document.getElementById('navUserName');
       const heroUserGreeting = document.getElementById('heroUserGreeting');
@@ -359,6 +1128,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (menuEmail) menuEmail.textContent = email;
       if (userPointsVal) userPointsVal.textContent = state.userPoints;
       if (dropdownUserPoints) dropdownUserPoints.textContent = state.userPoints;
+
+      // Update Country Flag & Info
+      const navUserCountryFlag = document.getElementById('navUserCountryFlag');
+      const menuCountryFlag = document.getElementById('menuCountryFlag');
+      const menuCountryName = document.getElementById('menuCountryName');
+      const countryCode = (userData.country || 'FR').trim().toUpperCase();
+      const countryObj = COUNTRIES.find(c => c.code === countryCode);
+      const flagImgTag = `<img src="https://flagcdn.com/w40/${countryCode.toLowerCase()}.png" class="user-country-flag-img" alt="${countryCode}" loading="lazy">`;
+
+      if (navUserCountryFlag) navUserCountryFlag.innerHTML = flagImgTag;
+      if (menuCountryFlag) menuCountryFlag.innerHTML = flagImgTag;
+      if (menuCountryName) {
+        menuCountryName.textContent = countryObj ? countryObj.name : (userData.countryName || countryCode);
+      }
 
       renderSalons();
       renderFriends();
@@ -485,39 +1268,142 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSubmit = document.getElementById('btnRegSubmit');
     const spinner = document.getElementById('regSpinner');
     const btnText = btnSubmit.querySelector('.btn-text');
+
     const username = document.getElementById('regUsername').value.trim();
     const email = document.getElementById('regEmail').value.trim();
+    const birthDate = regBirthDateInput?.value || '';
+    const country = (regCountryInput?.value || activeCountryCode || '').trim().toUpperCase();
+    const countryObj = COUNTRIES.find(c => c.code === country);
+    const countryName = countryObj ? countryObj.name : country;
     const password = document.getElementById('regPassword').value;
+    const passwordConfirm = regPasswordConfirmInput?.value || '';
+    const termsAccepted = regTermsCheckbox?.checked;
 
-    btnText.textContent = 'Création du compte...';
+    // 0. Validate Username (letters uppercase/lowercase, numbers, '-', '_')
+    if (!username) {
+      showToast('Veuillez choisir un pseudo WafaTalk.', 'coral');
+      shakeElement(formRegister);
+      regUsernameInput?.focus();
+      return;
+    }
+
+    if (!USERNAME_ALLOWED_REGEX.test(username)) {
+      showToast('Le pseudo ne peut contenir que des lettres (A-Z, a-z), chiffres (0-9), tirets (-) et underscores (_).', 'coral');
+      shakeElement(formRegister);
+      playTone(220, 'sawtooth', 0.25);
+      regUsernameInput?.focus();
+      return;
+    }
+
+    if (username.length < 3) {
+      showToast('Le pseudo doit comporter au moins 3 caractères.', 'coral');
+      shakeElement(formRegister);
+      playTone(220, 'sawtooth', 0.25);
+      regUsernameInput?.focus();
+      return;
+    }
+
+    if (username.length > 30) {
+      showToast('Le pseudo ne peut pas dépasser 30 caractères.', 'coral');
+      shakeElement(formRegister);
+      playTone(220, 'sawtooth', 0.25);
+      regUsernameInput?.focus();
+      return;
+    }
+
+    // 1. Validate Date of Birth (Age >= 13)
+    if (!birthDate) {
+      showToast('Veuillez indiquer votre date de naissance.', 'coral');
+      shakeElement(formRegister);
+      regBirthDateInput?.focus();
+      return;
+    }
+
+    const age = calculateAge(birthDate);
+    if (age < 13) {
+      showToast('Vous devez avoir au moins 13 ans pour rejoindre WafaTalk.', 'coral');
+      shakeElement(formRegister);
+      playTone(220, 'sawtooth', 0.25);
+      return;
+    }
+    if (age > 120) {
+      showToast('Veuillez indiquer une date de naissance valide.', 'coral');
+      shakeElement(formRegister);
+      return;
+    }
+
+    // 2. Validate Country
+    if (!country) {
+      showToast('Veuillez sélectionner votre pays de résidence.', 'coral');
+      shakeElement(formRegister);
+      openCountryDropdown();
+      return;
+    }
+
+    // 3. Validate Password and Confirmation
+    if (password.length < 6) {
+      showToast('Le mot de passe doit comporter au moins 6 caractères.', 'coral');
+      shakeElement(formRegister);
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      showToast('Les deux mots de passe ne correspondent pas.', 'coral');
+      shakeElement(formRegister);
+      playTone(220, 'sawtooth', 0.25);
+      regPasswordConfirmInput?.focus();
+      return;
+    }
+
+    // 4. Validate Terms Checkbox
+    if (!termsAccepted) {
+      showToast('Veuillez accepter la charte communautaire et les CGU pour continuer.', 'coral');
+      shakeElement(formRegister);
+      playTone(220, 'sawtooth', 0.25);
+      return;
+    }
+
+    // Anti-Bot Honeypot check
+    const honeypotVal = regHoneypot?.value?.trim();
+    if (honeypotVal) {
+      console.warn('Bot registration blocked via honeypot trap.');
+      return; // Silent reject of bot
+    }
+
+    btnText.textContent = 'Envoi du code...';
     spinner.classList.remove('hidden');
     btnSubmit.disabled = true;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      const res = await fetch(`${API_BASE_URL}/auth/send-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username,
           email,
+          birthDate,
+          country,
           password,
-          displayName: username,
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.user && data.token) {
-          setAuthSession(data.token, data.user);
-          formRegister.reset();
-          if (strengthFill) strengthFill.style.width = '0%';
-          authenticateUser(data.user, true);
-          showToast(`Compte créé avec succès ! Bienvenue ${data.user.displayName || username} 🎈`, 'success');
-          return;
-        }
+      const data = await res.json();
+      if (res.ok && data.success) {
+        pendingRegistrationData = {
+          username,
+          email,
+          password,
+          displayName: username,
+          birthDate,
+          country,
+          countryName,
+          termsAccepted: true,
+        };
+        openEmailVerificationModal(email);
+        showToast(`Code de vérification envoyé à ${email} 📩 Consultez votre boîte de réception.`, 'teal');
+        return;
       } else if (res.status === 400) {
-        const data = await res.json();
-        showToast(data.message || 'Erreur lors de la création du compte', 'coral');
+        showToast(data.message || 'Erreur lors de l\'envoi du code', 'coral');
         shakeElement(formRegister);
         playTone(220, 'sawtooth', 0.25);
         return;
@@ -527,7 +1413,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Offline / Vercel Fallback: Create account in browser localStorage
       const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
       const cleanEmail = email.toLowerCase();
-      const cleanUsername = username.replace(/\s+/g, '_');
+      const cleanUsername = username.trim();
 
       const exists = localUsers.find(u => u.email.toLowerCase() === cleanEmail || u.username.toLowerCase() === cleanUsername.toLowerCase());
       if (exists) {
@@ -543,6 +1429,10 @@ document.addEventListener('DOMContentLoaded', () => {
         email: cleanEmail,
         displayName: username,
         password: password,
+        birthDate: birthDate,
+        country: country,
+        countryName: countryName,
+        isEmailVerified: true,
         avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername)}`,
         wafaPoints: 150,
         role: 'USER',
@@ -556,6 +1446,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const fakeToken = `local_token_${newUser.id}`;
       setAuthSession(fakeToken, newUser);
       formRegister.reset();
+      resetCountryPicker();
+      if (regUsernameHint) regUsernameHint.className = 'username-rule-hint hidden';
+      if (regUsernameStatus) regUsernameStatus.className = 'username-status-badge hidden';
+      regUsernameInput?.classList.remove('has-error', 'has-valid');
+      if (passwordMatchHint) passwordMatchHint.className = 'password-match-hint hidden';
       if (strengthFill) strengthFill.style.width = '0%';
       authenticateUser(newUser, true);
       showToast(`Compte créé avec succès ! Bienvenue ${username} 🎈`, 'success');
@@ -883,32 +1778,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Render Friends List in Sidebar
-  function renderFriends() {
+  // Render Friends & Discoverable Users List in Sidebar
+  async function renderFriends() {
     if (!friendsList) return;
+
+    const myId = state.currentUser?.id;
+    const token = getAuthToken();
+
+    // 1. Fetch registered database users if authenticated
+    let allUsers = [...friendsData];
+
+    if (token) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/discover`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.users)) {
+            data.users.forEach(u => {
+              const exists = allUsers.find(x => x.id === u.id || x.username?.toLowerCase() === u.username?.toLowerCase());
+              if (!exists) {
+                allUsers.push(u);
+              } else {
+                Object.assign(exists, u);
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch discover users:', err);
+      }
+    }
+
+    // 2. Also merge local accounts from localStorage for offline/demo resilience
+    try {
+      const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
+      localUsers.forEach(lu => {
+        const exists = allUsers.find(x => x.id === lu.id || x.username?.toLowerCase() === lu.username?.toLowerCase());
+        if (!exists) {
+          allUsers.push({
+            id: lu.id,
+            username: lu.username,
+            name: lu.displayName || lu.username,
+            avatar: lu.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(lu.username)}`,
+            country: lu.country || 'FR',
+            status: 'online',
+            role: 'Membre WafaTalk',
+            room: 'Disponible',
+          });
+        }
+      });
+    } catch (e) {}
+
+    // Filter out oneself
+    const displayList = allUsers.filter(u => {
+      if (!myId) return true;
+      if (u.id === myId) return false;
+      if (state.currentUser?.username && u.username?.toLowerCase() === state.currentUser.username.toLowerCase()) return false;
+      return true;
+    });
+
+    const onlineCounter = document.getElementById('onlineFriendsCount');
+    if (onlineCounter) {
+      onlineCounter.textContent = `${displayList.length} membre${displayList.length > 1 ? 's' : ''}`;
+    }
+
     friendsList.innerHTML = '';
 
-    friendsData.forEach(friend => {
+    if (displayList.length === 0) {
+      friendsList.innerHTML = '<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">Aucun autre membre connecté.</div>';
+      return;
+    }
+
+    displayList.forEach(friend => {
+      const flagTag = getFlagImgTag(friend.country, friend.country);
       const item = document.createElement('div');
       item.className = 'friend-item';
       item.innerHTML = `
-        <div class="friend-item-left">
+        <div class="friend-item-left" style="cursor: pointer; flex: 1;" title="Ouvrir le salon privé avec ${friend.name || friend.username}">
           <div class="friend-avatar-wrap">
-            <img src="${friend.avatar}" alt="${friend.name}" class="friend-avatar">
-            <span class="friend-status-dot ${friend.status}"></span>
+            <img src="${friend.avatar}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+            <span class="friend-status-dot ${friend.status || 'online'}"></span>
           </div>
           <div class="friend-meta">
-            <span class="friend-name">${friend.name}</span>
-            <span class="friend-activity">${friend.room}</span>
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <span class="friend-name">${friend.name || friend.username}</span>
+              <span style="display: inline-flex; align-items: center;">${flagTag}</span>
+            </div>
+            <span class="friend-activity">${friend.role || 'Membre WafaTalk'}</span>
           </div>
         </div>
-        <button type="button" class="friend-action-btn" title="Envoyer un cadeau ou discuter">
-          🎁
+        <button type="button" class="friend-action-btn" title="Envoyer un message ou appeler">
+          💬
         </button>
       `;
 
+      // Clicking friend opens 1-on-1 private DM salon
+      item.querySelector('.friend-item-left')?.addEventListener('click', () => {
+        openDirectChat(friend);
+      });
+
       item.querySelector('.friend-action-btn')?.addEventListener('click', () => {
-        openGiftShop();
+        openDirectChat(friend);
       });
 
       friendsList.appendChild(item);
@@ -1347,7 +2319,889 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // =========================================================================
-  // 13. UTILITIES
+  // 14. 1-ON-1 DIRECT SALON (DMS & WEBRTC AUDIO/VIDEO CALLS)
+  // =========================================================================
+
+  // DOM Elements: 1-on-1 Direct Chat Modal
+  const directChatModal = document.getElementById('directChatModal');
+  const btnCloseDirectChat = document.getElementById('btnCloseDirectChat');
+  const dmFriendAvatar = document.getElementById('dmFriendAvatar');
+  const dmFriendStatusDot = document.getElementById('dmFriendStatusDot');
+  const dmFriendName = document.getElementById('dmFriendName');
+  const dmFriendFlag = document.getElementById('dmFriendFlag');
+  const dmFriendStatusText = document.getElementById('dmFriendStatusText');
+  const dmMessagesScroll = document.getElementById('dmMessagesScroll');
+  const dmTypingIndicator = document.getElementById('dmTypingIndicator');
+  const dmTypingText = document.getElementById('dmTypingText');
+  const dmMessageForm = document.getElementById('dmMessageForm');
+  const dmTextInput = document.getElementById('dmTextInput');
+  const btnDmEmoji = document.getElementById('btnDmEmoji');
+  const btnStartAudioCall = document.getElementById('btnStartAudioCall');
+  const btnStartVideoCall = document.getElementById('btnStartVideoCall');
+
+  // DOM Elements: Incoming Call Modal
+  const incomingCallModal = document.getElementById('incomingCallModal');
+  const incomingCallerAvatar = document.getElementById('incomingCallerAvatar');
+  const incomingCallerName = document.getElementById('incomingCallerName');
+  const incomingCallTypeBadge = document.getElementById('incomingCallTypeBadge');
+  const incomingCallTypeText = document.getElementById('incomingCallTypeText');
+  const btnDeclineIncomingCall = document.getElementById('btnDeclineIncomingCall');
+  const btnAcceptIncomingCall = document.getElementById('btnAcceptIncomingCall');
+
+  // DOM Elements: Active Call Overlay
+  const activeCallModal = document.getElementById('activeCallModal');
+  const activeCallPeerAvatar = document.getElementById('activeCallPeerAvatar');
+  const activeCallPeerName = document.getElementById('activeCallPeerName');
+  const callDurationTimer = document.getElementById('callDurationTimer');
+  const btnMinimizeCall = document.getElementById('btnMinimizeCall');
+  const callAudioStage = document.getElementById('callAudioStage');
+  const localAudioAvatar = document.getElementById('localAudioAvatar');
+  const localAudioAvatarRing = document.getElementById('localAudioAvatarRing');
+  const localMicBadge = document.getElementById('localMicBadge');
+  const peerAudioAvatar = document.getElementById('peerAudioAvatar');
+  const peerAudioAvatarRing = document.getElementById('peerAudioAvatarRing');
+  const peerAudioName = document.getElementById('peerAudioName');
+  const peerMicBadge = document.getElementById('peerMicBadge');
+  const callVideoStage = document.getElementById('callVideoStage');
+  const remoteVideoWrap = document.getElementById('remoteVideoWrap');
+  const remoteVideo = document.getElementById('remoteVideo');
+  const remoteVideoPlaceholder = document.getElementById('remoteVideoPlaceholder');
+  const remotePlaceholderAvatar = document.getElementById('remotePlaceholderAvatar');
+  const localVideoPip = document.getElementById('localVideoPip');
+  const localVideo = document.getElementById('localVideo');
+  const localVideoPlaceholder = document.getElementById('localVideoPlaceholder');
+  const btnCallToggleMic = document.getElementById('btnCallToggleMic');
+  const btnCallToggleCamera = document.getElementById('btnCallToggleCamera');
+  const btnCallShareScreen = document.getElementById('btnCallShareScreen');
+  const btnCallHangup = document.getElementById('btnCallHangup');
+
+  // DOM Elements: Mini Call Floating Widget
+  const miniCallWidget = document.getElementById('miniCallWidget');
+  const btnRestoreCall = document.getElementById('btnRestoreCall');
+  const miniCallAvatar = document.getElementById('miniCallAvatar');
+  const miniCallName = document.getElementById('miniCallName');
+  const miniCallTime = document.getElementById('miniCallTime');
+  const btnMiniToggleMic = document.getElementById('btnMiniToggleMic');
+  const btnMiniHangup = document.getElementById('btnMiniHangup');
+
+  // WebRTC & Audio Configuration
+  const RTC_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.services.mozilla.com' },
+    ],
+  };
+
+  let socket = null;
+  let currentDmFriend = null;
+  let currentConversation = null;
+  let typingDebounceTimer = null;
+
+  // Active Call State
+  let peerConnection = null;
+  let localMediaStream = null;
+  let remoteMediaStream = null;
+  let currentCallSession = null; // { callId, conversationId, peer: { id, name, avatar }, type: 'audio'|'video', isCaller: boolean }
+  let callSeconds = 0;
+  let callTimerInterval = null;
+  let ringtoneInterval = null;
+  let isCallMicMuted = false;
+  let isCallCameraOff = false;
+  let isScreenSharing = false;
+
+  // =========================================================================
+  // SOCKET.IO CLIENT INITIALIZATION & ROUTING
+  // =========================================================================
+  function initSocketConnection(token) {
+    if (typeof io === 'undefined') {
+      console.warn('Socket.IO client library not loaded.');
+      return;
+    }
+
+    if (socket && socket.connected) return;
+
+    socket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      console.log('⚡ Socket connected to WafaTalk Gateway:', socket.id);
+      renderFriends();
+    });
+
+    // Handle incoming direct message
+    socket.on('dm:message', (message) => {
+      if (currentConversation && message.conversationId === currentConversation.id) {
+        appendDirectMessageBubble(message);
+        playTone(600, 'sine', 0.1);
+        socket.emit('dm:read', { conversationId: currentConversation.id });
+      }
+    });
+
+    // Handle direct message notification when modal is closed
+    socket.on('dm:notification', ({ conversationId, message }) => {
+      if (!currentConversation || currentConversation.id !== conversationId) {
+        showToast(`💬 Nouveau message de ${message.sender?.displayName || 'un ami'} : "${message.content.slice(0, 30)}..."`, 'teal');
+        playTone(550, 'sine', 0.15);
+      }
+    });
+
+    // Handle typing indicator
+    socket.on('dm:user_typing', ({ conversationId, userId, displayName, isTyping }) => {
+      if (currentConversation && conversationId === currentConversation.id && userId !== state.currentUser?.id) {
+        if (isTyping) {
+          if (dmTypingText) dmTypingText.textContent = `${displayName} est en train d'écrire...`;
+          dmTypingIndicator?.classList.remove('hidden');
+        } else {
+          dmTypingIndicator?.classList.add('hidden');
+        }
+      }
+    });
+
+    // WebRTC: Incoming Call Ringing
+    socket.on('call:incoming', ({ callId, conversationId, caller, type }) => {
+      handleIncomingCallAlert({ callId, conversationId, caller, type });
+    });
+
+    // WebRTC: Outgoing Call is Ringing at Recipient
+    socket.on('call:ringing', ({ callId }) => {
+      if (currentCallSession) currentCallSession.callId = callId;
+      showToast('📞 Sonnerie chez votre correspondant...', 'teal');
+    });
+
+    // WebRTC: Recipient Accepted Call
+    socket.on('call:accepted', async ({ callId, receiver }) => {
+      if (currentCallSession) currentCallSession.callId = callId;
+      showToast(`${receiver.displayName || 'Le correspondant'} a décroché !`, 'success');
+      stopCallSounds();
+      await setupWebRTCOffer();
+    });
+
+    // WebRTC: Recipient Confirmed Connection
+    socket.on('call:connected', () => {
+      stopCallSounds();
+    });
+
+    // WebRTC: Recipient Rejected Call
+    socket.on('call:rejected', ({ reason }) => {
+      stopCallSounds();
+      playHangupSound();
+      showToast(reason === 'busy' ? 'Correspondant occupé.' : 'Appel décliné.', 'coral');
+      cleanupActiveCall();
+    });
+
+    // WebRTC: Call Failed (e.g. offline)
+    socket.on('call:failed', ({ message }) => {
+      stopCallSounds();
+      playHangupSound();
+      showToast(message || 'Échec de l\'appel.', 'coral');
+      cleanupActiveCall();
+    });
+
+    // WebRTC: Signaling packet relay (offer, answer, ICE candidate)
+    socket.on('webrtc:signal', async ({ callId, senderId, signal }) => {
+      await handleIncomingWebRTCSignal(signal);
+    });
+
+    // WebRTC: Call Ended by Remote Peer
+    socket.on('call:ended', ({ durationSec }) => {
+      stopCallSounds();
+      playHangupSound();
+      const mins = Math.floor((durationSec || 0) / 60);
+      const secs = (durationSec || 0) % 60;
+      const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      showToast(`Appel terminé (${timeStr})`, 'teal');
+      cleanupActiveCall();
+      if (currentConversation) {
+        loadConversationMessages(currentConversation.id);
+      }
+    });
+
+    // User Presence Update: Real-time update of friends and online members
+    socket.on('presence:update', ({ userId, status }) => {
+      if (currentDmFriend && currentDmFriend.id === userId) {
+        updateDmFriendStatusUI(status === 'online');
+      }
+      // Instantly refresh discoverable members in real time when anyone logs in or joins
+      renderFriends();
+    });
+  }
+
+  // =========================================================================
+  // 1-ON-1 DIRECT CHAT CONTROLLER
+  // =========================================================================
+  async function openDirectChat(friend) {
+    currentDmFriend = friend;
+    if (!directChatModal) return;
+
+    // 1. Populate UI Header
+    if (dmFriendAvatar) dmFriendAvatar.src = friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+    if (dmFriendName) dmFriendName.textContent = friend.name || friend.username || 'Ami WafaTalk';
+    if (dmFriendFlag) dmFriendFlag.innerHTML = getFlagImgTag(friend.country, friend.country);
+    updateDmFriendStatusUI(friend.status === 'online');
+
+    directChatModal.classList.remove('hidden');
+    dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">⏳</span><p>Chargement du salon privé...</p></div>';
+
+    // 2. Fetch or Create Conversation via Backend API
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/conversations/with/${friend.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.conversation) {
+        currentConversation = data.conversation;
+
+        // Join socket room
+        if (socket) {
+          socket.emit('dm:join', { conversationId: currentConversation.id });
+        }
+
+        // Load messages history
+        await loadConversationMessages(currentConversation.id);
+      } else {
+        showToast(data.message || 'Impossible d\'ouvrir la conversation.', 'coral');
+      }
+    } catch (err) {
+      console.warn('Fallback local conversation:', err);
+      // Offline fallback
+      currentConversation = { id: `local-conv-${friend.id}` };
+      dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">💬</span><p>Début de votre discussion privée sécurisée. Dites bonjour ! 👋</p></div>';
+    }
+
+    dmTextInput?.focus();
+  }
+
+  function updateDmFriendStatusUI(isOnline) {
+    if (dmFriendStatusDot) {
+      dmFriendStatusDot.className = `dm-status-indicator ${isOnline ? 'online' : ''}`;
+    }
+    if (dmFriendStatusText) {
+      dmFriendStatusText.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+    }
+  }
+
+  async function loadConversationMessages(conversationId) {
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        renderDirectMessages(data.messages || []);
+        // Mark as read
+        fetch(`${API_BASE_URL}/conversations/${conversationId}/read`, {
+          method: 'POST',
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Failed to load messages history:', err);
+    }
+  }
+
+  function renderDirectMessages(messages) {
+    if (!dmMessagesScroll) return;
+
+    if (!messages || messages.length === 0) {
+      dmMessagesScroll.innerHTML = `
+        <div class="dm-empty-state">
+          <span class="dm-empty-icon">💬</span>
+          <strong>Salon Privé Ouvert</strong>
+          <p>Les messages et appels sont strictement confidentiels et protégés par WafaTalk. Dites bonjour ! 👋</p>
+        </div>
+      `;
+      return;
+    }
+
+    dmMessagesScroll.innerHTML = '';
+    messages.forEach(m => appendDirectMessageBubble(m, false));
+    scrollDmToBottom();
+  }
+
+  function appendDirectMessageBubble(message, shouldScroll = true) {
+    if (!dmMessagesScroll) return;
+
+    // Remove empty placeholder if present
+    const emptyState = dmMessagesScroll.querySelector('.dm-empty-state');
+    if (emptyState) emptyState.remove();
+
+    const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
+    const bubble = document.createElement('div');
+
+    if (message.type === 'CALL_LOG') {
+      bubble.className = 'dm-bubble call-log';
+      bubble.textContent = message.content;
+    } else {
+      bubble.className = `dm-bubble ${isFromMe ? 'from-me' : 'from-other'}`;
+      bubble.innerHTML = `
+        <div class="dm-bubble-text">${escapeHtml(message.content)}</div>
+        <div class="dm-bubble-meta">
+          <span>${message.time || 'À l\'instant'}</span>
+          ${isFromMe ? '<span style="font-size: 0.75rem;">✓</span>' : ''}
+        </div>
+      `;
+    }
+
+    dmMessagesScroll.appendChild(bubble);
+    if (shouldScroll) scrollDmToBottom();
+  }
+
+  function scrollDmToBottom() {
+    if (!dmMessagesScroll) return;
+    dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
+  }
+
+  // Handle DM message submission
+  dmMessageForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!currentConversation || !dmTextInput) return;
+
+    const text = dmTextInput.value.trim();
+    if (!text) return;
+
+    if (socket && socket.connected) {
+      socket.emit('dm:send', {
+        conversationId: currentConversation.id,
+        content: text,
+        type: 'TEXT',
+      });
+      socket.emit('dm:typing', {
+        conversationId: currentConversation.id,
+        targetUserId: currentDmFriend?.id,
+        isTyping: false,
+      });
+    } else {
+      // Offline fallback
+      appendDirectMessageBubble({
+        content: text,
+        isFromMe: true,
+        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      });
+    }
+
+    dmTextInput.value = '';
+    dmTextInput.focus();
+  });
+
+  // Typing debounce emitter
+  dmTextInput?.addEventListener('input', () => {
+    if (!socket || !currentConversation) return;
+
+    socket.emit('dm:typing', {
+      conversationId: currentConversation.id,
+      targetUserId: currentDmFriend?.id,
+      isTyping: true,
+    });
+
+    clearTimeout(typingDebounceTimer);
+    typingDebounceTimer = setTimeout(() => {
+      socket.emit('dm:typing', {
+        conversationId: currentConversation.id,
+        targetUserId: currentDmFriend?.id,
+        isTyping: false,
+      });
+    }, 2000);
+  });
+
+  // Close Direct Chat Modal
+  btnCloseDirectChat?.addEventListener('click', () => {
+    if (currentConversation && socket) {
+      socket.emit('dm:leave', { conversationId: currentConversation.id });
+    }
+    directChatModal?.classList.add('hidden');
+    currentConversation = null;
+    currentDmFriend = null;
+  });
+
+  // Emoji trigger for DMs
+  btnDmEmoji?.addEventListener('click', () => {
+    const emojis = ['🎈', '☕', '❤️', '🔥', '✨', '👋', '🌟', '🎧'];
+    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+    if (dmTextInput) {
+      dmTextInput.value += ` ${randomEmoji}`;
+      dmTextInput.focus();
+    }
+  });
+
+  // =========================================================================
+  // WEBRTC CALLING ENGINE (1-ON-1 AUDIO & VIDEO)
+  // =========================================================================
+
+  // Audio Ringtones using Web Audio API
+  function playIncomingCallSound() {
+    stopCallSounds();
+    const ring = () => {
+      try {
+        playTone(523.25, 'sine', 0.25);
+        setTimeout(() => playTone(659.25, 'sine', 0.25), 200);
+        setTimeout(() => playTone(783.99, 'sine', 0.35), 400);
+      } catch (e) {}
+    };
+    ring();
+    ringtoneInterval = setInterval(ring, 2400);
+  }
+
+  function playOutgoingCallingSound() {
+    stopCallSounds();
+    const ring = () => {
+      try {
+        playTone(440, 'sine', 0.85);
+      } catch (e) {}
+    };
+    ring();
+    ringtoneInterval = setInterval(ring, 2800);
+  }
+
+  function stopCallSounds() {
+    if (ringtoneInterval) {
+      clearInterval(ringtoneInterval);
+      ringtoneInterval = null;
+    }
+  }
+
+  function playHangupSound() {
+    try {
+      playTone(440, 'sine', 0.12);
+      setTimeout(() => playTone(330, 'sine', 0.12), 120);
+      setTimeout(() => playTone(220, 'sine', 0.2), 240);
+    } catch (e) {}
+  }
+
+  // Get Media Stream (Audio or Video) with synthetic fallback for headless tests
+  async function acquireUserMedia(withVideo = false) {
+    try {
+      const constraints = {
+        audio: true,
+        video: withVideo ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      return stream;
+    } catch (err) {
+      console.warn('getUserMedia failed or devices not found, using Web Audio synthetic stream:', err.message);
+      return createSyntheticStream(withVideo);
+    }
+  }
+
+  function createSyntheticStream(withVideo) {
+    try {
+      const ctx = getAudioContext() || new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const dst = osc.connect(ctx.createMediaStreamDestination());
+      osc.start();
+      const stream = dst.stream;
+
+      if (withVideo) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const cCtx = canvas.getContext('2d');
+        cCtx.fillStyle = '#0d837d';
+        cCtx.fillRect(0, 0, 640, 480);
+        cCtx.font = '24px Outfit, sans-serif';
+        cCtx.fillStyle = '#ffffff';
+        cCtx.fillText('WafaTalk Video HD', 220, 240);
+        const vStream = canvas.captureStream(20);
+        vStream.getVideoTracks().forEach(t => stream.addTrack(t));
+      }
+      return stream;
+    } catch (e) {
+      return new MediaStream();
+    }
+  }
+
+  // A. Start Outgoing Call
+  async function initiateCall(type = 'audio') {
+    if (!currentDmFriend || !currentConversation) {
+      showToast('Ouvrez d\'abord un salon privé avec un ami.', 'coral');
+      return;
+    }
+
+    if (currentCallSession) {
+      showToast('Vous êtes déjà en communication.', 'coral');
+      return;
+    }
+
+    const isVideo = type === 'video';
+
+    // 1. Acquire Local Media
+    localMediaStream = await acquireUserMedia(isVideo);
+
+    // 2. Set Call Session State
+    currentCallSession = {
+      callId: null,
+      conversationId: currentConversation.id,
+      peer: {
+        id: currentDmFriend.id,
+        name: currentDmFriend.name || currentDmFriend.username,
+        avatar: currentDmFriend.avatar,
+      },
+      type,
+      isCaller: true,
+    };
+
+    // 3. Setup Call Screen UI
+    setupCallScreenUI(currentCallSession);
+    activeCallModal?.classList.remove('hidden');
+
+    // 4. Start Outgoing Ringing Sound
+    playOutgoingCallingSound();
+
+    // 5. Emit call:start to Gateway
+    if (socket && socket.connected) {
+      socket.emit('call:start', {
+        targetUserId: currentDmFriend.id,
+        conversationId: currentConversation.id,
+        type,
+      });
+    } else {
+      // Local demo simulation: answer after 2 seconds
+      setTimeout(() => {
+        stopCallSounds();
+        startCallTimer();
+        showToast('Appel connecté (Mode Démonstration) !', 'success');
+      }, 2000);
+    }
+  }
+
+  // B. Handle Incoming Call Alert
+  function handleIncomingCallAlert({ callId, conversationId, caller, type }) {
+    currentCallSession = {
+      callId,
+      conversationId,
+      peer: {
+        id: caller.id,
+        name: caller.displayName || caller.username,
+        avatar: caller.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80',
+      },
+      type,
+      isCaller: false,
+    };
+
+    if (incomingCallerAvatar) incomingCallerAvatar.src = currentCallSession.peer.avatar;
+    if (incomingCallerName) incomingCallerName.textContent = currentCallSession.peer.name;
+    if (incomingCallTypeText) incomingCallTypeText.textContent = type === 'video' ? 'Appel vidéo entrant...' : 'Appel vocal entrant...';
+    if (incomingCallTypeBadge) {
+      incomingCallTypeBadge.querySelector('.badge-icon').textContent = type === 'video' ? '📹' : '📞';
+    }
+
+    incomingCallModal?.classList.remove('hidden');
+    playIncomingCallSound();
+  }
+
+  // C. Accept Incoming Call
+  btnAcceptIncomingCall?.addEventListener('click', async () => {
+    if (!currentCallSession) return;
+    stopCallSounds();
+    incomingCallModal?.classList.add('hidden');
+
+    const isVideo = currentCallSession.type === 'video';
+    localMediaStream = await acquireUserMedia(isVideo);
+
+    setupCallScreenUI(currentCallSession);
+    activeCallModal?.classList.remove('hidden');
+
+    if (socket && socket.connected) {
+      socket.emit('call:accept', { callId: currentCallSession.callId });
+      startCallTimer();
+    } else {
+      startCallTimer();
+    }
+  });
+
+  // D. Decline Incoming Call
+  btnDeclineIncomingCall?.addEventListener('click', () => {
+    if (!currentCallSession) return;
+    stopCallSounds();
+    incomingCallModal?.classList.add('hidden');
+
+    if (socket && socket.connected) {
+      socket.emit('call:reject', { callId: currentCallSession.callId, reason: 'declined' });
+    }
+    cleanupActiveCall();
+  });
+
+  // E. Setup WebRTC PeerConnection and SDP Offer (Caller)
+  async function setupWebRTCOffer() {
+    createPeerConnection();
+
+    try {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      if (socket && currentCallSession) {
+        socket.emit('webrtc:signal', {
+          callId: currentCallSession.callId,
+          targetUserId: currentCallSession.peer.id,
+          signal: { type: 'offer', sdp: offer.sdp },
+        });
+      }
+      startCallTimer();
+    } catch (err) {
+      console.warn('Error creating WebRTC offer:', err);
+    }
+  }
+
+  // F. Create and Configure RTCPeerConnection
+  function createPeerConnection() {
+    if (peerConnection) {
+      peerConnection.close();
+    }
+
+    try {
+      peerConnection = new RTCPeerConnection(RTC_CONFIG);
+
+      // Add local media tracks
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localMediaStream);
+        });
+      }
+
+      // Handle ICE Candidates generated locally
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && socket && currentCallSession) {
+          socket.emit('webrtc:signal', {
+            callId: currentCallSession.callId,
+            targetUserId: currentCallSession.peer.id,
+            signal: { candidate: event.candidate },
+          });
+        }
+      };
+
+      // Handle incoming remote media tracks
+      peerConnection.ontrack = (event) => {
+        remoteMediaStream = event.streams[0];
+        if (remoteVideo) {
+          remoteVideo.srcObject = remoteMediaStream;
+        }
+      };
+    } catch (err) {
+      console.warn('RTCPeerConnection not supported or failed:', err);
+    }
+  }
+
+  // G. Handle Incoming WebRTC Signal
+  async function handleIncomingWebRTCSignal(signal) {
+    if (!peerConnection) {
+      createPeerConnection();
+    }
+
+    try {
+      if (signal.type === 'offer') {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        if (socket && currentCallSession) {
+          socket.emit('webrtc:signal', {
+            callId: currentCallSession.callId,
+            targetUserId: currentCallSession.peer.id,
+            signal: { type: 'answer', sdp: answer.sdp },
+          });
+        }
+      } else if (signal.type === 'answer') {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+      } else if (signal.candidate) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+      }
+    } catch (err) {
+      console.warn('Error handling WebRTC signal:', err);
+    }
+  }
+
+  // Setup Call Screen UI (Audio vs Video mode)
+  function setupCallScreenUI(session) {
+    const isVideo = session.type === 'video';
+
+    // Header info
+    if (activeCallPeerAvatar) activeCallPeerAvatar.src = session.peer.avatar;
+    if (activeCallPeerName) activeCallPeerName.textContent = session.peer.name;
+
+    // Audio Stage Setup
+    if (localAudioAvatar) localAudioAvatar.src = state.currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+    if (peerAudioAvatar) peerAudioAvatar.src = session.peer.avatar;
+    if (peerAudioName) peerAudioName.textContent = session.peer.name;
+    if (localAudioAvatarRing) localAudioAvatarRing.classList.add('speaking');
+    if (peerAudioAvatarRing) peerAudioAvatarRing.classList.add('speaking');
+
+    // Video Stage Setup
+    if (isVideo) {
+      callAudioStage?.classList.add('hidden');
+      callVideoStage?.classList.remove('hidden');
+      if (localVideo && localMediaStream) {
+        localVideo.srcObject = localMediaStream;
+      }
+    } else {
+      callVideoStage?.classList.add('hidden');
+      callAudioStage?.classList.remove('hidden');
+    }
+
+    // Mini Widget Info
+    if (miniCallAvatar) miniCallAvatar.src = session.peer.avatar;
+    if (miniCallName) miniCallName.textContent = session.peer.name;
+  }
+
+  // Call Duration Timer
+  function startCallTimer() {
+    clearInterval(callTimerInterval);
+    callSeconds = 0;
+    updateCallTimerDisplay();
+    callTimerInterval = setInterval(() => {
+      callSeconds++;
+      updateCallTimerDisplay();
+    }, 1000);
+  }
+
+  function updateCallTimerDisplay() {
+    const mins = Math.floor(callSeconds / 60);
+    const secs = callSeconds % 60;
+    const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    if (callDurationTimer) callDurationTimer.textContent = formatted;
+    if (miniCallTime) miniCallTime.textContent = formatted;
+  }
+
+  // Hangup / End Call
+  function endCurrentCall() {
+    if (!currentCallSession) return;
+
+    stopCallSounds();
+    playHangupSound();
+
+    if (socket && socket.connected && currentCallSession.callId) {
+      socket.emit('call:end', {
+        callId: currentCallSession.callId,
+        durationSec: callSeconds,
+      });
+    }
+
+    const durText = callDurationTimer ? callDurationTimer.textContent : '00:00';
+    showToast(`Appel terminé (${durText})`, 'teal');
+    cleanupActiveCall();
+
+    if (currentConversation) {
+      loadConversationMessages(currentConversation.id);
+    }
+  }
+
+  function cleanupActiveCall() {
+    stopCallSounds();
+    clearInterval(callTimerInterval);
+    callSeconds = 0;
+
+    // Stop local media tracks
+    if (localMediaStream) {
+      localMediaStream.getTracks().forEach(track => track.stop());
+      localMediaStream = null;
+    }
+
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+
+    remoteMediaStream = null;
+    currentCallSession = null;
+    isCallMicMuted = false;
+    isCallCameraOff = false;
+    isScreenSharing = false;
+
+    activeCallModal?.classList.add('hidden');
+    miniCallWidget?.classList.add('hidden');
+    incomingCallModal?.classList.add('hidden');
+  }
+
+  // In-Call Controls Listeners
+  btnStartAudioCall?.addEventListener('click', () => initiateCall('audio'));
+  btnStartVideoCall?.addEventListener('click', () => initiateCall('video'));
+  btnCallHangup?.addEventListener('click', endCurrentCall);
+  btnMiniHangup?.addEventListener('click', endCurrentCall);
+
+  // Mute / Unmute Mic
+  btnCallToggleMic?.addEventListener('click', () => {
+    isCallMicMuted = !isCallMicMuted;
+    if (localMediaStream) {
+      localMediaStream.getAudioTracks().forEach(t => (t.enabled = !isCallMicMuted));
+    }
+    btnCallToggleMic.classList.toggle('muted', isCallMicMuted);
+    btnCallToggleMic.querySelector('.mic-on-icon')?.classList.toggle('hidden', isCallMicMuted);
+    btnCallToggleMic.querySelector('.mic-off-icon')?.classList.toggle('hidden', !isCallMicMuted);
+    if (localMicBadge) localMicBadge.textContent = isCallMicMuted ? 'Micro coupé' : 'Micro actif';
+  });
+
+  // Camera On / Off
+  btnCallToggleCamera?.addEventListener('click', () => {
+    isCallCameraOff = !isCallCameraOff;
+    if (localMediaStream) {
+      localMediaStream.getVideoTracks().forEach(t => (t.enabled = !isCallCameraOff));
+    }
+    btnCallToggleCamera.classList.toggle('muted', isCallCameraOff);
+    btnCallToggleCamera.querySelector('.camera-on-icon')?.classList.toggle('hidden', isCallCameraOff);
+    btnCallToggleCamera.querySelector('.camera-off-icon')?.classList.toggle('hidden', !isCallCameraOff);
+    localVideoPlaceholder?.classList.toggle('hidden', !isCallCameraOff);
+  });
+
+  // Screen Share
+  btnCallShareScreen?.addEventListener('click', async () => {
+    if (!peerConnection) return;
+
+    try {
+      if (!isScreenSharing) {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = displayStream.getVideoTracks()[0];
+
+        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(screenTrack);
+        }
+
+        if (localVideo) localVideo.srcObject = displayStream;
+        isScreenSharing = true;
+        btnCallShareScreen.classList.add('active');
+
+        screenTrack.onended = () => {
+          // Revert to camera on user stop share
+          if (localMediaStream && sender) {
+            const camTrack = localMediaStream.getVideoTracks()[0];
+            if (camTrack) sender.replaceTrack(camTrack);
+          }
+          if (localVideo && localMediaStream) localVideo.srcObject = localMediaStream;
+          isScreenSharing = false;
+          btnCallShareScreen.classList.remove('active');
+        };
+      }
+    } catch (err) {
+      console.warn('Screen share cancelled or failed:', err);
+    }
+  });
+
+  // Minimize / Restore PiP Call
+  btnMinimizeCall?.addEventListener('click', () => {
+    activeCallModal?.classList.add('hidden');
+    miniCallWidget?.classList.remove('hidden');
+  });
+
+  btnRestoreCall?.addEventListener('click', () => {
+    miniCallWidget?.classList.add('hidden');
+    activeCallModal?.classList.remove('hidden');
+  });
+
+  // =========================================================================
+  // 15. UTILITIES & INITIAL APP BOOTSTRAP
   // =========================================================================
   function escapeHtml(str) {
     const div = document.createElement('div');
@@ -1356,3 +3210,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
+

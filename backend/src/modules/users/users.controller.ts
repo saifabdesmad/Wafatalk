@@ -9,6 +9,19 @@ const giftSchema = z.object({
 });
 
 export async function usersRoutes(fastify: FastifyInstance) {
+  // Discover & List Users for 1-on-1 Direct Salons (Authenticated)
+  fastify.get('/discover', {
+    onRequest: [fastify.authenticate],
+  }, async (request: any, reply: FastifyReply) => {
+    try {
+      const search = (request.query as any)?.q;
+      const users = await UsersService.discoverUsers(request.user.id, search);
+      return reply.send({ success: true, users });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
   // Get Friends List (Authenticated)
   fastify.get('/friends', {
     onRequest: [fastify.authenticate],
