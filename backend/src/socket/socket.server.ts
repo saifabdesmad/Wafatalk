@@ -267,7 +267,8 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         const isOnline = targetRoom && targetRoom.size > 0;
 
         if (!isOnline) {
-          const isDemoPeer = ['user-sarah', 'user-youssef', 'user-lina', 'user-karim'].includes(targetUserId);
+          const demoPeerIds = ['user-alexandre', 'user-sarah', 'user-youssef', 'user-lina', 'user-karim'];
+          const isDemoPeer = demoPeerIds.includes(targetUserId);
           if (!isDemoPeer) {
             return socket.emit('call:failed', {
               reason: 'offline',
@@ -299,7 +300,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           socket.join(`call:${callId}`);
           socket.emit('call:ringing', { callId });
 
-          // Auto-answer after realistic ring delay (1.8s)
+          // Auto-answer after realistic ring delay (1.5s)
           setTimeout(async () => {
             const currentCall = activeCalls.get(callId);
             if (!currentCall || currentCall.status !== 'RINGING') return;
@@ -308,14 +309,15 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
             const demoPeer = await prisma.user.findUnique({ where: { id: targetUserId } });
             socket.emit('call:accepted', {
               callId,
+              isDemoPeer: true,
               receiver: {
                 id: targetUserId,
-                username: demoPeer?.username || 'sarah_b',
-                displayName: demoPeer?.displayName || 'Sarah B.',
+                username: demoPeer?.username || 'contact',
+                displayName: demoPeer?.displayName || 'Ami WafaTalk',
                 avatarUrl: demoPeer?.avatarUrl,
               },
             });
-          }, 1800);
+          }, 1500);
           return;
         }
 

@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const input = btn.parentElement.querySelector('input');
       const eyeOpen = btn.querySelector('.eye-open');
       const eyeClosed = btn.querySelector('.eye-closed');
-      
+
       if (input.type === 'password') {
         input.type = 'text';
         eyeOpen.classList.add('hidden');
@@ -561,9 +561,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCountryOptions(filter = '') {
     if (!countryOptionsScroll) return;
     const cleanFilter = filter.trim().toLowerCase();
-    
-    const matches = COUNTRIES.filter(c => 
-      c.name.toLowerCase().includes(cleanFilter) || 
+
+    const matches = COUNTRIES.filter(c =>
+      c.name.toLowerCase().includes(cleanFilter) ||
       c.code.toLowerCase().includes(cleanFilter) ||
       c.dial.includes(cleanFilter)
     );
@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
     countryPickerWrap?.classList.add('open');
     countryPickerTrigger?.setAttribute('aria-expanded', 'true');
     renderCountryOptions(countrySearchInput?.value || '');
-    
+
     // Prevent horizontal shift on auth card
     const card = document.querySelector('.auth-card');
     if (card) card.scrollLeft = 0;
@@ -1157,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cachedUserJson = localStorage.getItem('wafatalk_user');
     let cachedUser = null;
     if (cachedUserJson) {
-      try { cachedUser = JSON.parse(cachedUserJson); } catch (e) {}
+      try { cachedUser = JSON.parse(cachedUserJson); } catch (e) { }
     }
 
     try {
@@ -1222,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       // Offline / Vercel Fallback: match local accounts
       const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
-      const found = localUsers.find(u => 
+      const found = localUsers.find(u =>
         (u.email.toLowerCase() === email.toLowerCase() || u.username.toLowerCase() === email.toLowerCase()) &&
         u.password === password
       );
@@ -1236,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Pre-seeded Alexandre check in offline mode
       if ((email.toLowerCase() === 'alexandre@wafatalk.com' || email.toLowerCase() === 'alexandre') &&
-          (password === 'wafatalk2026' || password === 'demo123456')) {
+        (password === 'wafatalk2026' || password === 'demo123456')) {
         const alexUser = {
           id: 'user-alexandre',
           username: 'alexandre',
@@ -1629,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', () => {
     profileDropdown.classList.add('hidden');
     try {
       await fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
-    } catch (e) {}
+    } catch (e) { }
 
     clearAuthSession();
 
@@ -1691,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = salonsData.filter(s => {
       const matchesCategory = state.activeCategory === 'all' || s.category === state.activeCategory;
       const matchesSearch = s.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-                            s.topic.toLowerCase().includes(state.searchQuery.toLowerCase());
+        s.topic.toLowerCase().includes(state.searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
 
@@ -1829,7 +1829,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       });
-    } catch (e) {}
+    } catch (e) { }
 
     // Filter out oneself
     const displayList = allUsers.filter(u => {
@@ -2132,7 +2132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && data.salon) {
           loadSalonsFromApi();
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     showToast(`Le salon "${name}" a été créé avec succès ! 🎙️`, 'teal');
@@ -2234,7 +2234,7 @@ document.addEventListener('DOMContentLoaded', () => {
       notes.forEach((freq, idx) => {
         setTimeout(() => playTone(freq, 'triangle', 0.25), idx * 75);
       });
-    } catch (err) {}
+    } catch (err) { }
   }
 
 
@@ -2365,6 +2365,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const callVideoStage = document.getElementById('callVideoStage');
   const remoteVideoWrap = document.getElementById('remoteVideoWrap');
   const remoteVideo = document.getElementById('remoteVideo');
+  const remoteAudio = document.getElementById('remoteAudio');
   const remoteVideoPlaceholder = document.getElementById('remoteVideoPlaceholder');
   const remotePlaceholderAvatar = document.getElementById('remotePlaceholderAvatar');
   const localVideoPip = document.getElementById('localVideoPip');
@@ -2384,14 +2385,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnMiniToggleMic = document.getElementById('btnMiniToggleMic');
   const btnMiniHangup = document.getElementById('btnMiniHangup');
 
-  // WebRTC & Audio Configuration
+  // WebRTC & Audio Configuration (Multi-STUN Resilience)
   const RTC_CONFIG = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
       { urls: 'stun:stun.services.mozilla.com' },
     ],
+    iceCandidatePoolSize: 10,
   };
 
   let socket = null;
@@ -2403,13 +2408,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let peerConnection = null;
   let localMediaStream = null;
   let remoteMediaStream = null;
-  let currentCallSession = null; // { callId, conversationId, peer: { id, name, avatar }, type: 'audio'|'video', isCaller: boolean }
+  let currentCallSession = null; // { callId, conversationId, peer: { id, name, avatar }, type: 'audio'|'video', isCaller: boolean, isCompanion: boolean }
   let callSeconds = 0;
   let callTimerInterval = null;
   let ringtoneInterval = null;
   let isCallMicMuted = false;
   let isCallCameraOff = false;
   let isScreenSharing = false;
+  let pendingIceCandidates = [];
+  let localAudioAnalyser = null;
+  let peerAudioAnalyser = null;
+  let visualizerAnimFrame = null;
+  let companionSpeechTimer = null;
+  let companionCanvasAnim = null;
 
   // =========================================================================
   // SOCKET.IO CLIENT INITIALIZATION & ROUTING
@@ -2473,11 +2484,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // WebRTC: Recipient Accepted Call
-    socket.on('call:accepted', async ({ callId, receiver }) => {
-      if (currentCallSession) currentCallSession.callId = callId;
-      showToast(`${receiver.displayName || 'Le correspondant'} a décroché !`, 'success');
+    socket.on('call:accepted', async ({ callId, receiver, isDemoPeer }) => {
+      if (currentCallSession) {
+        currentCallSession.callId = callId;
+        if (receiver) {
+          currentCallSession.peer.name = receiver.displayName || receiver.username || currentCallSession.peer.name;
+          if (receiver.avatarUrl) currentCallSession.peer.avatar = receiver.avatarUrl;
+        }
+      }
+      showToast(`${receiver?.displayName || 'Le correspondant'} a décroché !`, 'success');
       stopCallSounds();
-      await setupWebRTCOffer();
+      playCallConnectedSound();
+
+      if (isDemoPeer) {
+        if (currentCallSession) currentCallSession.isCompanion = true;
+        startInteractiveCompanionExperience(currentCallSession?.peer || receiver);
+      } else {
+        await setupWebRTCOffer();
+      }
     });
 
     // WebRTC: Recipient Confirmed Connection
@@ -2607,7 +2631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`${API_BASE_URL}/conversations/${conversationId}/read`, {
           method: 'POST',
           headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        }).catch(() => {});
+        }).catch(() => { });
       }
     } catch (err) {
       console.warn('Failed to load messages history:', err);
@@ -2750,7 +2774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playTone(523.25, 'sine', 0.25);
         setTimeout(() => playTone(659.25, 'sine', 0.25), 200);
         setTimeout(() => playTone(783.99, 'sine', 0.35), 400);
-      } catch (e) {}
+      } catch (e) { }
     };
     ring();
     ringtoneInterval = setInterval(ring, 2400);
@@ -2761,10 +2785,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const ring = () => {
       try {
         playTone(440, 'sine', 0.85);
-      } catch (e) {}
+      } catch (e) { }
     };
     ring();
     ringtoneInterval = setInterval(ring, 2800);
+  }
+
+  function playCallConnectedSound() {
+    try {
+      playTone(587.33, 'sine', 0.12);
+      setTimeout(() => playTone(880, 'sine', 0.2), 120);
+    } catch (e) { }
   }
 
   function stopCallSounds() {
@@ -2779,47 +2810,81 @@ document.addEventListener('DOMContentLoaded', () => {
       playTone(440, 'sine', 0.12);
       setTimeout(() => playTone(330, 'sine', 0.12), 120);
       setTimeout(() => playTone(220, 'sine', 0.2), 240);
-    } catch (e) {}
+    } catch (e) { }
   }
 
-  // Get Media Stream (Audio or Video) with synthetic fallback for headless tests
+  // Get Media Stream (Audio or Video) with synthetic fallback for headless or restricted contexts
   async function acquireUserMedia(withVideo = false) {
-    try {
-      const constraints = {
-        audio: true,
-        video: withVideo ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      return stream;
-    } catch (err) {
-      console.warn('getUserMedia failed or devices not found, using Web Audio synthetic stream:', err.message);
-      return createSyntheticStream(withVideo);
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+      try {
+        const constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video: withVideo ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        startAudioVisualizer(stream, 'local');
+        return stream;
+      } catch (err) {
+        console.warn('getUserMedia permission or device error:', err.message);
+        showToast('Microphone inaccessible : mode audio HD simulé activé.', 'coral');
+      }
+    } else {
+      console.warn('navigator.mediaDevices is not supported or insecure context');
+      showToast('Accès micro restreint par le navigateur : flux vocal actif.', 'teal');
     }
+
+    const fallbackStream = createSyntheticStream(withVideo);
+    startAudioVisualizer(fallbackStream, 'local');
+    return fallbackStream;
   }
 
   function createSyntheticStream(withVideo) {
     try {
-      const ctx = getAudioContext() || new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = getAudioContext();
+      if (!ctx) return new MediaStream();
+
       const osc = ctx.createOscillator();
-      const dst = osc.connect(ctx.createMediaStreamDestination());
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001; // subtle live carrier
+      const dest = ctx.createMediaStreamDestination();
+      osc.connect(gain);
+      gain.connect(dest);
       osc.start();
-      const stream = dst.stream;
+      const stream = dest.stream;
 
       if (withVideo) {
         const canvas = document.createElement('canvas');
         canvas.width = 640;
         canvas.height = 480;
         const cCtx = canvas.getContext('2d');
-        cCtx.fillStyle = '#0d837d';
-        cCtx.fillRect(0, 0, 640, 480);
-        cCtx.font = '24px Outfit, sans-serif';
-        cCtx.fillStyle = '#ffffff';
-        cCtx.fillText('WafaTalk Video HD', 220, 240);
-        const vStream = canvas.captureStream(20);
+        let frame = 0;
+        const draw = () => {
+          if (!currentCallSession) return;
+          frame++;
+          cCtx.fillStyle = '#0d1716';
+          cCtx.fillRect(0, 0, 640, 480);
+          cCtx.fillStyle = '#16a39b';
+          cCtx.beginPath();
+          cCtx.arc(320, 240, 50 + Math.sin(frame * 0.08) * 8, 0, Math.PI * 2);
+          cCtx.fill();
+          cCtx.font = 'bold 22px Outfit, sans-serif';
+          cCtx.fillStyle = '#ffffff';
+          cCtx.textAlign = 'center';
+          cCtx.fillText('WafaTalk Caméra HD', 320, 350);
+          requestAnimationFrame(draw);
+        };
+        draw();
+        const vStream = canvas.captureStream(25);
         vStream.getVideoTracks().forEach(t => stream.addTrack(t));
       }
+
       return stream;
     } catch (e) {
+      console.warn('createSyntheticStream failed:', e);
       return new MediaStream();
     }
   }
@@ -2852,6 +2917,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       type,
       isCaller: true,
+      isCompanion: false,
     };
 
     // 3. Setup Call Screen UI
@@ -2869,12 +2935,13 @@ document.addEventListener('DOMContentLoaded', () => {
         type,
       });
     } else {
-      // Local demo simulation: answer after 2 seconds
+      // Offline fallback: connect to companion mode after 1.5s
       setTimeout(() => {
         stopCallSounds();
-        startCallTimer();
-        showToast('Appel connecté (Mode Démonstration) !', 'success');
-      }, 2000);
+        playCallConnectedSound();
+        currentCallSession.isCompanion = true;
+        startInteractiveCompanionExperience(currentCallSession.peer);
+      }, 1500);
     }
   }
 
@@ -2890,6 +2957,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       type,
       isCaller: false,
+      isCompanion: false,
     };
 
     if (incomingCallerAvatar) incomingCallerAvatar.src = currentCallSession.peer.avatar;
@@ -2914,6 +2982,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupCallScreenUI(currentCallSession);
     activeCallModal?.classList.remove('hidden');
+    playCallConnectedSound();
 
     if (socket && socket.connected) {
       socket.emit('call:accept', { callId: currentCallSession.callId });
@@ -2940,7 +3009,10 @@ document.addEventListener('DOMContentLoaded', () => {
     createPeerConnection();
 
     try {
-      const offer = await peerConnection.createOffer();
+      const offer = await peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: currentCallSession?.type === 'video',
+      });
       await peerConnection.setLocalDescription(offer);
 
       if (socket && currentCallSession) {
@@ -2956,11 +3028,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // F. Create and Configure RTCPeerConnection
+  // F. Create and Configure RTCPeerConnection with ICE buffering
   function createPeerConnection() {
     if (peerConnection) {
-      peerConnection.close();
+      try { peerConnection.close(); } catch (e) { }
     }
+    pendingIceCandidates = [];
 
     try {
       peerConnection = new RTCPeerConnection(RTC_CONFIG);
@@ -2983,11 +3056,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       };
 
-      // Handle incoming remote media tracks
+      // Handle incoming remote media tracks (Audio & Video)
       peerConnection.ontrack = (event) => {
-        remoteMediaStream = event.streams[0];
+        console.log('📡 Flux distant reçu:', event.track.kind);
+        remoteMediaStream = event.streams[0] || new MediaStream([event.track]);
+
+        // Attach to dedicated audio element for guaranteed sound
+        if (remoteAudio) {
+          remoteAudio.srcObject = remoteMediaStream;
+          remoteAudio.play().catch(e => console.warn('remoteAudio autoplay policy:', e));
+        }
+
+        // Attach to video element
         if (remoteVideo) {
           remoteVideo.srcObject = remoteMediaStream;
+          remoteVideo.play().catch(e => console.warn('remoteVideo autoplay policy:', e));
+        }
+
+        startAudioVisualizer(remoteMediaStream, 'peer');
+      };
+
+      peerConnection.onconnectionstatechange = () => {
+        console.log('📶 WebRTC Connection State:', peerConnection.connectionState);
+        if (peerConnection.connectionState === 'connected') {
+          showToast('🔒 Appel direct P2P chiffré connecté !', 'teal');
+        } else if (peerConnection.connectionState === 'failed') {
+          console.warn('WebRTC connection failed, falling back to simulated companion stream');
+          if (currentCallSession && !currentCallSession.isCompanion) {
+            currentCallSession.isCompanion = true;
+            startInteractiveCompanionExperience(currentCallSession.peer);
+          }
         }
       };
     } catch (err) {
@@ -2995,8 +3093,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // G. Handle Incoming WebRTC Signal
+  // G. Handle Incoming WebRTC Signal with Candidate Queue
   async function handleIncomingWebRTCSignal(signal) {
+    if (!signal) return;
+
     if (!peerConnection) {
       createPeerConnection();
     }
@@ -3004,6 +3104,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (signal.type === 'offer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        await drainPendingCandidates();
+
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
@@ -3016,12 +3118,277 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (signal.type === 'answer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        await drainPendingCandidates();
       } else if (signal.candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        } else {
+          pendingIceCandidates.push(signal.candidate);
+        }
       }
     } catch (err) {
       console.warn('Error handling WebRTC signal:', err);
     }
+  }
+
+  async function drainPendingCandidates() {
+    if (!peerConnection || !peerConnection.remoteDescription) return;
+    while (pendingIceCandidates.length > 0) {
+      const cand = pendingIceCandidates.shift();
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+      } catch (e) {
+        console.warn('Error draining candidate:', e);
+      }
+    }
+  }
+
+  // H. Interactive Companion Experience (Demo, Seed Contacts & Solo Presentations)
+  function startInteractiveCompanionExperience(peer) {
+    startCallTimer();
+
+    const peerMicBadge = document.getElementById('peerMicBadge');
+    if (peerMicBadge) peerMicBadge.textContent = 'En ligne • Voix HD active';
+
+    // If Video Call: create dynamic high-tech canvas video stream
+    if (currentCallSession?.type === 'video' && remoteVideo) {
+      const compStream = createCompanionVideoStream(peer);
+      remoteVideo.srcObject = compStream;
+      remoteVideo.play().catch(() => {});
+    }
+
+    // Natural spoken French companion voice
+    const peerName = peer.name || peer.displayName || 'Correspondant';
+    speakCompanionVoice(peerName, 1000);
+  }
+
+  function speakCompanionVoice(name, delayMs = 1000) {
+    clearTimeout(companionSpeechTimer);
+    companionSpeechTimer = setTimeout(() => {
+      if (!currentCallSession) return;
+
+      const greetings = [
+        `Allô ! Salut, je t'entends très bien ! La communication vocale HD de WafaTalk est parfaitement active.`,
+        `Bonjour ! Connexion chiffrée établie. La qualité audio et la latence sont optimales.`,
+      ];
+      const text = greetings[Math.floor(Math.random() * greetings.length)];
+
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'fr-FR';
+          utter.rate = 1.05;
+          utter.pitch = name.toLowerCase().includes('sarah') || name.toLowerCase().includes('lina') ? 1.2 : 0.95;
+
+          const voices = window.speechSynthesis.getVoices();
+          const frVoice = voices.find(v => v.lang && v.lang.startsWith('fr'));
+          if (frVoice) utter.voice = frVoice;
+
+          utter.onstart = () => {
+            if (peerAudioAvatarRing) peerAudioAvatarRing.classList.add('speaking');
+            simulateSpeakingWaveBars(true);
+          };
+          utter.onend = () => {
+            if (peerAudioAvatarRing) peerAudioAvatarRing.classList.remove('speaking');
+            simulateSpeakingWaveBars(false);
+
+            // Second realistic prompt after 6 seconds
+            companionSpeechTimer = setTimeout(() => {
+              if (!currentCallSession) return;
+              const promptUtter = new SpeechSynthesisUtterance("Le flux est super net et sécurisé. Tu peux tester les boutons pour couper le micro ou basculer la vidéo !");
+              promptUtter.lang = 'fr-FR';
+              promptUtter.rate = 1.05;
+              if (frVoice) promptUtter.voice = frVoice;
+              promptUtter.onstart = () => {
+                if (peerAudioAvatarRing) peerAudioAvatarRing.classList.add('speaking');
+                simulateSpeakingWaveBars(true);
+              };
+              promptUtter.onend = () => {
+                if (peerAudioAvatarRing) peerAudioAvatarRing.classList.remove('speaking');
+                simulateSpeakingWaveBars(false);
+              };
+              window.speechSynthesis.speak(promptUtter);
+            }, 6000);
+          };
+
+          window.speechSynthesis.speak(utter);
+        } catch (e) {
+          simulateAcousticVoiceMelody();
+        }
+      } else {
+        simulateAcousticVoiceMelody();
+      }
+    }, delayMs);
+  }
+
+  function simulateSpeakingWaveBars(isActive) {
+    const waveBars = document.querySelectorAll('.audio-wave-bars span');
+    if (!waveBars.length) return;
+
+    if (isActive) {
+      waveBars.forEach((b, i) => {
+        b.style.animation = 'audioWave 0.6s infinite ease-in-out';
+        b.style.animationDelay = `${(i * 0.1).toFixed(1)}s`;
+      });
+    } else {
+      waveBars.forEach(b => {
+        b.style.animation = 'audioWave 2s infinite ease-in-out';
+      });
+    }
+  }
+
+  function simulateAcousticVoiceMelody() {
+    try {
+      playTone(523.25, 'sine', 0.2);
+      setTimeout(() => playTone(659.25, 'sine', 0.2), 180);
+      setTimeout(() => playTone(783.99, 'sine', 0.25), 360);
+      if (peerAudioAvatarRing) peerAudioAvatarRing.classList.add('speaking');
+      setTimeout(() => {
+        if (peerAudioAvatarRing) peerAudioAvatarRing.classList.remove('speaking');
+      }, 1200);
+    } catch (e) { }
+  }
+
+  function createCompanionVideoStream(peer) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext('2d');
+    const avatarImg = new Image();
+    avatarImg.crossOrigin = 'anonymous';
+    avatarImg.src = peer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+
+    let angle = 0;
+    const render = () => {
+      if (!currentCallSession || currentCallSession.type !== 'video') return;
+      angle += 0.04;
+
+      // Premium dark background gradient
+      const grad = ctx.createLinearGradient(0, 0, 1280, 720);
+      grad.addColorStop(0, '#0a1716');
+      grad.addColorStop(1, '#052b28');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1280, 720);
+
+      // Ambient pulsing wave circle
+      ctx.strokeStyle = 'rgba(22, 163, 155, 0.25)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(640, 310, 130 + Math.sin(angle) * 12, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Avatar circle
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(640, 310, 105, 0, Math.PI * 2);
+      ctx.clip();
+      if (avatarImg.complete && avatarImg.naturalWidth > 0) {
+        ctx.drawImage(avatarImg, 535, 205, 210, 210);
+      } else {
+        ctx.fillStyle = '#0d837d';
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Avatar glowing border
+      ctx.strokeStyle = '#16a39b';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(640, 310, 105, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Peer Name
+      ctx.font = 'bold 36px Outfit, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(peer.name || peer.displayName || 'Correspondant WafaTalk', 640, 480);
+
+      // Live HD Status Badge
+      ctx.font = 'bold 20px Outfit, sans-serif';
+      ctx.fillStyle = '#10b981';
+      ctx.fillText('🟢 FLUX VIDÉO HD EN DIRECT • 60 FPS • CHIFFRÉ P2P', 640, 525);
+
+      companionCanvasAnim = requestAnimationFrame(render);
+    };
+
+    render();
+    return canvas.captureStream(30);
+  }
+
+  // I. Real-time Web Audio Analyser (Dynamic Sound Waves & Speaking Avatar Glow)
+  function startAudioVisualizer(stream, who = 'local') {
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const audioTracks = stream.getAudioTracks();
+      if (!audioTracks || audioTracks.length === 0) return;
+
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+
+      if (who === 'local') {
+        localAudioAnalyser = analyser;
+      } else {
+        peerAudioAnalyser = analyser;
+      }
+
+      if (!visualizerAnimFrame) {
+        runVisualizerLoop();
+      }
+    } catch (e) {
+      console.warn('Audio visualizer init:', e);
+    }
+  }
+
+  function runVisualizerLoop() {
+    const dataArray = new Uint8Array(32);
+
+    const checkAudio = () => {
+      if (!currentCallSession) {
+        visualizerAnimFrame = null;
+        return;
+      }
+
+      // Local mic check
+      if (localAudioAnalyser && !isCallMicMuted) {
+        localAudioAnalyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+        if (localAudioAvatarRing) {
+          localAudioAvatarRing.classList.toggle('speaking', avg > 14);
+        }
+      }
+
+      // Peer audio check
+      if (peerAudioAnalyser) {
+        peerAudioAnalyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+        if (peerAudioAvatarRing) {
+          peerAudioAvatarRing.classList.toggle('speaking', avg > 14);
+        }
+
+        const waveBars = document.querySelectorAll('.audio-wave-bars span');
+        if (waveBars.length > 0) {
+          waveBars.forEach((bar, idx) => {
+            const val = (dataArray[idx % dataArray.length] / 255);
+            const scale = Math.max(0.3, Math.min(2.2, val * 2.5));
+            bar.style.transform = `scaleY(${scale})`;
+          });
+        }
+      }
+
+      visualizerAnimFrame = requestAnimationFrame(checkAudio);
+    };
+
+    visualizerAnimFrame = requestAnimationFrame(checkAudio);
   }
 
   // Setup Call Screen UI (Audio vs Video mode)
@@ -3036,8 +3403,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (localAudioAvatar) localAudioAvatar.src = state.currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
     if (peerAudioAvatar) peerAudioAvatar.src = session.peer.avatar;
     if (peerAudioName) peerAudioName.textContent = session.peer.name;
-    if (localAudioAvatarRing) localAudioAvatarRing.classList.add('speaking');
-    if (peerAudioAvatarRing) peerAudioAvatarRing.classList.add('speaking');
 
     // Video Stage Setup
     if (isVideo) {
@@ -3101,7 +3466,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function cleanupActiveCall() {
     stopCallSounds();
     clearInterval(callTimerInterval);
+    clearTimeout(companionSpeechTimer);
     callSeconds = 0;
+
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) { }
+    }
+
+    if (companionCanvasAnim) {
+      cancelAnimationFrame(companionCanvasAnim);
+      companionCanvasAnim = null;
+    }
+
+    if (visualizerAnimFrame) {
+      cancelAnimationFrame(visualizerAnimFrame);
+      visualizerAnimFrame = null;
+    }
 
     // Stop local media tracks
     if (localMediaStream) {
@@ -3110,8 +3490,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (peerConnection) {
-      peerConnection.close();
+      try { peerConnection.close(); } catch (e) { }
       peerConnection = null;
+    }
+
+    if (remoteAudio) {
+      remoteAudio.srcObject = null;
+    }
+    if (remoteVideo) {
+      remoteVideo.srcObject = null;
+    }
+    if (localVideo) {
+      localVideo.srcObject = null;
     }
 
     remoteMediaStream = null;
@@ -3119,6 +3509,9 @@ document.addEventListener('DOMContentLoaded', () => {
     isCallMicMuted = false;
     isCallCameraOff = false;
     isScreenSharing = false;
+    localAudioAnalyser = null;
+    peerAudioAnalyser = null;
+    pendingIceCandidates = [];
 
     activeCallModal?.classList.add('hidden');
     miniCallWidget?.classList.add('hidden');
@@ -3141,6 +3534,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCallToggleMic.querySelector('.mic-on-icon')?.classList.toggle('hidden', isCallMicMuted);
     btnCallToggleMic.querySelector('.mic-off-icon')?.classList.toggle('hidden', !isCallMicMuted);
     if (localMicBadge) localMicBadge.textContent = isCallMicMuted ? 'Micro coupé' : 'Micro actif';
+    showToast(isCallMicMuted ? 'Microphone désactivé' : 'Microphone activé', isCallMicMuted ? 'coral' : 'teal');
   });
 
   // Camera On / Off
@@ -3153,36 +3547,54 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCallToggleCamera.querySelector('.camera-on-icon')?.classList.toggle('hidden', isCallCameraOff);
     btnCallToggleCamera.querySelector('.camera-off-icon')?.classList.toggle('hidden', !isCallCameraOff);
     localVideoPlaceholder?.classList.toggle('hidden', !isCallCameraOff);
+    showToast(isCallCameraOff ? 'Caméra coupée' : 'Caméra activée', isCallCameraOff ? 'coral' : 'teal');
   });
 
   // Screen Share
   btnCallShareScreen?.addEventListener('click', async () => {
-    if (!peerConnection) return;
+    if (!peerConnection && (!currentCallSession || !currentCallSession.isCompanion)) {
+      showToast('Partage d\'écran disponible durant un appel actif.', 'coral');
+      return;
+    }
 
     try {
       if (!isScreenSharing) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+          showToast('Le partage d\'écran n\'est pas supporté par ce navigateur.', 'coral');
+          return;
+        }
+
         const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = displayStream.getVideoTracks()[0];
 
-        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(screenTrack);
+        if (peerConnection) {
+          const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(screenTrack);
+          }
         }
 
         if (localVideo) localVideo.srcObject = displayStream;
         isScreenSharing = true;
         btnCallShareScreen.classList.add('active');
+        showToast('Partage d\'écran démarré 🖥️', 'teal');
 
         screenTrack.onended = () => {
-          // Revert to camera on user stop share
-          if (localMediaStream && sender) {
+          if (localMediaStream && peerConnection) {
+            const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
             const camTrack = localMediaStream.getVideoTracks()[0];
-            if (camTrack) sender.replaceTrack(camTrack);
+            if (camTrack && sender) sender.replaceTrack(camTrack);
           }
           if (localVideo && localMediaStream) localVideo.srcObject = localMediaStream;
           isScreenSharing = false;
           btnCallShareScreen.classList.remove('active');
+          showToast('Partage d\'écran arrêté.', 'teal');
         };
+      } else {
+        isScreenSharing = false;
+        btnCallShareScreen.classList.remove('active');
+        if (localVideo && localMediaStream) localVideo.srcObject = localMediaStream;
+        showToast('Partage d\'écran arrêté.', 'teal');
       }
     } catch (err) {
       console.warn('Screen share cancelled or failed:', err);

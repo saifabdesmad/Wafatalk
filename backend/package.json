@@ -13,6 +13,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "users": "node scripts/list-users.js",
+    "clean-bots": "node scripts/clean-bots.js",
     "seed": "tsx src/database/seed.ts"
   },
   "dependencies": {

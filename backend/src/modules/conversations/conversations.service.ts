@@ -217,9 +217,21 @@ export class ConversationsService {
    * Create a CallSession
    */
   static async createCallSession(conversationId: string, callerId: string, receiverId: string, type: string = 'AUDIO') {
+    let convId = conversationId;
+    try {
+      const conv = await prisma.conversation.findUnique({ where: { id: conversationId } });
+      if (!conv) {
+        const ensured = await this.getOrCreateConversation(callerId, receiverId);
+        convId = ensured.id;
+      }
+    } catch (e) {
+      const ensured = await this.getOrCreateConversation(callerId, receiverId);
+      convId = ensured.id;
+    }
+
     return prisma.callSession.create({
       data: {
-        conversationId,
+        conversationId: convId,
         callerId,
         receiverId,
         type: type.toUpperCase(),

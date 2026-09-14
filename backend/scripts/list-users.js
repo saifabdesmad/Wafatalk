@@ -19,8 +19,10 @@ async function main() {
     orderBy: { createdAt: 'desc' },
   });
 
-  console.table(users);
-  console.log(`Total: ${users.length} utilisateur(s) trouvé(s).\n`);
+  users.forEach((u, idx) => {
+    console.log(`${idx + 1}. [${u.role}] @${u.username} | "${u.displayName}" | ${u.email} | ID: ${u.id} | Créé le: ${new Date(u.createdAt).toLocaleString()}`);
+  });
+  console.log(`\nTotal: ${users.length} utilisateur(s) trouvé(s).\n`);
   process.exit(0);
 }
 
