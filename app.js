@@ -2484,7 +2484,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // I. WebRTC Mesh Peer Connection Setup (Unified Plan with Upfront Transceivers & TURN Relay)
+  // I. WebRTC Mesh Peer Connection Setup
+  // CRITICAL: Only the INITIATOR adds transceivers. The ANSWERER must NOT call addTransceiver()
+  // before setRemoteDescription, or it creates duplicate/mismatched transceivers causing one-way calls.
   function createSalonPeerConnection(targetUserId, isInitiator = false) {
     let pc = salonPeerConnections.get(targetUserId);
     if (pc && pc.connectionState !== 'closed' && pc.connectionState !== 'failed') {
@@ -2495,24 +2497,30 @@ document.addEventListener('DOMContentLoaded', () => {
     salonPeerConnections.set(targetUserId, pc);
     pc._pendingCandidates = [];
 
-    // Add audio and video transceivers upfront for bidirectional communication
-    const audioTrack = salonLocalAudioTrack || null;
-    const videoTrack = (isSalonCamActive && salonLocalVideoTrack) ? salonLocalVideoTrack : null;
+    // ── INITIATOR ONLY: add transceivers to define the media plan in the offer ──
+    if (isInitiator) {
+      const audioTrack = salonLocalAudioTrack || null;
+      const videoTrack = (isSalonCamActive && salonLocalVideoTrack) ? salonLocalVideoTrack : null;
 
-    const audioTransceiver = pc.addTransceiver(audioTrack || 'audio', { direction: 'sendrecv' });
-    const videoTransceiver = pc.addTransceiver(videoTrack || 'video', { direction: 'sendrecv' });
+      // Pass the track directly to addTransceiver — this is the most reliable method
+      const audioTransceiver = pc.addTransceiver(audioTrack || 'audio', { direction: 'sendrecv' });
+      const videoTransceiver = pc.addTransceiver(videoTrack || 'video', { direction: 'sendrecv' });
 
-    if (audioTrack && audioTransceiver.sender && !audioTransceiver.sender.track) {
-      audioTransceiver.sender.replaceTrack(audioTrack).catch(() => {});
+      // If track is null (mic not granted yet), sender.track is already null — fine
+      // If we passed 'audio'/'video' string and have a track, assign it now
+      if (audioTrack && !audioTransceiver.sender.track) {
+        audioTransceiver.sender.replaceTrack(audioTrack).catch(() => {});
+      }
+      if (videoTrack && !videoTransceiver.sender.track) {
+        videoTransceiver.sender.replaceTrack(videoTrack).catch(() => {});
+      }
     }
-
-    if (videoTrack && videoTransceiver.sender && !videoTransceiver.sender.track) {
-      videoTransceiver.sender.replaceTrack(videoTrack).catch(() => {});
-    }
+    // ── ANSWERER: does NOT add transceivers here. Tracks are added in handleSalonIncomingSignal
+    // after setRemoteDescription(), where existing transceivers from the offer are already present. ──
 
     pc.ontrack = (event) => {
       const track = event.track;
-      console.log(`📡 Remote track received from ${targetUserId}:`, track.kind, track.id);
+      console.log(`📡 [${isInitiator ? 'INIT' : 'ANSW'}] Track from ${targetUserId}:`, track.kind, track.id);
 
       if (track.kind === 'audio') {
         let audioEl = salonRemoteAudioElements.get(targetUserId);
@@ -2523,33 +2531,25 @@ document.addEventListener('DOMContentLoaded', () => {
           salonRemoteAudioElements.set(targetUserId, audioEl);
         }
         audioEl.srcObject = new MediaStream([track]);
-        audioEl.play().catch(e => console.warn('Audio play auto-blocked:', e));
+        audioEl.play().catch(e => console.warn('Audio play blocked:', e));
+
       } else if (track.kind === 'video') {
         const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
         salonRemoteStreams.set(targetUserId, stream);
 
-        const hideLoader = () => {
+        const attachVideo = () => {
           const lEl = document.getElementById(`videoLoading_${targetUserId}`);
           if (lEl) lEl.style.display = 'none';
-        };
-
-        // Attach directly to video element if already rendered
-        const vidEl = document.getElementById(`videoEl_${targetUserId}`);
-        if (vidEl) {
-          vidEl.srcObject = stream;
-          vidEl.muted = true;
-          vidEl.play().then(hideLoader).catch(e => console.warn('Video play error:', e));
-        }
-
-        track.onunmute = () => {
-          console.log(`🎥 Video unmuted for ${targetUserId}`);
-          const v = document.getElementById(`videoEl_${targetUserId}`);
-          if (v) {
-            v.srcObject = stream;
-            v.muted = true;
-            v.play().then(hideLoader).catch(() => {});
+          const vidEl = document.getElementById(`videoEl_${targetUserId}`);
+          if (vidEl) {
+            vidEl.srcObject = stream;
+            vidEl.muted = true;
+            vidEl.play().catch(() => {});
           }
         };
+
+        attachVideo();
+        track.onunmute = attachVideo;
       }
     };
 
@@ -2564,22 +2564,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log(`🧊 ICE State [${targetUserId}]:`, pc.iceConnectionState);
+      console.log(`🧊 ICE [${targetUserId}]:`, pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed') {
-        console.warn(`ICE failed with ${targetUserId}, attempting restart with TURN...`);
-        if (typeof pc.restartIce === 'function') {
-          pc.restartIce();
-        }
+        console.warn(`ICE failed with ${targetUserId} — triggering restartIce()`);
+        if (typeof pc.restartIce === 'function') pc.restartIce();
       }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log(`🔗 Peer Connection [${targetUserId}]:`, pc.connectionState);
+      console.log(`🔗 PeerConn [${targetUserId}]:`, pc.connectionState);
     };
 
     if (isInitiator) {
-      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
-        .then((offer) => pc.setLocalDescription(offer))
+      pc.createOffer()
+        .then(offer => pc.setLocalDescription(offer))
         .then(() => {
           if (socket && socket.connected && state.currentRoom) {
             socket.emit('salon:signal', {
@@ -2589,7 +2587,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
         })
-        .catch((err) => console.warn('Offer creation failed for peer', targetUserId, err));
+        .catch(err => console.warn('Offer failed for', targetUserId, err));
     }
 
     return pc;
@@ -2600,9 +2598,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!signal || !senderId) return;
 
     if (signal.type === 'offer') {
-      const pc = createSalonPeerConnection(senderId, false);
+      const pc = createSalonPeerConnection(senderId, false); // false = answerer, no addTransceiver called
       try {
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+
+        // CRITICAL: Answerer injects local tracks into the transceivers that were created by
+        // setRemoteDescription from the offer. This is the correct way — do NOT call addTransceiver.
+        const transceivers = pc.getTransceivers();
+        for (const transceiver of transceivers) {
+          if (transceiver.direction === 'recvonly' || transceiver.direction === 'sendrecv') {
+            const kind = transceiver.receiver.track.kind;
+            if (kind === 'audio' && salonLocalAudioTrack) {
+              transceiver.direction = 'sendrecv';
+              transceiver.sender.replaceTrack(salonLocalAudioTrack).catch(() => {});
+            } else if (kind === 'video' && isSalonCamActive && salonLocalVideoTrack) {
+              transceiver.direction = 'sendrecv';
+              transceiver.sender.replaceTrack(salonLocalVideoTrack).catch(() => {});
+            }
+          }
+        }
 
         // Drain any buffered candidates
         if (pc._pendingCandidates && pc._pendingCandidates.length) {
@@ -2734,13 +2748,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = true;
 
-      // Instantly replace track on all active peer connection video senders (Zero glare/renegotiation!)
+      // Instantly replace track on all active peer connection video senders
       salonPeerConnections.forEach(async (pc) => {
         try {
-          const videoSender = pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')?.sender
-            || pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          // Find the video sender: works for both initiator (sender has kind) and answerer (use transceivers)
+          const videoTransceiver = pc.getTransceivers().find(t => t.receiver && t.receiver.track && t.receiver.track.kind === 'video');
+          const videoSender = videoTransceiver ? videoTransceiver.sender : pc.getSenders().find(s => s.track && s.track.kind === 'video');
           if (videoSender) {
             await videoSender.replaceTrack(salonLocalVideoTrack);
+          } else {
+            // No transceiver yet (answerer just joined): inject directly
+            const nullVideoSender = pc.getSenders().find(s => !s.track);
+            if (nullVideoSender) await nullVideoSender.replaceTrack(salonLocalVideoTrack);
           }
         } catch (e) {
           console.warn('Error replacing video track:', e);
@@ -2782,11 +2801,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Blank track on all peer connections
       salonPeerConnections.forEach(async (pc) => {
         try {
-          const videoSender = pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')?.sender
-            || pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-          if (videoSender) {
-            await videoSender.replaceTrack(null);
-          }
+          const videoTransceiver = pc.getTransceivers().find(t => t.receiver && t.receiver.track && t.receiver.track.kind === 'video');
+          const videoSender = videoTransceiver ? videoTransceiver.sender : pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (videoSender) await videoSender.replaceTrack(null);
         } catch (e) {}
       });
 
