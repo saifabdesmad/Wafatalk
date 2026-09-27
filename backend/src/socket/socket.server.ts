@@ -57,6 +57,24 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
   // Map callId to 45s ringing timeout timer
   const callTimeoutTimers = new Map<string, NodeJS.Timeout>();
 
+  // Salon Participants Tracker: salonId -> Map<userId, SalonParticipant>
+  interface SalonParticipant {
+    userId: string;
+    socketId: string;
+    username: string;
+    displayName: string;
+    avatarUrl?: string;
+    country?: string;
+    role: string;
+    isMuted: boolean;
+    isSpeaking: boolean;
+    isCameraOn: boolean;
+    isScreenSharing: boolean;
+    joinedAt: Date;
+  }
+  const salonParticipants = new Map<string, Map<string, SalonParticipant>>();
+  const socketSalons = new Map<string, Set<string>>();
+
   // Socket Authentication Middleware
   io.use(async (socket, next) => {
     try {
@@ -107,40 +125,153 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     }
 
     // =========================================================================
-    // 1. SALON ROOM EVENTS (PUBLIC & GROUP SALONS)
+    // 1. SALON ROOM EVENTS (PUBLIC & GROUP SALONS - MULTI-USER CHAT, AUDIO & VIDEO)
     // =========================================================================
     socket.on('salon:join', async ({ salonId }) => {
+      if (!salonId) return;
       const room = `salon:${salonId}`;
       socket.join(room);
-      console.log(`🏠 ${user.displayName} joined ${room}`);
 
+      // Track socket salons for graceful disconnect cleanup
+      if (!socketSalons.has(socket.id)) {
+        socketSalons.set(socket.id, new Set());
+      }
+      socketSalons.get(socket.id)!.add(salonId);
+
+      // Register participant in salon roster
+      if (!salonParticipants.has(salonId)) {
+        salonParticipants.set(salonId, new Map());
+      }
+      const salonMap = salonParticipants.get(salonId)!;
+
+      const participant: SalonParticipant = {
+        userId: user.id,
+        socketId: socket.id,
+        username: user.username,
+        displayName: user.displayName || user.username || 'Membre WafaTalk',
+        avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+        country: user.country || 'FR',
+        role: user.role === 'ADMIN' ? 'Hôte du salon' : 'Participant',
+        isMuted: false,
+        isSpeaking: false,
+        isCameraOn: false,
+        isScreenSharing: false,
+        joinedAt: new Date(),
+      };
+      salonMap.set(user.id, participant);
+
+      console.log(`🏠 ${user.displayName} joined ${room} (Total active members: ${salonMap.size})`);
+
+      // 1. Dispatch full active roster to the newcomer
+      const roster = Array.from(salonMap.values());
+      socket.emit('salon:roster', {
+        salonId,
+        participants: roster,
+      });
+
+      // 2. Broadcast user joined event to other room members
       socket.to(room).emit('salon:user_joined', {
-        user,
+        salonId,
+        participant,
         timestamp: new Date(),
       });
     });
 
     socket.on('salon:leave', ({ salonId }) => {
+      if (!salonId) return;
       const room = `salon:${salonId}`;
       socket.leave(room);
+
+      if (socketSalons.has(socket.id)) {
+        socketSalons.get(socket.id)!.delete(salonId);
+      }
+
+      const salonMap = salonParticipants.get(salonId);
+      if (salonMap) {
+        salonMap.delete(user.id);
+        if (salonMap.size === 0) {
+          salonParticipants.delete(salonId);
+        }
+      }
+
       console.log(`🚪 ${user.displayName} left ${room}`);
 
       socket.to(room).emit('salon:user_left', {
-        user,
+        salonId,
+        userId: user.id,
+        displayName: user.displayName,
         timestamp: new Date(),
       });
     });
 
+    // Real-time Salon Media State Update (Mic Mute, Speaking Activity, Camera Toggle, Screen Share)
+    socket.on('salon:media_state', ({ salonId, isMuted, isSpeaking, isCameraOn, isScreenSharing }) => {
+      if (!salonId) return;
+      const salonMap = salonParticipants.get(salonId);
+      if (salonMap && salonMap.has(user.id)) {
+        const p = salonMap.get(user.id)!;
+        if (typeof isMuted === 'boolean') p.isMuted = isMuted;
+        if (typeof isSpeaking === 'boolean') p.isSpeaking = isSpeaking;
+        if (typeof isCameraOn === 'boolean') p.isCameraOn = isCameraOn;
+        if (typeof isScreenSharing === 'boolean') p.isScreenSharing = isScreenSharing;
+      }
+
+      socket.to(`salon:${salonId}`).emit('salon:media_update', {
+        salonId,
+        userId: user.id,
+        isMuted,
+        isSpeaking,
+        isCameraOn,
+        isScreenSharing,
+      });
+    });
+
+    // WebRTC Multi-Peer Mesh Signaling for Group Vocal & Video Calls
+    socket.on('salon:signal', ({ salonId, targetUserId, signal }) => {
+      if (!salonId || !targetUserId || !signal) return;
+      io.to(`user:${targetUserId}`).emit('salon:signal', {
+        salonId,
+        senderId: user.id,
+        senderUser: {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        },
+        signal,
+      });
+    });
+
+    // Group Salon Real-time Chat
     socket.on('chat:send', async ({ salonId, content, type }) => {
       try {
         if (!content || !content.trim()) return;
 
-        const message = await MessagesService.createMessage(
-          salonId,
-          user.id,
-          content.trim(),
-          type || 'TEXT'
-        );
+        let message;
+        try {
+          message = await MessagesService.createMessage(
+            salonId,
+            user.id,
+            content.trim(),
+            type || 'TEXT'
+          );
+        } catch (dbErr) {
+          // If demo / unsaved salon, fallback to resilient in-memory message object
+          message = {
+            id: 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+            salonId,
+            user: {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+            },
+            content: content.trim(),
+            type: type || 'TEXT',
+            time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            createdAt: new Date(),
+          };
+        }
 
         io.to(`salon:${salonId}`).emit('chat:message', message);
       } catch (error) {
@@ -149,7 +280,9 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     });
 
     socket.on('chat:typing', ({ salonId, isTyping }) => {
+      if (!salonId) return;
       socket.to(`salon:${salonId}`).emit('chat:user_typing', {
+        salonId,
         userId: user.id,
         displayName: user.displayName,
         isTyping,
@@ -157,6 +290,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     });
 
     socket.on('voice:state', ({ salonId, isMuted, isSpeaking }) => {
+      if (!salonId) return;
       socket.to(`salon:${salonId}`).emit('voice:update', {
         userId: user.id,
         isMuted,
@@ -526,6 +660,27 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     // =========================================================================
     socket.on('disconnect', async () => {
       console.log(`❌ Client disconnected: ${user.displayName} (${socket.id})`);
+
+      // Clean up all salons this socket had joined
+      const joinedSalons = socketSalons.get(socket.id);
+      if (joinedSalons && joinedSalons.size > 0) {
+        for (const salonId of joinedSalons) {
+          const salonMap = salonParticipants.get(salonId);
+          if (salonMap) {
+            salonMap.delete(user.id);
+            if (salonMap.size === 0) {
+              salonParticipants.delete(salonId);
+            }
+          }
+          io.to(`salon:${salonId}`).emit('salon:user_left', {
+            salonId,
+            userId: user.id,
+            displayName: user.displayName,
+            timestamp: new Date(),
+          });
+        }
+        socketSalons.delete(socket.id);
+      }
 
       // Clean up active call if any
       const callId = userActiveCall.get(user.id);

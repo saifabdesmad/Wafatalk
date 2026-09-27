@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const notifDropdown = document.getElementById('notifDropdown');
   const btnLogout = document.getElementById('btnLogout');
 
-  // Modals
+  // Live Salon Modal Elements
   const liveSalonModal = document.getElementById('liveSalonModal');
   const btnCloseSalonModal = document.getElementById('btnCloseSalonModal');
   const btnLeaveRoom = document.getElementById('btnLeaveRoom');
@@ -229,10 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatMessagesScroll = document.getElementById('chatMessagesScroll');
   const chatForm = document.getElementById('chatForm');
   const chatInputText = document.getElementById('chatInputText');
+  const chatParticipantsCount = document.getElementById('chatParticipantsCount');
+  const salonTypingIndicator = document.getElementById('salonTypingIndicator');
+  const salonTypingText = document.getElementById('salonTypingText');
 
-  // Voice Controls
+  // Voice & Video Controls
   const btnToggleMic = document.getElementById('btnToggleMic');
   const btnToggleAudio = document.getElementById('btnToggleAudio');
+  const btnToggleSalonVideo = document.getElementById('btnToggleSalonVideo');
+  const btnShareScreen = document.getElementById('btnShareScreen');
 
   // Gifting Modal & Actions
   const giftShopModal = document.getElementById('giftShopModal');
@@ -1889,24 +1894,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // =========================================================================
-  // 6. LIVE SALON MODAL EXPERIENCE
+  // 6. LIVE MULTI-USER SALON EXPERIENCE (ROSTER, VOCAL MESH, VIDEO & CHAT)
   // =========================================================================
-  function openLiveSalon(salon) {
+
+  // A. Open Live Salon
+  async function openLiveSalon(salon) {
     state.currentRoom = salon;
 
+    // Reset controls UI
+    state.isMicMuted = false;
+    isSalonCamActive = false;
+    btnToggleMic?.classList.remove('muted');
+    btnToggleMic?.querySelector('.mic-on-icon')?.classList.remove('hidden');
+    btnToggleMic?.querySelector('.mic-off-icon')?.classList.add('hidden');
+    if (btnToggleMic) btnToggleMic.querySelector('.ctrl-label').textContent = 'Micro';
+
+    btnToggleSalonVideo?.classList.remove('active');
+    btnToggleSalonVideo?.querySelector('.cam-on-icon')?.classList.remove('hidden');
+    btnToggleSalonVideo?.querySelector('.cam-off-icon')?.classList.add('hidden');
+    if (btnToggleSalonVideo) btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra';
+
     document.getElementById('liveSalonTitle').textContent = salon.name;
-    document.getElementById('liveSalonTopic').textContent = salon.topic;
-    document.getElementById('modalRoomCategory').textContent = `${salon.category.toUpperCase()} • HD AUDIO`;
+    document.getElementById('liveSalonTopic').textContent = salon.topic || 'Partagez un moment convivial.';
+    document.getElementById('modalRoomCategory').textContent = `${(salon.category || 'vocal').toUpperCase()} • HD AUDIO & VIDEO`;
+
+    // Clear previous roster & peer connections
+    currentSalonRoster.clear();
+    salonPeerConnections.forEach(pc => pc.close());
+    salonPeerConnections.clear();
+    salonRemoteStreams.clear();
+    salonRemoteAudioElements.forEach(el => el.remove());
+    salonRemoteAudioElements.clear();
+
+    // Register self in local roster
+    const selfUser = state.currentUser || {
+      id: 'self-' + Date.now(),
+      username: 'vous',
+      displayName: 'Alexandre Moreau',
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+      role: 'Hôte du salon',
+      country: 'FR',
+    };
+
+    currentSalonRoster.set(selfUser.id, {
+      userId: selfUser.id,
+      username: selfUser.username,
+      displayName: (selfUser.displayName || selfUser.username) + ' (Vous)',
+      avatarUrl: selfUser.avatarUrl,
+      role: selfUser.role || 'Membre WafaTalk',
+      country: selfUser.country || 'FR',
+      isMuted: false,
+      isSpeaking: false,
+      isCameraOn: false,
+    });
 
     renderVoiceStage();
     initSalonChat(salon);
-
     liveSalonModal.classList.remove('hidden');
     playTone(440, 'sine', 0.15);
-    showToast(`Connexion au salon vocal "${salon.name}" établie !`, 'teal');
+    showToast(`Connexion au salon "${salon.name}"...`, 'teal');
+
+    // Acquire local microphone stream for voice calling
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        salonLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        salonLocalAudioTrack = salonLocalStream.getAudioTracks()[0];
+        setupSalonVoiceActivityDetector();
+      }
+    } catch (micErr) {
+      console.warn('Microphone access denied or unavailable in salon:', micErr);
+    }
+
+    // Join Socket Salon Room
+    if (socket && socket.connected) {
+      socket.emit('salon:join', { salonId: salon.id });
+    }
   }
 
+  // B. Close Live Salon
   function closeLiveSalon() {
+    if (state.currentRoom && socket && socket.connected) {
+      socket.emit('salon:leave', { salonId: state.currentRoom.id });
+    }
+
+    // Stop voice activity detector
+    if (salonVoiceDetectorTimer) {
+      clearInterval(salonVoiceDetectorTimer);
+      salonVoiceDetectorTimer = null;
+    }
+    if (salonAudioContext) {
+      salonAudioContext.close().catch(() => {});
+      salonAudioContext = null;
+      salonAudioAnalyser = null;
+    }
+
+    // Stop local media tracks
+    if (salonLocalAudioTrack) {
+      salonLocalAudioTrack.stop();
+      salonLocalAudioTrack = null;
+    }
+    if (salonLocalVideoTrack) {
+      salonLocalVideoTrack.stop();
+      salonLocalVideoTrack = null;
+    }
+    if (salonLocalStream) {
+      salonLocalStream.getTracks().forEach(t => t.stop());
+      salonLocalStream = null;
+    }
+
+    // Close all WebRTC mesh peer connections
+    salonPeerConnections.forEach(pc => pc.close());
+    salonPeerConnections.clear();
+    salonRemoteStreams.clear();
+    salonRemoteAudioElements.forEach(el => el.remove());
+    salonRemoteAudioElements.clear();
+    currentSalonRoster.clear();
+
     liveSalonModal.classList.add('hidden');
     state.currentRoom = null;
     showToast('Vous avez quitté le salon.', 'coral');
@@ -1915,57 +2018,571 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCloseSalonModal?.addEventListener('click', closeLiveSalon);
   btnLeaveRoom?.addEventListener('click', closeLiveSalon);
 
-  // Render Avatars in Voice Stage with speaking simulator
+  // C. Local Voice Activity Detector using Web Audio API
+  function setupSalonVoiceActivityDetector() {
+    if (!salonLocalStream) return;
+    try {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      salonAudioContext = new AudioCtxClass();
+      const source = salonAudioContext.createMediaStreamSource(salonLocalStream);
+      salonAudioAnalyser = salonAudioContext.createAnalyser();
+      salonAudioAnalyser.fftSize = 256;
+      source.connect(salonAudioAnalyser);
+
+      let wasSpeaking = false;
+      const dataArr = new Uint8Array(salonAudioAnalyser.frequencyBinCount);
+
+      if (salonVoiceDetectorTimer) clearInterval(salonVoiceDetectorTimer);
+      salonVoiceDetectorTimer = setInterval(() => {
+        if (!state.currentRoom || !salonAudioAnalyser) return;
+
+        if (state.isMicMuted) {
+          if (wasSpeaking) {
+            wasSpeaking = false;
+            updateParticipantSpeakingUI(state.currentUser?.id, false);
+            if (socket && socket.connected) {
+              socket.emit('salon:media_state', {
+                salonId: state.currentRoom.id,
+                isMuted: true,
+                isSpeaking: false,
+                isCameraOn: isSalonCamActive,
+              });
+            }
+          }
+          return;
+        }
+
+        salonAudioAnalyser.getByteFrequencyData(dataArr);
+        let sum = 0;
+        for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
+        const avg = sum / dataArr.length;
+        const isSpeaking = avg > 12;
+
+        if (isSpeaking !== wasSpeaking) {
+          wasSpeaking = isSpeaking;
+          updateParticipantSpeakingUI(state.currentUser?.id, isSpeaking);
+          if (socket && socket.connected) {
+            socket.emit('salon:media_state', {
+              salonId: state.currentRoom.id,
+              isMuted: false,
+              isSpeaking,
+              isCameraOn: isSalonCamActive,
+            });
+          }
+        }
+      }, 250);
+    } catch (e) {
+      console.warn('Voice detector setup failed:', e);
+    }
+  }
+
+  // D. Render Voice & Video Stage Grid
   function renderVoiceStage() {
     if (!voiceStageGrid) return;
     voiceStageGrid.innerHTML = '';
 
-    stageParticipants.forEach((p, idx) => {
+    const count = currentSalonRoster.size;
+    if (chatParticipantsCount) {
+      chatParticipantsCount.textContent = `${count} participant${count > 1 ? 's' : ''}`;
+    }
+
+    currentSalonRoster.forEach((p, userId) => {
+      const isSelf = userId === state.currentUser?.id || userId.startsWith('self-');
       const card = document.createElement('div');
-      card.className = `stage-avatar-card ${p.isSpeaking ? 'is-speaking' : ''}`;
-      card.id = `stageUser_${idx}`;
+      card.className = `stage-avatar-card ${p.isSpeaking ? 'is-speaking' : ''} ${p.isCameraOn ? 'has-video' : ''}`;
+      card.id = `stageUser_${userId}`;
 
-      card.innerHTML = `
-        <div class="stage-avatar-img-wrap">
-          <img src="${p.avatar}" alt="${p.name}" class="stage-avatar-img">
-        </div>
-        <span class="stage-user-name">${p.name}</span>
-        <span class="stage-user-role">${p.role}</span>
-      `;
+      if (p.isCameraOn) {
+        // Video Stream Card
+        card.innerHTML = `
+          <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
+          ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+          <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline ${isSelf ? 'muted' : ''}></video>
+          <div class="stage-video-overlay">
+            <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+            <span class="stage-user-role" style="color: rgba(255,255,255,0.7);">${escapeHtml(p.role || '')}</span>
+          </div>
+        `;
+        voiceStageGrid.appendChild(card);
 
-      voiceStageGrid.appendChild(card);
+        // Attach video stream
+        const vidEl = card.querySelector(`#videoEl_${userId}`);
+        if (vidEl) {
+          if (isSelf && salonLocalStream) {
+            vidEl.srcObject = salonLocalStream;
+          } else if (salonRemoteStreams.has(userId)) {
+            vidEl.srcObject = salonRemoteStreams.get(userId);
+          }
+        }
+      } else {
+        // Avatar Card
+        const flagImg = getFlagImgTag(p.country || 'FR', p.country || 'FR');
+        card.innerHTML = `
+          <div class="stage-avatar-img-wrap">
+            <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+          </div>
+          ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+            <span>${flagImg}</span>
+          </div>
+          <span class="stage-user-role">${escapeHtml(p.role || 'Participant')}</span>
+        `;
+        voiceStageGrid.appendChild(card);
+      }
     });
   }
 
-  // Simulate active speaker voice activity pulses
-  setInterval(() => {
-    if (!state.currentRoom || liveSalonModal.classList.contains('hidden')) return;
-    const randIdx = Math.floor(Math.random() * stageParticipants.length);
-    const card = document.getElementById(`stageUser_${randIdx}`);
+  // Update single participant speaking visual in stage card
+  function updateParticipantSpeakingUI(userId, isSpeaking) {
+    if (!userId) return;
+    const card = document.getElementById(`stageUser_${userId}`);
     if (card) {
-      card.classList.toggle('is-speaking');
+      card.classList.toggle('is-speaking', isSpeaking);
     }
-  }, 2200);
+  }
 
-  // Voice Controls Bar
+  // E. Handle Salon Roster Sync from Server
+  function handleSalonRosterSync(participants) {
+    if (!Array.isArray(participants)) return;
+    const myId = state.currentUser?.id;
+
+    // Retain self in roster
+    const selfInRoster = currentSalonRoster.get(myId) || (myId ? null : Array.from(currentSalonRoster.values())[0]);
+
+    currentSalonRoster.clear();
+    if (selfInRoster) {
+      currentSalonRoster.set(selfInRoster.userId, selfInRoster);
+    }
+
+    participants.forEach((p) => {
+      if (p.userId === myId) {
+        currentSalonRoster.set(p.userId, {
+          ...p,
+          displayName: (p.displayName || p.username) + ' (Vous)',
+        });
+      } else {
+        currentSalonRoster.set(p.userId, p);
+      }
+    });
+
+    // If only current user is in room, append companion demo participants so room is lively
+    if (currentSalonRoster.size === 1) {
+      currentSalonRoster.set('demo-sarah', {
+        userId: 'demo-sarah',
+        displayName: 'Sarah B.',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+        role: 'Modérateur',
+        country: 'FR',
+        isMuted: false,
+        isSpeaking: true,
+        isCameraOn: false,
+      });
+      currentSalonRoster.set('demo-youssef', {
+        userId: 'demo-youssef',
+        displayName: 'Youssef K.',
+        avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100',
+        role: 'Participant VIP',
+        country: 'MA',
+        isMuted: false,
+        isSpeaking: false,
+        isCameraOn: false,
+      });
+    }
+
+    renderVoiceStage();
+
+    // Initiate WebRTC mesh connections with existing real members
+    participants.forEach((p) => {
+      if (p.userId !== myId && !p.userId.startsWith('demo-')) {
+        createSalonPeerConnection(p.userId, true);
+      }
+    });
+  }
+
+  // F. Handle New User Joined Salon
+  function handleSalonUserJoined(participant) {
+    if (!participant || !participant.userId) return;
+    // Remove demo placeholders once another real person joins
+    currentSalonRoster.delete('demo-sarah');
+    currentSalonRoster.delete('demo-youssef');
+
+    currentSalonRoster.set(participant.userId, participant);
+    renderVoiceStage();
+
+    showToast(`${participant.displayName} a rejoint le salon ! 👋`, 'teal');
+    playTone(520, 'sine', 0.12);
+
+    const myId = state.currentUser?.id;
+    // Tie-breaker: higher userId initiates offer
+    if (myId && myId > participant.userId) {
+      createSalonPeerConnection(participant.userId, true);
+    }
+  }
+
+  // G. Handle User Left Salon
+  function handleSalonUserLeft(userId, displayName) {
+    if (!userId) return;
+    if (salonPeerConnections.has(userId)) {
+      salonPeerConnections.get(userId).close();
+      salonPeerConnections.delete(userId);
+    }
+    if (salonRemoteAudioElements.has(userId)) {
+      salonRemoteAudioElements.get(userId).remove();
+      salonRemoteAudioElements.delete(userId);
+    }
+    salonRemoteStreams.delete(userId);
+    currentSalonRoster.delete(userId);
+
+    renderVoiceStage();
+    showToast(`${displayName || 'Un participant'} a quitté le salon.`, 'coral');
+  }
+
+  // H. Handle Real-Time Media Update (Mute, Speaking, Camera)
+  function handleSalonMediaUpdate(userId, mediaState) {
+    const p = currentSalonRoster.get(userId);
+    if (!p) return;
+
+    if (typeof mediaState.isMuted === 'boolean') p.isMuted = mediaState.isMuted;
+    if (typeof mediaState.isSpeaking === 'boolean') p.isSpeaking = mediaState.isSpeaking;
+    if (typeof mediaState.isCameraOn === 'boolean') {
+      const camChanged = p.isCameraOn !== mediaState.isCameraOn;
+      p.isCameraOn = mediaState.isCameraOn;
+      if (camChanged) {
+        renderVoiceStage();
+        return;
+      }
+    }
+
+    updateParticipantSpeakingUI(userId, p.isSpeaking);
+    const card = document.getElementById(`stageUser_${userId}`);
+    if (card) {
+      const muteBadge = card.querySelector('.stage-mute-badge');
+      if (p.isMuted && !muteBadge) {
+        const badge = document.createElement('span');
+        badge.className = 'stage-mute-badge';
+        badge.title = 'Micro coupé';
+        badge.textContent = '🔇';
+        card.appendChild(badge);
+      } else if (!p.isMuted && muteBadge) {
+        muteBadge.remove();
+      }
+    }
+  }
+
+  // I. WebRTC Mesh Peer Connection Setup
+  function createSalonPeerConnection(targetUserId, isInitiator = false) {
+    let pc = salonPeerConnections.get(targetUserId);
+    if (pc && pc.connectionState !== 'closed' && pc.connectionState !== 'failed') {
+      return pc;
+    }
+
+    pc = new RTCPeerConnection(RTC_CONFIG);
+    salonPeerConnections.set(targetUserId, pc);
+
+    // Add local media tracks
+    if (salonLocalStream) {
+      salonLocalStream.getTracks().forEach((track) => {
+        pc.addTrack(track, salonLocalStream);
+      });
+    }
+
+    // Handle remote tracks
+    pc.ontrack = (event) => {
+      const remoteStream = event.streams[0] || new MediaStream([event.track]);
+      salonRemoteStreams.set(targetUserId, remoteStream);
+
+      // Audio track: attach to dynamic invisible HTMLAudioElement
+      if (event.track.kind === 'audio') {
+        let audioEl = salonRemoteAudioElements.get(targetUserId);
+        if (!audioEl) {
+          audioEl = document.createElement('audio');
+          audioEl.autoplay = true;
+          document.body.appendChild(audioEl);
+          salonRemoteAudioElements.set(targetUserId, audioEl);
+        }
+        audioEl.srcObject = remoteStream;
+      }
+
+      // Video track: attach to stage video element if card is rendered
+      if (event.track.kind === 'video') {
+        const vidEl = document.getElementById(`videoEl_${targetUserId}`);
+        if (vidEl) {
+          vidEl.srcObject = remoteStream;
+        }
+      }
+    };
+
+    // Relay ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socket && socket.connected && state.currentRoom) {
+        socket.emit('salon:signal', {
+          salonId: state.currentRoom.id,
+          targetUserId,
+          signal: { type: 'candidate', candidate: event.candidate },
+        });
+      }
+    };
+
+    // If initiator, generate SDP offer
+    if (isInitiator) {
+      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+        .then((offer) => pc.setLocalDescription(offer))
+        .then(() => {
+          if (socket && socket.connected && state.currentRoom) {
+            socket.emit('salon:signal', {
+              salonId: state.currentRoom.id,
+              targetUserId,
+              signal: { type: 'offer', sdp: pc.localDescription.sdp },
+            });
+          }
+        })
+        .catch((err) => console.warn('Offer creation failed for peer', targetUserId, err));
+    }
+
+    return pc;
+  }
+
+  // J. Handle Incoming WebRTC Signal for Salon
+  async function handleSalonIncomingSignal(senderId, senderUser, signal) {
+    if (!signal || !senderId) return;
+
+    if (signal.type === 'offer') {
+      const pc = createSalonPeerConnection(senderId, false);
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        if (socket && socket.connected && state.currentRoom) {
+          socket.emit('salon:signal', {
+            salonId: state.currentRoom.id,
+            targetUserId: senderId,
+            signal: { type: 'answer', sdp: answer.sdp },
+          });
+        }
+      } catch (err) {
+        console.warn('Error handling salon offer:', err);
+      }
+    } else if (signal.type === 'answer') {
+      const pc = salonPeerConnections.get(senderId);
+      if (pc && pc.signalingState !== 'stable') {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+        } catch (err) {
+          console.warn('Error setting salon answer:', err);
+        }
+      }
+    } else if (signal.type === 'candidate' && signal.candidate) {
+      const pc = salonPeerConnections.get(senderId);
+      if (pc) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        } catch (err) {
+          console.warn('Error adding salon candidate:', err);
+        }
+      }
+    }
+  }
+
+  // K. Toggle Microphone
   btnToggleMic?.addEventListener('click', () => {
     state.isMicMuted = !state.isMicMuted;
     btnToggleMic.classList.toggle('muted', state.isMicMuted);
-    btnToggleMic.querySelector('.mic-on-icon').classList.toggle('hidden', state.isMicMuted);
-    btnToggleMic.querySelector('.mic-off-icon').classList.toggle('hidden', !state.isMicMuted);
+    btnToggleMic.querySelector('.mic-on-icon')?.classList.toggle('hidden', state.isMicMuted);
+    btnToggleMic.querySelector('.mic-off-icon')?.classList.toggle('hidden', !state.isMicMuted);
     btnToggleMic.querySelector('.ctrl-label').textContent = state.isMicMuted ? 'Coupé' : 'Micro';
-    showToast(state.isMicMuted ? 'Microphone désactivé' : 'Microphone activé', state.isMicMuted ? 'coral' : 'success');
+
+    if (salonLocalAudioTrack) {
+      salonLocalAudioTrack.enabled = !state.isMicMuted;
+    }
+
+    if (state.currentRoom && socket && socket.connected) {
+      socket.emit('salon:media_state', {
+        salonId: state.currentRoom.id,
+        isMuted: state.isMicMuted,
+        isSpeaking: false,
+        isCameraOn: isSalonCamActive,
+      });
+    }
+
+    updateParticipantSpeakingUI(state.currentUser?.id, false);
+    const selfCard = document.getElementById(`stageUser_${state.currentUser?.id}`);
+    if (selfCard) {
+      const muteBadge = selfCard.querySelector('.stage-mute-badge');
+      if (state.isMicMuted && !muteBadge) {
+        const badge = document.createElement('span');
+        badge.className = 'stage-mute-badge';
+        badge.title = 'Micro coupé';
+        badge.textContent = '🔇';
+        selfCard.appendChild(badge);
+      } else if (!state.isMicMuted && muteBadge) {
+        muteBadge.remove();
+      }
+    }
+
+    showToast(state.isMicMuted ? 'Microphone désactivé 🔇' : 'Microphone activé 🎙️', state.isMicMuted ? 'coral' : 'success');
   });
 
+  // L. Toggle Video Camera
+  btnToggleSalonVideo?.addEventListener('click', async () => {
+    if (!state.currentRoom) return;
+
+    if (!isSalonCamActive) {
+      let videoStream = null;
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+        });
+      } catch (camErr) {
+        console.warn('Physical camera not available, utilizing high-definition simulated video canvas:', camErr);
+        // Create resilient HD simulated video canvas stream
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const cCtx = canvas.getContext('2d');
+        let pulseAngle = 0;
+
+        const animSimulatedCam = () => {
+          if (!isSalonCamActive) return;
+          pulseAngle += 0.05;
+          cCtx.fillStyle = '#0b1329';
+          cCtx.fillRect(0, 0, 640, 480);
+
+          const grad = cCtx.createRadialGradient(320, 240, 40, 320, 240, 280);
+          grad.addColorStop(0, '#0d837d');
+          grad.addColorStop(1, '#071626');
+          cCtx.fillStyle = grad;
+          cCtx.fillRect(0, 0, 640, 480);
+
+          cCtx.strokeStyle = '#10b981';
+          cCtx.lineWidth = 4;
+          cCtx.beginPath();
+          cCtx.arc(320, 200, 70 + Math.sin(pulseAngle) * 5, 0, Math.PI * 2);
+          cCtx.stroke();
+
+          cCtx.fillStyle = '#ffffff';
+          cCtx.font = 'bold 26px Plus Jakarta Sans, sans-serif';
+          cCtx.textAlign = 'center';
+          cCtx.fillText((state.currentUser?.displayName || 'Vous') + ' 🎥', 320, 208);
+
+          cCtx.font = '600 16px Plus Jakarta Sans, sans-serif';
+          cCtx.fillStyle = '#2dd4bf';
+          cCtx.fillText('WafaTalk HD Video Live', 320, 310);
+
+          requestAnimationFrame(animSimulatedCam);
+        };
+        animSimulatedCam();
+        videoStream = canvas.captureStream ? canvas.captureStream(30) : null;
+      }
+
+      if (!videoStream || !videoStream.getVideoTracks().length) {
+        showToast('Impossible d\'activer le flux vidéo.', 'coral');
+        return;
+      }
+
+      salonLocalVideoTrack = videoStream.getVideoTracks()[0];
+
+      if (salonLocalStream) {
+        salonLocalStream.addTrack(salonLocalVideoTrack);
+      } else {
+        salonLocalStream = videoStream;
+      }
+
+      isSalonCamActive = true;
+      btnToggleSalonVideo.classList.add('active');
+      btnToggleSalonVideo.querySelector('.cam-on-icon')?.classList.add('hidden');
+      btnToggleSalonVideo.querySelector('.cam-off-icon')?.classList.remove('hidden');
+      btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra On';
+
+      // Update self participant record
+      const selfP = currentSalonRoster.get(state.currentUser?.id);
+      if (selfP) selfP.isCameraOn = true;
+
+      // Push new video track to all active peer connections
+      salonPeerConnections.forEach(async (pc, targetUserId) => {
+        try {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (sender) {
+            await sender.replaceTrack(salonLocalVideoTrack);
+          } else {
+            pc.addTrack(salonLocalVideoTrack, salonLocalStream);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('salon:signal', {
+              salonId: state.currentRoom.id,
+              targetUserId,
+              signal: { type: 'offer', sdp: offer.sdp },
+            });
+          }
+        } catch (e) {}
+      });
+
+      if (socket && socket.connected) {
+        socket.emit('salon:media_state', {
+          salonId: state.currentRoom.id,
+          isMuted: state.isMicMuted,
+          isSpeaking: false,
+          isCameraOn: true,
+        });
+      }
+
+      renderVoiceStage();
+      showToast('Caméra activée 🎥', 'success');
+    } else {
+      isSalonCamActive = false;
+      if (salonLocalVideoTrack) {
+        salonLocalVideoTrack.stop();
+        salonLocalStream?.removeTrack(salonLocalVideoTrack);
+        salonLocalVideoTrack = null;
+      }
+
+      btnToggleSalonVideo.classList.remove('active');
+      btnToggleSalonVideo.querySelector('.cam-on-icon')?.classList.remove('hidden');
+      btnToggleSalonVideo.querySelector('.cam-off-icon')?.classList.add('hidden');
+      btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra';
+
+      const selfP = currentSalonRoster.get(state.currentUser?.id);
+      if (selfP) selfP.isCameraOn = false;
+
+      salonPeerConnections.forEach(async (pc) => {
+        try {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (sender) await sender.replaceTrack(null);
+        } catch (e) {}
+      });
+
+      if (socket && socket.connected) {
+        socket.emit('salon:media_state', {
+          salonId: state.currentRoom.id,
+          isMuted: state.isMicMuted,
+          isSpeaking: false,
+          isCameraOn: false,
+        });
+      }
+
+      renderVoiceStage();
+      showToast('Caméra désactivée.', 'coral');
+    }
+  });
+
+  // M. Audio Mute Toggle (Deafen)
   btnToggleAudio?.addEventListener('click', () => {
     state.isAudioMuted = !state.isAudioMuted;
     btnToggleAudio.classList.toggle('muted', state.isAudioMuted);
     btnToggleAudio.querySelector('.ctrl-label').textContent = state.isAudioMuted ? 'Sourdine' : 'Audio HD';
-    showToast(state.isAudioMuted ? 'Son coupé' : 'Son rétabli', state.isAudioMuted ? 'coral' : 'teal');
+
+    // Mute or unmute all remote audio playback
+    salonRemoteAudioElements.forEach((audioEl) => {
+      audioEl.muted = state.isAudioMuted;
+    });
+
+    showToast(state.isAudioMuted ? 'Son du salon coupé' : 'Son du salon rétabli', state.isAudioMuted ? 'coral' : 'teal');
   });
 
-  // Salon Chat System
-  function initSalonChat(salon) {
+  // N. Real-Time Salon Chat System
+  async function initSalonChat(salon) {
     if (!chatMessagesScroll) return;
     chatMessagesScroll.innerHTML = `
       <div class="chat-msg">
@@ -1975,49 +2592,108 @@ document.addEventListener('DOMContentLoaded', () => {
             <strong>WafaBot</strong>
             <span class="chat-msg-time">À l'instant</span>
           </div>
-          <p class="chat-msg-text">Bienvenue dans <strong>${salon.name}</strong> ! Partagez vos pensées et respectez les règles d'amitié.</p>
-        </div>
-      </div>
-      <div class="chat-msg">
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80" class="chat-msg-avatar" alt="Sarah">
-        <div class="chat-msg-body">
-          <div class="chat-msg-author">
-            <strong>Sarah B.</strong>
-            <span class="chat-msg-time">Il y a 2m</span>
-          </div>
-          <p class="chat-msg-text">Hello tout le monde ! On parlait de notre projet de podcast, installez-vous ! 🎉</p>
+          <p class="chat-msg-text">Bienvenue dans <strong>${escapeHtml(salon.name)}</strong> ! Vous pouvez maintenant parler, activer votre caméra et discuter avec tous les membres du salon en direct 🚀</p>
         </div>
       </div>
     `;
+
+    // Fetch existing messages from backend API
+    try {
+      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages`);
+      if (res.ok) {
+        const msgs = await res.json();
+        if (Array.isArray(msgs)) {
+          msgs.forEach((m) => appendSalonChatMessage(m));
+        }
+      }
+    } catch (e) {}
+
     chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
   }
 
-  // Handle Chat Input Message
-  chatForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = chatInputText.value.trim();
-    if (!text) return;
-
-    const user = state.currentUser || { name: 'Alexandre', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80' };
+  // Append a Salon Chat Message Bubble
+  function appendSalonChatMessage(message) {
+    if (!chatMessagesScroll) return;
+    const myId = state.currentUser?.id;
+    const isFromMe = (message.user?.id && message.user.id === myId) || (message.userId && message.userId === myId);
 
     const msgEl = document.createElement('div');
-    msgEl.className = 'chat-msg self';
+    msgEl.className = `chat-msg ${isFromMe ? 'self' : ''}`;
+    const authorName = isFromMe ? 'Vous' : (message.user?.displayName || message.user?.username || 'Membre');
+    const avatar = message.user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
+    const timeStr = message.time || (message.createdAt ? new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'À l\'instant');
+
     msgEl.innerHTML = `
-      <img src="${user.avatar}" class="chat-msg-avatar" alt="${user.name}">
+      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
       <div class="chat-msg-body">
         <div class="chat-msg-author">
-          <strong>Vous</strong>
-          <span class="chat-msg-time">À l'instant</span>
+          <strong>${escapeHtml(authorName)}</strong>
+          <span class="chat-msg-time">${timeStr}</span>
         </div>
-        <p class="chat-msg-text">${escapeHtml(text)}</p>
+        <p class="chat-msg-text">${escapeHtml(message.content)}</p>
       </div>
     `;
 
     chatMessagesScroll.appendChild(msgEl);
-    chatInputText.value = '';
     chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+
+    if (!isFromMe) {
+      playTone(580, 'sine', 0.08);
+    }
+  }
+
+  // Handle Salon Chat Send
+  chatForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = chatInputText.value.trim();
+    if (!text || !state.currentRoom) return;
+
+    if (socket && socket.connected) {
+      socket.emit('chat:send', {
+        salonId: state.currentRoom.id,
+        content: text,
+        type: 'TEXT',
+      });
+      socket.emit('chat:typing', {
+        salonId: state.currentRoom.id,
+        isTyping: false,
+      });
+    }
+
+    chatInputText.value = '';
     playTone(600, 'sine', 0.08);
   });
+
+  // Handle Chat Typing Activity
+  chatInputText?.addEventListener('input', () => {
+    if (!state.currentRoom || !socket || !socket.connected) return;
+
+    socket.emit('chat:typing', {
+      salonId: state.currentRoom.id,
+      isTyping: true,
+    });
+
+    if (salonTypingDebounceTimer) clearTimeout(salonTypingDebounceTimer);
+    salonTypingDebounceTimer = setTimeout(() => {
+      if (state.currentRoom && socket && socket.connected) {
+        socket.emit('chat:typing', {
+          salonId: state.currentRoom.id,
+          isTyping: false,
+        });
+      }
+    }, 2000);
+  });
+
+  // Display Remote User Typing in Salon
+  function handleSalonUserTyping(displayName, isTyping) {
+    if (!salonTypingIndicator) return;
+    if (isTyping) {
+      if (salonTypingText) salonTypingText.textContent = `${displayName || 'Un participant'} est en train d'écrire...`;
+      salonTypingIndicator.classList.remove('hidden');
+    } else {
+      salonTypingIndicator.classList.add('hidden');
+    }
+  }
 
 
   // =========================================================================
@@ -2422,6 +3098,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let companionSpeechTimer = null;
   let companionCanvasAnim = null;
 
+  // Group Salon Real-time Media & Mesh State
+  let currentSalonRoster = new Map(); // userId -> { userId, username, displayName, avatarUrl, country, role, isMuted, isSpeaking, isCameraOn }
+  let salonPeerConnections = new Map(); // userId -> RTCPeerConnection
+  let salonRemoteAudioElements = new Map(); // userId -> HTMLAudioElement
+  let salonRemoteStreams = new Map(); // userId -> MediaStream
+  let salonLocalStream = null; // MediaStream (audio + optional video)
+  let salonLocalAudioTrack = null;
+  let salonLocalVideoTrack = null;
+  let salonAudioContext = null;
+  let salonAudioAnalyser = null;
+  let salonVoiceDetectorTimer = null;
+  let isSalonCamActive = false;
+  let salonTypingDebounceTimer = null;
+
   // =========================================================================
   // SOCKET.IO CLIENT INITIALIZATION & ROUTING
   // =========================================================================
@@ -2554,6 +3244,52 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       // Instantly refresh discoverable members in real time when anyone logs in or joins
       renderFriends();
+    });
+
+    // =========================================================================
+    // SALON GROUP SOCKET EVENTS (MULTI-USER ROSTER, AUDIO/VIDEO MESH & CHAT)
+    // =========================================================================
+    // Active Roster received upon joining salon
+    socket.on('salon:roster', async ({ salonId, participants }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      handleSalonRosterSync(participants);
+    });
+
+    // Another user joined our salon
+    socket.on('salon:user_joined', async ({ salonId, participant }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      handleSalonUserJoined(participant);
+    });
+
+    // A user left our salon
+    socket.on('salon:user_left', ({ salonId, userId, displayName }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      handleSalonUserLeft(userId, displayName);
+    });
+
+    // Real-time media state update from room member (speaking, mute, camera)
+    socket.on('salon:media_update', ({ salonId, userId, isMuted, isSpeaking, isCameraOn, isScreenSharing }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      handleSalonMediaUpdate(userId, { isMuted, isSpeaking, isCameraOn, isScreenSharing });
+    });
+
+    // WebRTC multi-peer mesh signaling relay for group vocal & video
+    socket.on('salon:signal', async ({ salonId, senderId, senderUser, signal }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      await handleSalonIncomingSignal(senderId, senderUser, signal);
+    });
+
+    // Group Chat Message received
+    socket.on('chat:message', (message) => {
+      if (!state.currentRoom || state.currentRoom.id !== message.salonId) return;
+      appendSalonChatMessage(message);
+    });
+
+    // Group Chat Typing indicator
+    socket.on('chat:user_typing', ({ salonId, userId, displayName, isTyping }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      if (userId === state.currentUser?.id) return;
+      handleSalonUserTyping(displayName, isTyping);
     });
   }
 
