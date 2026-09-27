@@ -2291,22 +2291,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const vidEl = card.querySelector(`#videoEl_${userId}`);
         const loadEl = card.querySelector(`#videoLoading_${userId}`);
         if (vidEl) {
-          vidEl.muted = true; // Crucial: prevents Chrome/Edge from blacking out video via autoplay block
-          const hideLoader = () => { if (loadEl) loadEl.style.display = 'none'; };
+          vidEl.muted = true;
+
+          const hideLoader = () => { if (loadEl) { loadEl.style.display = 'none'; } };
           vidEl.addEventListener('loadeddata', hideLoader, { once: true });
           vidEl.addEventListener('playing', hideLoader, { once: true });
 
-          if (isSelf && salonLocalStream) {
-            if (vidEl.srcObject !== salonLocalStream) {
-              vidEl.srcObject = salonLocalStream;
-            }
+          const attachStream = (stream) => {
+            if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
             vidEl.play().then(hideLoader).catch(() => {});
+          };
+
+          if (isSelf && salonLocalStream) {
+            attachStream(salonLocalStream);
           } else {
+            // Try salonRemoteStreams first, then fallback to receiver track
             let remoteStr = salonRemoteStreams.get(userId);
             if (!remoteStr) {
               const pc = salonPeerConnections.get(userId);
               if (pc) {
-                const rx = pc.getReceivers().find(r => r.track && r.track.kind === 'video');
+                const rx = pc.getReceivers().find(r => r.track && r.track.kind === 'video' && r.track.readyState !== 'ended');
                 if (rx && rx.track) {
                   remoteStr = new MediaStream([rx.track]);
                   salonRemoteStreams.set(userId, remoteStr);
@@ -2314,11 +2318,9 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
             if (remoteStr) {
-              if (vidEl.srcObject !== remoteStr) {
-                vidEl.srcObject = remoteStr;
-              }
-              vidEl.play().then(hideLoader).catch(() => {});
+              attachStream(remoteStr);
             }
+            // Even if no stream now, ontrack will call attachVideo which has its own retry
           }
         }
       } else {
@@ -2537,14 +2539,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
         salonRemoteStreams.set(targetUserId, stream);
 
+        // Retry until the DOM card exists (renderVoiceStage may not have run yet)
         const attachVideo = () => {
           const lEl = document.getElementById(`videoLoading_${targetUserId}`);
-          if (lEl) lEl.style.display = 'none';
           const vidEl = document.getElementById(`videoEl_${targetUserId}`);
           if (vidEl) {
-            vidEl.srcObject = stream;
+            if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
             vidEl.muted = true;
             vidEl.play().catch(() => {});
+            if (lEl) lEl.style.display = 'none';
+          } else {
+            // DOM card not yet rendered — poll every 200ms for up to 5s
+            let attempts = 0;
+            const poll = setInterval(() => {
+              const el = document.getElementById(`videoEl_${targetUserId}`);
+              const ll = document.getElementById(`videoLoading_${targetUserId}`);
+              if (el) {
+                if (el.srcObject !== stream) el.srcObject = stream;
+                el.muted = true;
+                el.play().catch(() => {});
+                if (ll) ll.style.display = 'none';
+                clearInterval(poll);
+              } else if (++attempts > 25) {
+                clearInterval(poll); // stop after 5s
+              }
+            }, 200);
           }
         };
 
