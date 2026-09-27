@@ -229,9 +229,10 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     // WebRTC Multi-Peer Mesh Signaling for Group Vocal & Video Calls
     socket.on('salon:signal', ({ salonId, targetUserId, signal }) => {
       if (!salonId || !targetUserId || !signal) return;
-      io.to(`user:${targetUserId}`).emit('salon:signal', {
+      const payload = {
         salonId,
         senderId: user.id,
+        senderSocketId: socket.id,
         senderUser: {
           id: user.id,
           username: user.username,
@@ -239,7 +240,19 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           avatarUrl: user.avatarUrl,
         },
         signal,
-      });
+      };
+
+      // 1. Primary: emit to target user room
+      io.to(`user:${targetUserId}`).emit('salon:signal', payload);
+
+      // 2. Direct socket relay backup via salon roster
+      const salonMap = salonParticipants.get(salonId);
+      if (salonMap) {
+        const targetP = salonMap.get(targetUserId);
+        if (targetP && targetP.socketId && targetP.socketId !== socket.id) {
+          io.to(targetP.socketId).emit('salon:signal', payload);
+        }
+      }
     });
 
     // Group Salon Real-time Chat

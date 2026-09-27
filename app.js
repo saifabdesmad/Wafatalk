@@ -28,6 +28,41 @@ document.addEventListener('DOMContentLoaded', () => {
     ? 'http://127.0.0.1:4000'
     : 'https://api.wafatalk.com';
 
+  // WebRTC Global Configuration (Multi-STUN & Global TURN Relays for WAN / Cross-Country connectivity)
+  const RTC_CONFIG = {
+    iceServers: [
+      // High-availability global STUN servers
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+      { urls: 'stun:stun.services.mozilla.com' },
+      { urls: 'stun:stun.relay.metered.ca:80' },
+
+      // Global TURN Relays (OpenRelay / Metered - Traverses Symmetric NATs & Firewalls across countries)
+      {
+        urls: 'turn:global.relay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:global.relay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:global.relay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+    ],
+    iceCandidatePoolSize: 10,
+    iceTransportPolicy: 'all',
+  };
+
   // Mock Salons Data
   const salonsData = [
     {
@@ -2243,6 +2278,7 @@ document.addEventListener('DOMContentLoaded', () => {
           card.innerHTML = `
             <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+            <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
@@ -2253,13 +2289,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Attach video stream with muted=true & play()
         const vidEl = card.querySelector(`#videoEl_${userId}`);
+        const loadEl = card.querySelector(`#videoLoading_${userId}`);
         if (vidEl) {
           vidEl.muted = true; // Crucial: prevents Chrome/Edge from blacking out video via autoplay block
+          const hideLoader = () => { if (loadEl) loadEl.style.display = 'none'; };
+          vidEl.addEventListener('loadeddata', hideLoader, { once: true });
+          vidEl.addEventListener('playing', hideLoader, { once: true });
+
           if (isSelf && salonLocalStream) {
             if (vidEl.srcObject !== salonLocalStream) {
               vidEl.srcObject = salonLocalStream;
             }
-            vidEl.play().catch(() => {});
+            vidEl.play().then(hideLoader).catch(() => {});
           } else {
             let remoteStr = salonRemoteStreams.get(userId);
             if (!remoteStr) {
@@ -2276,7 +2317,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (vidEl.srcObject !== remoteStr) {
                 vidEl.srcObject = remoteStr;
               }
-              vidEl.play().catch(() => {});
+              vidEl.play().then(hideLoader).catch(() => {});
             }
           }
         }
@@ -2443,7 +2484,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // I. WebRTC Mesh Peer Connection Setup (Unified Plan with Upfront Transceivers)
+  // I. WebRTC Mesh Peer Connection Setup (Unified Plan with Upfront Transceivers & TURN Relay)
   function createSalonPeerConnection(targetUserId, isInitiator = false) {
     let pc = salonPeerConnections.get(targetUserId);
     if (pc && pc.connectionState !== 'closed' && pc.connectionState !== 'failed') {
@@ -2487,12 +2528,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
         salonRemoteStreams.set(targetUserId, stream);
 
+        const hideLoader = () => {
+          const lEl = document.getElementById(`videoLoading_${targetUserId}`);
+          if (lEl) lEl.style.display = 'none';
+        };
+
         // Attach directly to video element if already rendered
         const vidEl = document.getElementById(`videoEl_${targetUserId}`);
         if (vidEl) {
           vidEl.srcObject = stream;
           vidEl.muted = true;
-          vidEl.play().catch(e => console.warn('Video play error:', e));
+          vidEl.play().then(hideLoader).catch(e => console.warn('Video play error:', e));
         }
 
         track.onunmute = () => {
@@ -2501,7 +2547,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (v) {
             v.srcObject = stream;
             v.muted = true;
-            v.play().catch(() => {});
+            v.play().then(hideLoader).catch(() => {});
           }
         };
       }
@@ -2517,8 +2563,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log(`🧊 ICE State [${targetUserId}]:`, pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed') {
+        console.warn(`ICE failed with ${targetUserId}, attempting restart with TURN...`);
+        if (typeof pc.restartIce === 'function') {
+          pc.restartIce();
+        }
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log(`🔗 Peer Connection [${targetUserId}]:`, pc.connectionState);
+    };
+
     if (isInitiator) {
-      pc.createOffer()
+      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
         .then((offer) => pc.setLocalDescription(offer))
         .then(() => {
           if (socket && socket.connected && state.currentRoom) {
@@ -3237,20 +3297,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const miniCallTime = document.getElementById('miniCallTime');
   const btnMiniToggleMic = document.getElementById('btnMiniToggleMic');
   const btnMiniHangup = document.getElementById('btnMiniHangup');
-
-  // WebRTC & Audio Configuration (Multi-STUN Resilience)
-  const RTC_CONFIG = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      { urls: 'stun:global.stun.twilio.com:3478' },
-      { urls: 'stun:stun.services.mozilla.com' },
-    ],
-    iceCandidatePoolSize: 10,
-  };
 
   let socket = null;
   let currentDmFriend = null;
