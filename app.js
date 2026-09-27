@@ -2077,10 +2077,148 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // D. Render Voice & Video Stage Grid
+  // Helper: Create HD simulated camera canvas stream when webcam is busy or unavailable on the machine
+  let simulatedCamAnimInterval = null;
+  function createSimulatedCameraStream() {
+    if (simulatedCamAnimInterval) {
+      clearInterval(simulatedCamAnimInterval);
+      simulatedCamAnimInterval = null;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    let pulseAngle = 0;
+    let frameCount = 0;
+
+    const myUser = state.currentUser || {};
+    const myName = myUser.displayName || myUser.username || 'Participant';
+    const initials = (myName || 'P').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+    const drawSimulatedFrame = () => {
+      pulseAngle += 0.06;
+      frameCount++;
+
+      // 1. Dark elegant studio background
+      const bgGrad = ctx.createLinearGradient(0, 0, 640, 480);
+      bgGrad.addColorStop(0, '#0a1020');
+      bgGrad.addColorStop(0.5, '#0f172a');
+      bgGrad.addColorStop(1, '#070b14');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 640, 480);
+
+      // 2. Animated radial ambient glow
+      const glowX = 320 + Math.sin(pulseAngle * 0.7) * 30;
+      const glowY = 210 + Math.cos(pulseAngle * 0.5) * 20;
+      const radGrad = ctx.createRadialGradient(glowX, glowY, 30, 320, 240, 300);
+      radGrad.addColorStop(0, 'rgba(13, 148, 136, 0.45)');
+      radGrad.addColorStop(0.6, 'rgba(16, 185, 129, 0.15)');
+      radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = radGrad;
+      ctx.fillRect(0, 0, 640, 480);
+
+      // 3. Grid lines decoration
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      for (let x = 40; x < 640; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 480);
+        ctx.stroke();
+      }
+      for (let y = 40; y < 480; y += 60) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(640, y);
+        ctx.stroke();
+      }
+
+      // 4. Pulsing outer camera ring (dashed)
+      const ringRadius = 75 + Math.sin(pulseAngle) * 6;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(320, 200, ringRadius + 12, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(45, 212, 191, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.stroke();
+      ctx.restore();
+
+      // 5. Solid vibrant inner ring with glow
+      ctx.beginPath();
+      ctx.arc(320, 200, ringRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#10b981';
+      ctx.shadowBlur = 15;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 6. Avatar bubble with gradient
+      const avatarGrad = ctx.createLinearGradient(245, 125, 395, 275);
+      avatarGrad.addColorStop(0, '#0d9488');
+      avatarGrad.addColorStop(1, '#0284c7');
+      ctx.fillStyle = avatarGrad;
+      ctx.beginPath();
+      ctx.arc(320, 200, ringRadius - 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 7. User initials
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 44px Plus Jakarta Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initials, 320, 200);
+
+      // 8. User display name
+      ctx.font = 'bold 22px Plus Jakarta Sans, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(myName, 320, 310);
+
+      // 9. Status badges
+      ctx.font = '600 13px Plus Jakarta Sans, sans-serif';
+      ctx.fillStyle = '#34d399';
+      ctx.fillText('WafaTalk Caméra HD Live', 320, 335);
+
+      // 10. Live recording / FPS indicator at top right
+      const isBlink = Math.floor(frameCount / 15) % 2 === 0;
+      if (isBlink) {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(580, 35, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.font = '600 12px Plus Jakarta Sans, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.textAlign = 'right';
+      ctx.fillText('HD 30 FPS', 565, 39);
+    };
+
+    // Draw frame 0 synchronously so canvas is never blank upon captureStream
+    drawSimulatedFrame();
+
+    // Run animation continuously at 30 FPS using setInterval (resilient across unfocused/background windows)
+    simulatedCamAnimInterval = setInterval(drawSimulatedFrame, 1000 / 30);
+
+    const stream = canvas.captureStream ? canvas.captureStream(30) : null;
+    if (stream) {
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        track.addEventListener('ended', () => {
+          if (simulatedCamAnimInterval) {
+            clearInterval(simulatedCamAnimInterval);
+            simulatedCamAnimInterval = null;
+          }
+        });
+      }
+    }
+    return stream;
+  }
+
+  // D. Render Voice & Video Stage Grid (Targeted updates preserving playing videos)
   function renderVoiceStage() {
     if (!voiceStageGrid) return;
-    voiceStageGrid.innerHTML = '';
 
     const count = currentSalonRoster.size;
     if (chatParticipantsCount) {
@@ -2089,47 +2227,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
     currentSalonRoster.forEach((p, userId) => {
       const isSelf = userId === state.currentUser?.id || userId.startsWith('self-');
-      const card = document.createElement('div');
+      let card = document.getElementById(`stageUser_${userId}`);
+
+      if (!card) {
+        card = document.createElement('div');
+        card.id = `stageUser_${userId}`;
+        voiceStageGrid.appendChild(card);
+      }
+
       card.className = `stage-avatar-card ${p.isSpeaking ? 'is-speaking' : ''} ${p.isCameraOn ? 'has-video' : ''}`;
-      card.id = `stageUser_${userId}`;
 
       if (p.isCameraOn) {
         // Video Stream Card
-        card.innerHTML = `
-          <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
-          ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
-          <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline ${isSelf ? 'muted' : ''}></video>
-          <div class="stage-video-overlay">
-            <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
-            <span class="stage-user-role" style="color: rgba(255,255,255,0.7);">${escapeHtml(p.role || '')}</span>
-          </div>
-        `;
-        voiceStageGrid.appendChild(card);
+        if (!card.querySelector('.stage-video-stream')) {
+          card.innerHTML = `
+            <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
+            ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+            <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
+            <div class="stage-video-overlay">
+              <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+              <span class="stage-user-role" style="color: rgba(255,255,255,0.7);">${escapeHtml(p.role || '')}</span>
+            </div>
+          `;
+        }
 
-        // Attach video stream
+        // Attach video stream with muted=true & play()
         const vidEl = card.querySelector(`#videoEl_${userId}`);
         if (vidEl) {
+          vidEl.muted = true; // Crucial: prevents Chrome/Edge from blacking out video via autoplay block
           if (isSelf && salonLocalStream) {
-            vidEl.srcObject = salonLocalStream;
-          } else if (salonRemoteStreams.has(userId)) {
-            vidEl.srcObject = salonRemoteStreams.get(userId);
+            if (vidEl.srcObject !== salonLocalStream) {
+              vidEl.srcObject = salonLocalStream;
+            }
+            vidEl.play().catch(() => {});
+          } else {
+            let remoteStr = salonRemoteStreams.get(userId);
+            if (!remoteStr) {
+              const pc = salonPeerConnections.get(userId);
+              if (pc) {
+                const rx = pc.getReceivers().find(r => r.track && r.track.kind === 'video');
+                if (rx && rx.track) {
+                  remoteStr = new MediaStream([rx.track]);
+                  salonRemoteStreams.set(userId, remoteStr);
+                }
+              }
+            }
+            if (remoteStr) {
+              if (vidEl.srcObject !== remoteStr) {
+                vidEl.srcObject = remoteStr;
+              }
+              vidEl.play().catch(() => {});
+            }
           }
         }
       } else {
         // Avatar Card
-        const flagImg = getFlagImgTag(p.country || 'FR', p.country || 'FR');
-        card.innerHTML = `
-          <div class="stage-avatar-img-wrap">
-            <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
-          </div>
-          ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
-          <div style="display: flex; align-items: center; gap: 5px;">
-            <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
-            <span>${flagImg}</span>
-          </div>
-          <span class="stage-user-role">${escapeHtml(p.role || 'Participant')}</span>
-        `;
-        voiceStageGrid.appendChild(card);
+        if (card.querySelector('.stage-video-stream') || !card.querySelector('.stage-avatar-img')) {
+          const flagImg = getFlagImgTag(p.country || 'FR', p.country || 'FR');
+          card.innerHTML = `
+            <div class="stage-avatar-img-wrap">
+              <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+            </div>
+            ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+              <span>${flagImg}</span>
+            </div>
+            <span class="stage-user-role">${escapeHtml(p.role || 'Participant')}</span>
+          `;
+        }
+      }
+    });
+
+    // Remove any cards whose users left
+    const allCards = voiceStageGrid.querySelectorAll('.stage-avatar-card');
+    allCards.forEach(c => {
+      const uId = c.id.replace('stageUser_', '');
+      if (!currentSalonRoster.has(uId)) {
+        c.remove();
       }
     });
   }
@@ -2193,7 +2368,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderVoiceStage();
 
-    // Initiate WebRTC mesh connections with existing real members
+    // Initiator rule: The newly joining member initiates connection to all existing members
     participants.forEach((p) => {
       if (p.userId !== myId && !p.userId.startsWith('demo-')) {
         createSalonPeerConnection(p.userId, true);
@@ -2214,11 +2389,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`${participant.displayName} a rejoint le salon ! 👋`, 'teal');
     playTone(520, 'sine', 0.12);
 
-    const myId = state.currentUser?.id;
-    // Tie-breaker: higher userId initiates offer
-    if (myId && myId > participant.userId) {
-      createSalonPeerConnection(participant.userId, true);
-    }
+    // Existing members prepare receiver peer connection without initiating (avoids glare)
+    createSalonPeerConnection(participant.userId, false);
   }
 
   // G. Handle User Left Salon
@@ -2271,7 +2443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // I. WebRTC Mesh Peer Connection Setup
+  // I. WebRTC Mesh Peer Connection Setup (Unified Plan with Upfront Transceivers)
   function createSalonPeerConnection(targetUserId, isInitiator = false) {
     let pc = salonPeerConnections.get(targetUserId);
     if (pc && pc.connectionState !== 'closed' && pc.connectionState !== 'failed') {
@@ -2280,21 +2452,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pc = new RTCPeerConnection(RTC_CONFIG);
     salonPeerConnections.set(targetUserId, pc);
+    pc._pendingCandidates = [];
 
-    // Add local media tracks
-    if (salonLocalStream) {
-      salonLocalStream.getTracks().forEach((track) => {
-        pc.addTrack(track, salonLocalStream);
-      });
+    // Add audio and video transceivers upfront for bidirectional communication
+    const audioTrack = salonLocalAudioTrack || null;
+    const videoTrack = (isSalonCamActive && salonLocalVideoTrack) ? salonLocalVideoTrack : null;
+
+    const audioTransceiver = pc.addTransceiver(audioTrack || 'audio', { direction: 'sendrecv' });
+    const videoTransceiver = pc.addTransceiver(videoTrack || 'video', { direction: 'sendrecv' });
+
+    if (audioTrack && audioTransceiver.sender && !audioTransceiver.sender.track) {
+      audioTransceiver.sender.replaceTrack(audioTrack).catch(() => {});
     }
 
-    // Handle remote tracks
-    pc.ontrack = (event) => {
-      const remoteStream = event.streams[0] || new MediaStream([event.track]);
-      salonRemoteStreams.set(targetUserId, remoteStream);
+    if (videoTrack && videoTransceiver.sender && !videoTransceiver.sender.track) {
+      videoTransceiver.sender.replaceTrack(videoTrack).catch(() => {});
+    }
 
-      // Audio track: attach to dynamic invisible HTMLAudioElement
-      if (event.track.kind === 'audio') {
+    pc.ontrack = (event) => {
+      const track = event.track;
+      console.log(`📡 Remote track received from ${targetUserId}:`, track.kind, track.id);
+
+      if (track.kind === 'audio') {
         let audioEl = salonRemoteAudioElements.get(targetUserId);
         if (!audioEl) {
           audioEl = document.createElement('audio');
@@ -2302,19 +2481,32 @@ document.addEventListener('DOMContentLoaded', () => {
           document.body.appendChild(audioEl);
           salonRemoteAudioElements.set(targetUserId, audioEl);
         }
-        audioEl.srcObject = remoteStream;
-      }
+        audioEl.srcObject = new MediaStream([track]);
+        audioEl.play().catch(e => console.warn('Audio play auto-blocked:', e));
+      } else if (track.kind === 'video') {
+        const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
+        salonRemoteStreams.set(targetUserId, stream);
 
-      // Video track: attach to stage video element if card is rendered
-      if (event.track.kind === 'video') {
+        // Attach directly to video element if already rendered
         const vidEl = document.getElementById(`videoEl_${targetUserId}`);
         if (vidEl) {
-          vidEl.srcObject = remoteStream;
+          vidEl.srcObject = stream;
+          vidEl.muted = true;
+          vidEl.play().catch(e => console.warn('Video play error:', e));
         }
+
+        track.onunmute = () => {
+          console.log(`🎥 Video unmuted for ${targetUserId}`);
+          const v = document.getElementById(`videoEl_${targetUserId}`);
+          if (v) {
+            v.srcObject = stream;
+            v.muted = true;
+            v.play().catch(() => {});
+          }
+        };
       }
     };
 
-    // Relay ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate && socket && socket.connected && state.currentRoom) {
         socket.emit('salon:signal', {
@@ -2325,9 +2517,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    // If initiator, generate SDP offer
     if (isInitiator) {
-      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+      pc.createOffer()
         .then((offer) => pc.setLocalDescription(offer))
         .then(() => {
           if (socket && socket.connected && state.currentRoom) {
@@ -2352,6 +2543,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const pc = createSalonPeerConnection(senderId, false);
       try {
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+
+        // Drain any buffered candidates
+        if (pc._pendingCandidates && pc._pendingCandidates.length) {
+          for (const cand of pc._pendingCandidates) {
+            try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+          }
+          pc._pendingCandidates = [];
+        }
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -2370,6 +2570,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pc && pc.signalingState !== 'stable') {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+          if (pc._pendingCandidates && pc._pendingCandidates.length) {
+            for (const cand of pc._pendingCandidates) {
+              try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+            }
+            pc._pendingCandidates = [];
+          }
         } catch (err) {
           console.warn('Error setting salon answer:', err);
         }
@@ -2378,7 +2584,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const pc = salonPeerConnections.get(senderId);
       if (pc) {
         try {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          } else {
+            if (!pc._pendingCandidates) pc._pendingCandidates = [];
+            pc._pendingCandidates.push(signal.candidate);
+          }
         } catch (err) {
           console.warn('Error adding salon candidate:', err);
         }
@@ -2425,7 +2636,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(state.isMicMuted ? 'Microphone désactivé 🔇' : 'Microphone activé 🎙️', state.isMicMuted ? 'coral' : 'success');
   });
 
-  // L. Toggle Video Camera
+  // L. Toggle Video Camera (Instant replaceTrack & hardware lock resilient)
   btnToggleSalonVideo?.addEventListener('click', async () => {
     if (!state.currentRoom) return;
 
@@ -2436,50 +2647,12 @@ document.addEventListener('DOMContentLoaded', () => {
           video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
         });
       } catch (camErr) {
-        console.warn('Physical camera not available, utilizing high-definition simulated video canvas:', camErr);
-        // Create resilient HD simulated video canvas stream
-        const canvas = document.createElement('canvas');
-        canvas.width = 640;
-        canvas.height = 480;
-        const cCtx = canvas.getContext('2d');
-        let pulseAngle = 0;
-
-        const animSimulatedCam = () => {
-          if (!isSalonCamActive) return;
-          pulseAngle += 0.05;
-          cCtx.fillStyle = '#0b1329';
-          cCtx.fillRect(0, 0, 640, 480);
-
-          const grad = cCtx.createRadialGradient(320, 240, 40, 320, 240, 280);
-          grad.addColorStop(0, '#0d837d');
-          grad.addColorStop(1, '#071626');
-          cCtx.fillStyle = grad;
-          cCtx.fillRect(0, 0, 640, 480);
-
-          cCtx.strokeStyle = '#10b981';
-          cCtx.lineWidth = 4;
-          cCtx.beginPath();
-          cCtx.arc(320, 200, 70 + Math.sin(pulseAngle) * 5, 0, Math.PI * 2);
-          cCtx.stroke();
-
-          cCtx.fillStyle = '#ffffff';
-          cCtx.font = 'bold 26px Plus Jakarta Sans, sans-serif';
-          cCtx.textAlign = 'center';
-          cCtx.fillText((state.currentUser?.displayName || 'Vous') + ' 🎥', 320, 208);
-
-          cCtx.font = '600 16px Plus Jakarta Sans, sans-serif';
-          cCtx.fillStyle = '#2dd4bf';
-          cCtx.fillText('WafaTalk HD Video Live', 320, 310);
-
-          requestAnimationFrame(animSimulatedCam);
-        };
-        animSimulatedCam();
-        videoStream = canvas.captureStream ? canvas.captureStream(30) : null;
+        console.warn('Physical camera not available or busy on this device, using animated HD stream:', camErr);
+        videoStream = createSimulatedCameraStream();
       }
 
       if (!videoStream || !videoStream.getVideoTracks().length) {
-        showToast('Impossible d\'activer le flux vidéo.', 'coral');
-        return;
+        videoStream = createSimulatedCameraStream();
       }
 
       salonLocalVideoTrack = videoStream.getVideoTracks()[0];
@@ -2497,26 +2670,21 @@ document.addEventListener('DOMContentLoaded', () => {
       btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra On';
 
       // Update self participant record
-      const selfP = currentSalonRoster.get(state.currentUser?.id);
+      const myId = state.currentUser?.id;
+      const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = true;
 
-      // Push new video track to all active peer connections
-      salonPeerConnections.forEach(async (pc, targetUserId) => {
+      // Instantly replace track on all active peer connection video senders (Zero glare/renegotiation!)
+      salonPeerConnections.forEach(async (pc) => {
         try {
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-          if (sender) {
-            await sender.replaceTrack(salonLocalVideoTrack);
-          } else {
-            pc.addTrack(salonLocalVideoTrack, salonLocalStream);
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket.emit('salon:signal', {
-              salonId: state.currentRoom.id,
-              targetUserId,
-              signal: { type: 'offer', sdp: offer.sdp },
-            });
+          const videoSender = pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')?.sender
+            || pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(salonLocalVideoTrack);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Error replacing video track:', e);
+        }
       });
 
       if (socket && socket.connected) {
@@ -2532,6 +2700,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Caméra activée 🎥', 'success');
     } else {
       isSalonCamActive = false;
+      if (simulatedCamAnimInterval) {
+        clearInterval(simulatedCamAnimInterval);
+        simulatedCamAnimInterval = null;
+      }
       if (salonLocalVideoTrack) {
         salonLocalVideoTrack.stop();
         salonLocalStream?.removeTrack(salonLocalVideoTrack);
@@ -2543,13 +2715,18 @@ document.addEventListener('DOMContentLoaded', () => {
       btnToggleSalonVideo.querySelector('.cam-off-icon')?.classList.add('hidden');
       btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra';
 
-      const selfP = currentSalonRoster.get(state.currentUser?.id);
+      const myId = state.currentUser?.id;
+      const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = false;
 
+      // Blank track on all peer connections
       salonPeerConnections.forEach(async (pc) => {
         try {
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-          if (sender) await sender.replaceTrack(null);
+          const videoSender = pc.getTransceivers().find((t) => t.receiver.track.kind === 'video')?.sender
+            || pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(null);
+          }
         } catch (e) {}
       });
 
