@@ -54,6 +54,9 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
   // Map user to active callId
   const userActiveCall = new Map<string, string>();
 
+  // Map callId to 45s ringing timeout timer
+  const callTimeoutTimers = new Map<string, NodeJS.Timeout>();
+
   // Socket Authentication Middleware
   io.use(async (socket, next) => {
     try {
@@ -95,6 +98,13 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       userId: user.id,
       status: 'online',
     });
+
+    if (user.id && !user.id.startsWith('guest-')) {
+      prisma.user.update({
+        where: { id: user.id },
+        data: { status: 'ONLINE' },
+      }).catch(() => {});
+    }
 
     // =========================================================================
     // 1. SALON ROOM EVENTS (PUBLIC & GROUP SALONS)
@@ -364,6 +374,29 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         // Put caller into the call's socket room
         socket.join(`call:${callId}`);
 
+        // Set 45s ringing timeout
+        const timeoutTimer = setTimeout(async () => {
+          const currentCall = activeCalls.get(callId);
+          if (currentCall && currentCall.status === 'RINGING') {
+            activeCalls.delete(callId);
+            userActiveCall.delete(currentCall.callerId);
+            userActiveCall.delete(currentCall.receiverId);
+            callTimeoutTimers.delete(callId);
+
+            await ConversationsService.endCallSession(callId, 'MISSED', 0);
+
+            io.to(`user:${currentCall.callerId}`).emit('call:failed', {
+              reason: 'timeout',
+              message: 'Le correspondant ne répond pas.',
+            });
+            io.to(`user:${currentCall.receiverId}`).emit('call:ended', {
+              callId,
+              reason: 'timeout',
+            });
+          }
+        }, 45000);
+        callTimeoutTimers.set(callId, timeoutTimer);
+
         // Notify recipient with incoming call ringing event
         io.to(`user:${targetUserId}`).emit('call:incoming', {
           callId,
@@ -393,6 +426,13 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         return socket.emit('call:failed', { message: 'Appel introuvable ou expiré.' });
       }
 
+      // Clear ringing timeout
+      const ringTimer = callTimeoutTimers.get(callId);
+      if (ringTimer) {
+        clearTimeout(ringTimer);
+        callTimeoutTimers.delete(callId);
+      }
+
       call.status = 'CONNECTED';
       socket.join(`call:${callId}`);
 
@@ -415,6 +455,12 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     socket.on('call:reject', async ({ callId, reason }) => {
       const call = activeCalls.get(callId);
       if (!call) return;
+
+      const ringTimer = callTimeoutTimers.get(callId);
+      if (ringTimer) {
+        clearTimeout(ringTimer);
+        callTimeoutTimers.delete(callId);
+      }
 
       activeCalls.delete(callId);
       userActiveCall.delete(call.callerId);
@@ -444,6 +490,12 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       const call = activeCalls.get(callId);
       if (!call) return;
 
+      const ringTimer = callTimeoutTimers.get(callId);
+      if (ringTimer) {
+        clearTimeout(ringTimer);
+        callTimeoutTimers.delete(callId);
+      }
+
       activeCalls.delete(callId);
       userActiveCall.delete(call.callerId);
       userActiveCall.delete(call.receiverId);
@@ -451,8 +503,16 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       const dur = typeof durationSec === 'number' ? durationSec : 0;
       await ConversationsService.endCallSession(callId, dur > 0 ? 'COMPLETED' : 'MISSED', dur);
 
-      // Notify both participants
+      // Notify both participants via room AND direct user channels (resilient if still ringing)
       io.to(`call:${callId}`).emit('call:ended', {
+        callId,
+        durationSec: dur,
+      });
+      io.to(`user:${call.callerId}`).emit('call:ended', {
+        callId,
+        durationSec: dur,
+      });
+      io.to(`user:${call.receiverId}`).emit('call:ended', {
         callId,
         durationSec: dur,
       });
@@ -470,6 +530,12 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       // Clean up active call if any
       const callId = userActiveCall.get(user.id);
       if (callId) {
+        const ringTimer = callTimeoutTimers.get(callId);
+        if (ringTimer) {
+          clearTimeout(ringTimer);
+          callTimeoutTimers.delete(callId);
+        }
+
         const call = activeCalls.get(callId);
         if (call) {
           activeCalls.delete(callId);
@@ -486,10 +552,20 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         }
       }
 
-      io.emit('presence:update', {
-        userId: user.id,
-        status: 'offline',
-      });
+      // Check if user still has other connections in user:${user.id}
+      const userRoom = io.sockets.adapter.rooms.get(`user:${user.id}`);
+      if (!userRoom || userRoom.size === 0) {
+        io.emit('presence:update', {
+          userId: user.id,
+          status: 'offline',
+        });
+        if (user.id && !user.id.startsWith('guest-')) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { status: 'OFFLINE' },
+          }).catch(() => {});
+        }
+      }
     });
   });
 

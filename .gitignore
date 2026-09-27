@@ -8,3 +8,4 @@ backend/dev.db*
 backend/.env
 *.exe
 *.tar.gz
+scratch/

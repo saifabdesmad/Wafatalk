@@ -2446,9 +2446,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle incoming direct message
     socket.on('dm:message', (message) => {
       if (currentConversation && message.conversationId === currentConversation.id) {
+        const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
         appendDirectMessageBubble(message);
-        playTone(600, 'sine', 0.1);
-        socket.emit('dm:read', { conversationId: currentConversation.id });
+        if (!isFromMe) {
+          playTone(600, 'sine', 0.1);
+          socket.emit('dm:read', { conversationId: currentConversation.id });
+        }
       }
     });
 
@@ -2527,7 +2530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // WebRTC: Signaling packet relay (offer, answer, ICE candidate)
     socket.on('webrtc:signal', async ({ callId, senderId, signal }) => {
-      await handleIncomingWebRTCSignal(signal);
+      await handleIncomingWebRTCSignal(signal, senderId);
     });
 
     // WebRTC: Call Ended by Remote Peer
@@ -3059,16 +3062,25 @@ document.addEventListener('DOMContentLoaded', () => {
       // Handle incoming remote media tracks (Audio & Video)
       peerConnection.ontrack = (event) => {
         console.log('📡 Flux distant reçu:', event.track.kind);
-        remoteMediaStream = event.streams[0] || new MediaStream([event.track]);
+        if (event.streams && event.streams[0]) {
+          remoteMediaStream = event.streams[0];
+        } else {
+          if (!remoteMediaStream) {
+            remoteMediaStream = new MediaStream();
+          }
+          if (!remoteMediaStream.getTracks().includes(event.track)) {
+            remoteMediaStream.addTrack(event.track);
+          }
+        }
 
         // Attach to dedicated audio element for guaranteed sound
-        if (remoteAudio) {
+        if (remoteAudio && remoteAudio.srcObject !== remoteMediaStream) {
           remoteAudio.srcObject = remoteMediaStream;
           remoteAudio.play().catch(e => console.warn('remoteAudio autoplay policy:', e));
         }
 
         // Attach to video element
-        if (remoteVideo) {
+        if (remoteVideo && remoteVideo.srcObject !== remoteMediaStream) {
           remoteVideo.srcObject = remoteMediaStream;
           remoteVideo.play().catch(e => console.warn('remoteVideo autoplay policy:', e));
         }
@@ -3094,7 +3106,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // G. Handle Incoming WebRTC Signal with Candidate Queue
-  async function handleIncomingWebRTCSignal(signal) {
+  async function handleIncomingWebRTCSignal(signal, senderId) {
     if (!signal) return;
 
     if (!peerConnection) {
@@ -3109,10 +3121,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
-        if (socket && currentCallSession) {
+        const targetId = senderId || currentCallSession?.peer?.id;
+        if (socket && currentCallSession && targetId) {
           socket.emit('webrtc:signal', {
             callId: currentCallSession.callId,
-            targetUserId: currentCallSession.peer.id,
+            targetUserId: targetId,
             signal: { type: 'answer', sdp: answer.sdp },
           });
         }
@@ -3410,6 +3423,7 @@ document.addEventListener('DOMContentLoaded', () => {
       callVideoStage?.classList.remove('hidden');
       if (localVideo && localMediaStream) {
         localVideo.srcObject = localMediaStream;
+        localVideo.play().catch(() => {});
       }
     } else {
       callVideoStage?.classList.add('hidden');
@@ -3523,6 +3537,9 @@ document.addEventListener('DOMContentLoaded', () => {
   btnStartVideoCall?.addEventListener('click', () => initiateCall('video'));
   btnCallHangup?.addEventListener('click', endCurrentCall);
   btnMiniHangup?.addEventListener('click', endCurrentCall);
+  btnMiniToggleMic?.addEventListener('click', () => {
+    btnCallToggleMic?.click();
+  });
 
   // Mute / Unmute Mic
   btnCallToggleMic?.addEventListener('click', () => {
