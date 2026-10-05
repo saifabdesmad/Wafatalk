@@ -328,16 +328,29 @@ a {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  min-height: 100dvh;
   opacity: 0;
   visibility: hidden;
-  display: none;
+  display: none !important;
   transition: opacity var(--duration-slow) var(--ease-smooth);
 }
 
 .screen.active {
-  display: flex;
-  visibility: visible;
-  opacity: 1;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.screen:not(.active) {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
 }
 
 
@@ -1099,6 +1112,13 @@ a {
    ========================================================================== */
 .hub-screen {
   flex-direction: column;
+  width: 100%;
+}
+
+.hub-screen.active {
+  display: flex !important;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* Navigation Bar */
@@ -2813,10 +2833,10 @@ a {
   }
 
   /* ---- 1. Screen 1: Auth Screen Mobile ---- */
-  .auth-screen {
+  .auth-screen.active {
     padding: 16px 12px;
     min-height: 100dvh;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
   }
