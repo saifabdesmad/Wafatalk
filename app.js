@@ -2018,7 +2018,7 @@ document.addEventListener('DOMContentLoaded', () => {
       salonVoiceDetectorTimer = null;
     }
     if (salonAudioContext) {
-      salonAudioContext.close().catch(() => {});
+      salonAudioContext.close().catch(() => { });
       salonAudioContext = null;
       salonAudioAnalyser = null;
     }
@@ -2299,7 +2299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const attachStream = (stream) => {
             if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
-            vidEl.play().then(hideLoader).catch(() => {});
+            vidEl.play().then(hideLoader).catch(() => { });
           };
 
           if (isSelf && salonLocalStream) {
@@ -2511,10 +2511,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // If track is null (mic not granted yet), sender.track is already null — fine
       // If we passed 'audio'/'video' string and have a track, assign it now
       if (audioTrack && !audioTransceiver.sender.track) {
-        audioTransceiver.sender.replaceTrack(audioTrack).catch(() => {});
+        audioTransceiver.sender.replaceTrack(audioTrack).catch(() => { });
       }
       if (videoTrack && !videoTransceiver.sender.track) {
-        videoTransceiver.sender.replaceTrack(videoTrack).catch(() => {});
+        videoTransceiver.sender.replaceTrack(videoTrack).catch(() => { });
       }
     }
     // ── ANSWERER: does NOT add transceivers here. Tracks are added in handleSalonIncomingSignal
@@ -2546,7 +2546,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (vidEl) {
             if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
             vidEl.muted = true;
-            vidEl.play().catch(() => {});
+            vidEl.play().catch(() => { });
             if (lEl) lEl.style.display = 'none';
           } else {
             // DOM card not yet rendered — poll every 200ms for up to 5s
@@ -2557,7 +2557,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (el) {
                 if (el.srcObject !== stream) el.srcObject = stream;
                 el.muted = true;
-                el.play().catch(() => {});
+                el.play().catch(() => { });
                 if (ll) ll.style.display = 'none';
                 clearInterval(poll);
               } else if (++attempts > 25) {
@@ -2629,10 +2629,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const kind = transceiver.receiver.track.kind;
             if (kind === 'audio' && salonLocalAudioTrack) {
               transceiver.direction = 'sendrecv';
-              transceiver.sender.replaceTrack(salonLocalAudioTrack).catch(() => {});
+              transceiver.sender.replaceTrack(salonLocalAudioTrack).catch(() => { });
             } else if (kind === 'video' && isSalonCamActive && salonLocalVideoTrack) {
               transceiver.direction = 'sendrecv';
-              transceiver.sender.replaceTrack(salonLocalVideoTrack).catch(() => {});
+              transceiver.sender.replaceTrack(salonLocalVideoTrack).catch(() => { });
             }
           }
         }
@@ -2640,7 +2640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Drain any buffered candidates
         if (pc._pendingCandidates && pc._pendingCandidates.length) {
           for (const cand of pc._pendingCandidates) {
-            try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+            try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
           }
           pc._pendingCandidates = [];
         }
@@ -2665,7 +2665,7 @@ document.addEventListener('DOMContentLoaded', () => {
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
           if (pc._pendingCandidates && pc._pendingCandidates.length) {
             for (const cand of pc._pendingCandidates) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+              try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
             }
             pc._pendingCandidates = [];
           }
@@ -2823,7 +2823,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const videoTransceiver = pc.getTransceivers().find(t => t.receiver && t.receiver.track && t.receiver.track.kind === 'video');
           const videoSender = videoTransceiver ? videoTransceiver.sender : pc.getSenders().find(s => s.track && s.track.kind === 'video');
           if (videoSender) await videoSender.replaceTrack(null);
-        } catch (e) {}
+        } catch (e) { }
       });
 
       if (socket && socket.connected) {
@@ -2879,7 +2879,7 @@ document.addEventListener('DOMContentLoaded', () => {
           msgs.forEach((m) => appendSalonChatMessage(m));
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
   }
@@ -4162,7 +4162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentCallSession?.type === 'video' && remoteVideo) {
       const compStream = createCompanionVideoStream(peer);
       remoteVideo.srcObject = compStream;
-      remoteVideo.play().catch(() => {});
+      remoteVideo.play().catch(() => { });
     }
 
     // Natural spoken French companion voice
@@ -4418,7 +4418,7 @@ document.addEventListener('DOMContentLoaded', () => {
       callVideoStage?.classList.remove('hidden');
       if (localVideo && localMediaStream) {
         localVideo.srcObject = localMediaStream;
-        localVideo.play().catch(() => {});
+        localVideo.play().catch(() => { });
       }
     } else {
       callVideoStage?.classList.add('hidden');
