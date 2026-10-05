@@ -71,9 +71,21 @@ export const resendVerificationSchema = z.object({
   username: z.string().optional(),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Adresse email invalide'),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email('Adresse email invalide'),
+  code: z.string().min(6, 'Le code doit comporter 6 chiffres').max(6, 'Le code doit comporter 6 chiffres'),
+  newPassword: z.string().min(6, 'Le nouveau mot de passe doit comporter au moins 6 caractères'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type SendVerificationInput = z.infer<typeof sendVerificationSchema>;
 export type VerifyAndRegisterInput = z.infer<typeof verifyAndRegisterSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

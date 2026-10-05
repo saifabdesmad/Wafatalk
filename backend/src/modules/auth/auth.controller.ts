@@ -7,6 +7,8 @@ import {
   sendVerificationSchema,
   verifyAndRegisterSchema,
   resendVerificationSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from './auth.schema.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -209,6 +211,55 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true, user });
     } catch (error: any) {
       return reply.code(404).send({ success: false, message: error.message });
+    }
+  });
+
+  // Forgot Password (Send OTP Code)
+  fastify.post('/forgot-password', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = forgotPasswordSchema.parse(request.body);
+      const result = await AuthService.forgotPassword(input);
+      return reply.code(200).send(result);
+    } catch (error: any) {
+      let message = 'Erreur lors de la demande de réinitialisation';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
+    }
+  });
+
+  // Reset Password (Verify OTP Code & Set New Password & Authenticate)
+  fastify.post('/reset-password', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = resetPasswordSchema.parse(request.body);
+      const user = await AuthService.resetPassword(input);
+      const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
+
+      reply.setCookie('token', token, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      });
+
+      return reply.code(200).send({
+        success: true,
+        message: 'Mot de passe mis à jour avec succès ! Bienvenue.',
+        token,
+        user,
+      });
+    } catch (error: any) {
+      let message = 'Erreur lors de la réinitialisation du mot de passe';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
     }
   });
 

@@ -7,6 +7,8 @@ import {
   SendVerificationInput,
   VerifyAndRegisterInput,
   ResendVerificationInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
 } from './auth.schema.js';
 import { MailerService } from '../email/mailer.service.js';
 
@@ -429,5 +431,145 @@ export class AuthService {
       },
     });
     return user;
+  }
+
+  /**
+   * Request Password Reset OTP Code by Email
+   */
+  static async forgotPassword(input: ForgotPasswordInput) {
+    const cleanEmail = input.email.trim().toLowerCase();
+
+    // 1. Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (!user) {
+      throw new Error('Aucun compte WafaTalk n\'est associé à cette adresse e-mail.');
+    }
+
+    // 2. Cooldown check (30 seconds)
+    const existingVerif = await prisma.emailVerification.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (existingVerif) {
+      const elapsedSeconds = (Date.now() - new Date(existingVerif.createdAt).getTime()) / 1000;
+      if (elapsedSeconds < 30) {
+        const remaining = Math.ceil(30 - elapsedSeconds);
+        throw new Error(`Veuillez patienter encore ${remaining} seconde(s) avant de demander un nouveau code.`);
+      }
+    }
+
+    // 3. Generate 6-digit OTP code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // 4. Save/update verification code in database
+    await prisma.emailVerification.upsert({
+      where: { email: cleanEmail },
+      create: {
+        email: cleanEmail,
+        code,
+        expiresAt,
+        attempts: 0,
+      },
+      update: {
+        code,
+        expiresAt,
+        attempts: 0,
+        createdAt: new Date(),
+      },
+    });
+
+    // 5. Send security email
+    await MailerService.sendPasswordResetCode(cleanEmail, user.displayName, code);
+
+    return {
+      success: true,
+      message: `Un code de sécurité à 6 chiffres a été envoyé à ${cleanEmail}.`,
+      expiresInMinutes: 10,
+    };
+  }
+
+  /**
+   * Verify OTP Code & Reset Password & Return authenticated User
+   */
+  static async resetPassword(input: ResetPasswordInput) {
+    const cleanEmail = input.email.trim().toLowerCase();
+    const cleanCode = input.code.trim();
+    const newPassword = input.newPassword;
+
+    if (newPassword.length < 6) {
+      throw new Error('Le nouveau mot de passe doit comporter au moins 6 caractères.');
+    }
+
+    // 1. Retrieve verification record
+    const verif = await prisma.emailVerification.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (!verif) {
+      throw new Error('Aucun code de réinitialisation actif trouvé pour cette adresse. Veuillez faire une nouvelle demande.');
+    }
+
+    // 2. Check maximum attempts
+    if (verif.attempts >= 5) {
+      await prisma.emailVerification.delete({ where: { email: cleanEmail } }).catch(() => {});
+      throw new Error('Trop de tentatives erronées. Pour votre sécurité, veuillez demander un nouveau code.');
+    }
+
+    // 3. Check expiration
+    if (new Date() > new Date(verif.expiresAt)) {
+      await prisma.emailVerification.delete({ where: { email: cleanEmail } }).catch(() => {});
+      throw new Error('Ce code de sécurité a expiré. Veuillez faire une nouvelle demande.');
+    }
+
+    // 4. Validate code match
+    if (verif.code !== cleanCode) {
+      await prisma.emailVerification.update({
+        where: { email: cleanEmail },
+        data: { attempts: { increment: 1 } },
+      });
+      const remainingAttempts = 5 - (verif.attempts + 1);
+      throw new Error(`Code de sécurité incorrect. ${remainingAttempts > 0 ? `Il vous reste ${remainingAttempts} tentative(s).` : 'Veuillez demander un nouveau code.'}`);
+    }
+
+    // 5. Find user
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (!user) {
+      throw new Error('Compte utilisateur introuvable.');
+    }
+
+    // 6. Hash new password & update user
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        isEmailVerified: true,
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        wafaPoints: true,
+        role: true,
+        status: true,
+        country: true,
+        createdAt: true,
+      },
+    });
+
+    // 7. Clean up OTP record
+    await prisma.emailVerification.delete({ where: { email: cleanEmail } }).catch(() => {});
+
+    return updatedUser;
   }
 }

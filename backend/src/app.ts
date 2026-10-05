@@ -84,6 +84,9 @@ async function start() {
     const io = setupSocketServer(app.server, (token: string) => app.jwt.verify(token));
     app.decorate('io', io);
 
+    // Clean reset any stale database presence to OFFLINE on startup
+    await prisma.user.updateMany({ data: { status: 'OFFLINE' } }).catch(() => {});
+
     await app.listen({
       port: env.PORT,
       host: env.HOST,

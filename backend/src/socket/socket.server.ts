@@ -75,6 +75,9 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
   const salonParticipants = new Map<string, Map<string, SalonParticipant>>();
   const socketSalons = new Map<string, Set<string>>();
 
+  // Active Online Users Tracker (Set of userIds currently connected via active sockets)
+  const onlineUserIds = new Set<string>();
+
   // Socket Authentication Middleware
   io.use(async (socket, next) => {
     try {
@@ -111,7 +114,15 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     // Automatically join the user's private channel for direct notifications and signaling
     socket.join(`user:${user.id}`);
 
-    // Broadcast user presence online
+    // Track user presence in real-time set
+    onlineUserIds.add(user.id);
+
+    // Send the complete snapshot of currently online users to the newly connected client
+    socket.emit('presence:initial', {
+      onlineUserIds: Array.from(onlineUserIds),
+    });
+
+    // Broadcast user presence online to everyone
     io.emit('presence:update', {
       userId: user.id,
       status: 'online',
@@ -123,6 +134,13 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         data: { status: 'ONLINE' },
       }).catch(() => {});
     }
+
+    // Support client manually requesting fresh online snapshot
+    socket.on('presence:request_all', () => {
+      socket.emit('presence:initial', {
+        onlineUserIds: Array.from(onlineUserIds),
+      });
+    });
 
     // =========================================================================
     // 1. SALON ROOM EVENTS (PUBLIC & GROUP SALONS - MULTI-USER CHAT, AUDIO & VIDEO)
@@ -723,6 +741,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       // Check if user still has other connections in user:${user.id}
       const userRoom = io.sockets.adapter.rooms.get(`user:${user.id}`);
       if (!userRoom || userRoom.size === 0) {
+        onlineUserIds.delete(user.id);
         io.emit('presence:update', {
           userId: user.id,
           status: 'offline',
