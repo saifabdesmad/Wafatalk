@@ -1164,6 +1164,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navUserName) navUserName.textContent = displayName.split(' ')[0];
       if (heroUserGreeting) heroUserGreeting.textContent = displayName.split(' ')[0];
       if (navUserAvatar) navUserAvatar.src = avatar;
+      const mobNavUserAvatar = document.getElementById('mobNavUserAvatar');
+      if (mobNavUserAvatar) mobNavUserAvatar.src = avatar;
       if (menuFullName) menuFullName.textContent = displayName;
       if (menuEmail) menuEmail.textContent = email;
       if (userPointsVal) userPointsVal.textContent = state.userPoints;
@@ -1883,6 +1885,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (onlineCounter) {
       onlineCounter.textContent = `${displayList.length} membre${displayList.length > 1 ? 's' : ''}`;
     }
+    const mobFriendsBadge = document.getElementById('mobFriendsBadge');
+    if (mobFriendsBadge) {
+      mobFriendsBadge.textContent = displayList.length;
+    }
 
     friendsList.innerHTML = '';
 
@@ -1985,6 +1991,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderVoiceStage();
     initSalonChat(salon);
+
+    // Initialize Mobile Salon Tab to Stage View
+    const salonBody = document.querySelector('.salon-modal-body');
+    if (salonBody) {
+      salonBody.classList.add('show-stage');
+      salonBody.classList.remove('show-chat');
+    }
+    document.getElementById('tabMobileStage')?.classList.add('active');
+    document.getElementById('tabMobileChat')?.classList.remove('active');
+    document.getElementById('mobileChatUnreadDot')?.classList.add('hidden');
+
     liveSalonModal.classList.remove('hidden');
     playTone(440, 'sine', 0.15);
     showToast(`Connexion au salon "${salon.name}"...`, 'teal');
@@ -2912,6 +2929,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!isFromMe) {
       playTone(580, 'sine', 0.08);
+      const salonBody = document.querySelector('.salon-modal-body');
+      if (salonBody && salonBody.classList.contains('show-stage')) {
+        document.getElementById('mobileChatUnreadDot')?.classList.remove('hidden');
+      }
     }
   }
 
@@ -4622,6 +4643,81 @@ document.addEventListener('DOMContentLoaded', () => {
   btnRestoreCall?.addEventListener('click', () => {
     miniCallWidget?.classList.add('hidden');
     activeCallModal?.classList.remove('hidden');
+  });
+
+  // =========================================================================
+  // 14b. MOBILE NAVIGATION & RESPONSIVE ADAPTATIONS
+  // =========================================================================
+  const mobNavSalons = document.getElementById('mobNavSalons');
+  const mobNavFriends = document.getElementById('mobNavFriends');
+  const mobNavCreate = document.getElementById('mobNavCreate');
+  const mobNavGifts = document.getElementById('mobNavGifts');
+  const mobNavProfile = document.getElementById('mobNavProfile');
+  const hubMainContent = document.querySelector('.hub-main-content');
+  const hubSidebar = document.querySelector('.hub-sidebar');
+
+  function setMobileNavActive(activeBtn) {
+    [mobNavSalons, mobNavFriends, mobNavGifts, mobNavProfile].forEach(btn => {
+      btn?.classList.remove('active');
+    });
+    activeBtn?.classList.add('active');
+  }
+
+  mobNavSalons?.addEventListener('click', () => {
+    setMobileNavActive(mobNavSalons);
+    hubMainContent?.classList.remove('mobile-hidden');
+    hubSidebar?.classList.remove('mobile-active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  mobNavFriends?.addEventListener('click', () => {
+    setMobileNavActive(mobNavFriends);
+    hubMainContent?.classList.add('mobile-hidden');
+    hubSidebar?.classList.add('mobile-active');
+    renderFriends();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  mobNavCreate?.addEventListener('click', () => {
+    document.getElementById('btnOpenCreateSalon')?.click();
+  });
+
+  mobNavGifts?.addEventListener('click', () => {
+    document.getElementById('btnOpenGiftShop')?.click();
+  });
+
+  mobNavProfile?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileDropdown?.classList.toggle('hidden');
+  });
+
+  // Mobile Live Salon Tabs: Stage vs Chat
+  const tabMobileStage = document.getElementById('tabMobileStage');
+  const tabMobileChat = document.getElementById('tabMobileChat');
+  const mobileChatUnreadDot = document.getElementById('mobileChatUnreadDot');
+
+  tabMobileStage?.addEventListener('click', () => {
+    tabMobileStage.classList.add('active');
+    tabMobileChat?.classList.remove('active');
+    const salonBody = document.querySelector('.salon-modal-body');
+    if (salonBody) {
+      salonBody.classList.add('show-stage');
+      salonBody.classList.remove('show-chat');
+    }
+  });
+
+  tabMobileChat?.addEventListener('click', () => {
+    tabMobileChat.classList.add('active');
+    tabMobileStage?.classList.remove('active');
+    mobileChatUnreadDot?.classList.add('hidden');
+    const salonBody = document.querySelector('.salon-modal-body');
+    if (salonBody) {
+      salonBody.classList.add('show-chat');
+      salonBody.classList.remove('show-stage');
+    }
+    if (chatMessagesScroll) {
+      chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+    }
   });
 
   // =========================================================================

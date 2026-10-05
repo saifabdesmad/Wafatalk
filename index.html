@@ -2,7 +2,11 @@
 <html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0d837d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>WafaTalk — Salons de Chat & Hangout entre Amis</title>
   <meta name="description" content="WafaTalk est l'application moderne de discussion entre amis organisée en salons vocaux et textuels. Connectez-vous et partagez des moments uniques.">
   <link rel="icon" type="image/png" href="assets/wafatalk-icon.png">
@@ -616,6 +620,37 @@
       </aside>
 
     </div>
+
+    <!-- Mobile Bottom Navigation Bar (Visible on mobile screens) -->
+    <nav class="mobile-bottom-nav" aria-label="Navigation Mobile">
+      <button type="button" class="mobile-nav-item active" id="mobNavSalons" aria-label="Salons">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <span>Salons</span>
+      </button>
+      <button type="button" class="mobile-nav-item" id="mobNavFriends" aria-label="Amis">
+        <div class="mob-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span class="mob-badge" id="mobFriendsBadge">5</span>
+        </div>
+        <span>Amis</span>
+      </button>
+      <button type="button" class="mobile-nav-item mobile-nav-action" id="mobNavCreate" aria-label="Créer un salon">
+        <div class="mob-create-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+        <span>Créer</span>
+      </button>
+      <button type="button" class="mobile-nav-item" id="mobNavGifts" aria-label="Cadeaux">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+        <span>Cadeaux</span>
+      </button>
+      <button type="button" class="mobile-nav-item" id="mobNavProfile" aria-label="Profil">
+        <div class="mob-avatar-wrap">
+          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60" id="mobNavUserAvatar" class="mob-user-avatar" alt="Profil">
+        </div>
+        <span>Profil</span>
+      </button>
+    </nav>
   </div>
 
 
@@ -645,6 +680,19 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
+      </div>
+
+      <!-- Mobile Salon Tab Switcher (Visible on mobile only) -->
+      <div class="mobile-salon-tabs" role="tablist">
+        <button type="button" class="mobile-salon-tab active" id="tabMobileStage" role="tab" aria-selected="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span>Scène Vocale & Vidéo</span>
+        </button>
+        <button type="button" class="mobile-salon-tab" id="tabMobileChat" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Chat en direct</span>
+          <span class="mobile-chat-badge hidden" id="mobileChatUnreadDot"></span>
+        </button>
       </div>
 
       <!-- Live Salon Body: Split Audio Stage & Chat Stream -->
