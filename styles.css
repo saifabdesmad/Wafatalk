@@ -1941,15 +1941,33 @@ a {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: 2px solid var(--bg-surface-elevated);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.friend-status-dot.online { background: var(--success-color); }
-.friend-status-dot.in-room { background: var(--coral-primary); }
-.friend-status-dot.idle { background: var(--amber-primary); }
+.friend-status-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+}
+
+.friend-status-dot.offline {
+  background: #94a3b8;
+  box-shadow: none;
+  opacity: 0.85;
+}
+
+.friend-status-dot.in-room {
+  background: var(--coral-primary);
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+}
+
+.friend-status-dot.idle {
+  background: var(--amber-primary);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
 
 .friend-meta {
   display: flex;
@@ -1965,6 +1983,43 @@ a {
 .friend-activity {
   font-size: 0.72rem;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.friend-activity.online {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.friend-activity.offline {
+  color: var(--text-muted);
+}
+
+.activity-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activity-status-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
+}
+
+.activity-status-dot.offline {
+  background: #94a3b8;
+}
+
+.friend-item.offline {
+  opacity: 0.78;
+}
+
+.friend-item.offline:hover {
+  opacity: 1;
 }
 
 .friend-action-btn {
@@ -4312,12 +4367,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 12px;
   border-radius: 50%;
   border: 2px solid var(--bg-surface-elevated);
-  background: var(--text-muted);
+  background: #94a3b8;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .dm-status-indicator.online {
-  background: var(--success-color);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+}
+
+.dm-status-indicator.offline {
+  background: #94a3b8;
+  box-shadow: none;
 }
 
 .dm-user-meta {

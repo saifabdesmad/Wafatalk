@@ -156,13 +156,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
-  // Seeded & Connected Friends Data with Real DB IDs & Flags
+  // Real-time Presence Tracker for connected online user IDs & usernames
+  const activeOnlineUserIds = new Set();
+
+  // Seeded & Connected Friends Data with Real DB IDs & Flags (default offline until socket confirms)
   const friendsData = [
-    { id: 'user-sarah', username: 'sarah_b', name: 'Sarah B.', role: 'En vocal', status: 'online', room: 'Chill & Discussion', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80', country: 'FR' },
-    { id: 'user-youssef', username: 'youssef_k', name: 'Youssef K.', role: 'En ligne', status: 'online', room: 'Disponible', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80', country: 'MA' },
-    { id: 'user-lina', username: 'lina_m', name: 'Lina M.', role: 'En vocal', status: 'online', room: 'Gaming Squads', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80', country: 'DZ' },
-    { id: 'user-karim', username: 'karim_d', name: 'Karim D.', role: 'Absent', status: 'idle', room: 'Retour dans 10m', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80', country: 'TN' },
-    { id: 'user-alexandre', username: 'alexandre', name: 'Alexandre', role: 'En ligne', status: 'online', room: 'Admin WafaTalk', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', country: 'FR' }
+    { id: 'user-sarah', username: 'sarah_b', name: 'Sarah B.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80', country: 'FR' },
+    { id: 'user-youssef', username: 'youssef_k', name: 'Youssef K.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80', country: 'MA' },
+    { id: 'user-lina', username: 'lina_m', name: 'Lina M.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80', country: 'DZ' },
+    { id: 'user-karim', username: 'karim_d', name: 'Karim D.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80', country: 'TN' },
+    { id: 'user-alexandre', username: 'alexandre', name: 'Alexandre', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', country: 'FR' }
   ];
 
   // Stage Voices Simulation in Room
@@ -1115,10 +1118,12 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('wafatalk_token');
     localStorage.removeItem('wafatalk_user');
     state.currentUser = null;
+    activeOnlineUserIds.clear();
     if (socket) {
       socket.disconnect();
       socket = null;
     }
+    renderFriends();
   }
 
   // Successful Login Transition to Hub
@@ -1866,8 +1871,8 @@ document.addEventListener('DOMContentLoaded', () => {
             avatar: lu.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(lu.username)}`,
             country: lu.country || 'FR',
             status: 'online',
-            role: 'Membre WafaTalk',
-            room: 'Disponible',
+            role: 'Hors ligne',
+            room: '',
           });
         }
       });
@@ -1881,13 +1886,31 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     });
 
+    // Check active online status dynamically from WebSocket presence
+    displayList.forEach(u => {
+      const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username));
+      u._isOnline = Boolean(isOnline);
+      u.status = u._isOnline ? 'online' : 'offline';
+    });
+
+    // Sort list: Online users first, then offline users, alphabetically
+    displayList.sort((a, b) => {
+      if (a._isOnline && !b._isOnline) return -1;
+      if (!a._isOnline && b._isOnline) return 1;
+      const nameA = (a.name || a.displayName || a.username || '').toLowerCase();
+      const nameB = (b.name || b.displayName || b.username || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    const onlineCount = displayList.filter(u => u._isOnline).length;
     const onlineCounter = document.getElementById('onlineFriendsCount');
     if (onlineCounter) {
-      onlineCounter.textContent = `${displayList.length} membre${displayList.length > 1 ? 's' : ''}`;
+      onlineCounter.textContent = `${onlineCount} en ligne`;
+      onlineCounter.style.display = 'inline-block';
     }
     const mobFriendsBadge = document.getElementById('mobFriendsBadge');
     if (mobFriendsBadge) {
-      mobFriendsBadge.textContent = displayList.length;
+      mobFriendsBadge.textContent = onlineCount;
     }
 
     friendsList.innerHTML = '';
@@ -1898,21 +1921,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     displayList.forEach(friend => {
+      const isOnline = friend._isOnline;
+      const statusClass = isOnline ? 'online' : 'offline';
+      const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
       const flagTag = getFlagImgTag(friend.country, friend.country);
       const item = document.createElement('div');
-      item.className = 'friend-item';
+      item.className = `friend-item ${statusClass}`;
       item.innerHTML = `
-        <div class="friend-item-left" style="cursor: pointer; flex: 1;" title="Ouvrir le salon privé avec ${friend.name || friend.username}">
+        <div class="friend-item-left" style="cursor: pointer; flex: 1;" title="${statusLabel} — Cliquer pour ouvrir le salon privé avec ${friend.name || friend.username}">
           <div class="friend-avatar-wrap">
-            <img src="${friend.avatar}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
-            <span class="friend-status-dot ${friend.status || 'online'}"></span>
+            <img src="${friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+            <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
           </div>
           <div class="friend-meta">
             <div style="display: flex; align-items: center; gap: 5px;">
-              <span class="friend-name">${friend.name || friend.username}</span>
+              <span class="friend-name">${friend.name || friend.displayName || friend.username}</span>
               <span style="display: inline-flex; align-items: center;">${flagTag}</span>
             </div>
-            <span class="friend-activity">${friend.role || 'Membre WafaTalk'}</span>
+            <span class="friend-activity ${statusClass}">
+              <span class="activity-status-dot ${statusClass}"></span>
+              ${statusLabel}
+            </span>
           </div>
         </div>
         <button type="button" class="friend-action-btn" title="Envoyer un message ou appeler">
@@ -3410,6 +3439,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('connect', () => {
       console.log('⚡ Socket connected to WafaTalk Gateway:', socket.id);
+      if (state.currentUser?.id) {
+        activeOnlineUserIds.add(state.currentUser.id);
+      }
+      if (state.currentUser?.username) {
+        activeOnlineUserIds.add(state.currentUser.username);
+      }
+      socket.emit('presence:request_all');
+      renderFriends();
+    });
+
+    // Real-time snapshot of all currently online users upon connection
+    socket.on('presence:initial', ({ onlineUserIds }) => {
+      activeOnlineUserIds.clear();
+      if (Array.isArray(onlineUserIds)) {
+        onlineUserIds.forEach(id => activeOnlineUserIds.add(id));
+      }
+      if (state.currentUser?.id) {
+        activeOnlineUserIds.add(state.currentUser.id);
+      }
+      if (state.currentUser?.username) {
+        activeOnlineUserIds.add(state.currentUser.username);
+      }
+      if (currentDmFriend) {
+        const isOnline = activeOnlineUserIds.has(currentDmFriend.id) || (currentDmFriend.username && activeOnlineUserIds.has(currentDmFriend.username));
+        updateDmFriendStatusUI(isOnline);
+      }
       renderFriends();
     });
 
@@ -3519,10 +3574,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // User Presence Update: Real-time update of friends and online members
     socket.on('presence:update', ({ userId, status }) => {
-      if (currentDmFriend && currentDmFriend.id === userId) {
+      if (!userId) return;
+      if (status === 'online') {
+        activeOnlineUserIds.add(userId);
+      } else {
+        activeOnlineUserIds.delete(userId);
+      }
+      if (currentDmFriend && (currentDmFriend.id === userId || currentDmFriend.username === userId)) {
         updateDmFriendStatusUI(status === 'online');
       }
       // Instantly refresh discoverable members in real time when anyone logs in or joins
+      renderFriends();
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Socket disconnected from WafaTalk Gateway');
+      activeOnlineUserIds.clear();
+      if (currentDmFriend) {
+        updateDmFriendStatusUI(false);
+      }
       renderFriends();
     });
 
@@ -3584,7 +3654,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dmFriendAvatar) dmFriendAvatar.src = friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
     if (dmFriendName) dmFriendName.textContent = friend.name || friend.username || 'Ami WafaTalk';
     if (dmFriendFlag) dmFriendFlag.innerHTML = getFlagImgTag(friend.country, friend.country);
-    updateDmFriendStatusUI(friend.status === 'online');
+    const isOnline = activeOnlineUserIds.has(friend.id) || (friend.username && activeOnlineUserIds.has(friend.username)) || Boolean(friend._isOnline);
+    updateDmFriendStatusUI(isOnline);
 
     directChatModal.classList.remove('hidden');
     dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">⏳</span><p>Chargement du salon privé...</p></div>';
@@ -3627,10 +3698,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateDmFriendStatusUI(isOnline) {
     if (dmFriendStatusDot) {
-      dmFriendStatusDot.className = `dm-status-indicator ${isOnline ? 'online' : ''}`;
+      dmFriendStatusDot.className = `dm-status-indicator ${isOnline ? 'online' : 'offline'}`;
     }
     if (dmFriendStatusText) {
       dmFriendStatusText.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+      dmFriendStatusText.style.color = isOnline ? '#10b981' : 'var(--text-muted)';
     }
   }
 
