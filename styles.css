@@ -2776,6 +2776,82 @@ a {
   gap: 12px;
 }
 
+/* Forgot Password / Account Recovery Modal */
+.forgot-modal-container {
+  max-width: 480px;
+  width: 95%;
+  padding: 24px;
+}
+
+.forgot-step-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.forgot-info-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--teal-soft-bg);
+  border: 1px solid rgba(13, 131, 125, 0.22);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-top: 14px;
+  font-size: 0.84rem;
+  color: var(--teal-primary);
+  line-height: 1.45;
+}
+
+.forgot-reminder-card {
+  background: linear-gradient(135deg, rgba(13, 131, 125, 0.08), rgba(248, 184, 78, 0.09));
+  border: 1.5px solid rgba(13, 131, 125, 0.28);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.forgot-reminder-card .reminder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.forgot-reminder-card .reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--teal-primary);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.4px;
+}
+
+.forgot-reminder-card .reminder-timer {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--coral-primary);
+}
+
+.forgot-reminder-card .reminder-body strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.forgot-reminder-card .reminder-body p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
 /* Toast Container */
 .toast-container {
   position: fixed;

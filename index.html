@@ -960,6 +960,112 @@
   </div>
 
 
+  <!-- Forgot Password / Account Recovery Modal -->
+  <div class="modal-overlay hidden" id="forgotPasswordModal" role="dialog" aria-modal="true" aria-labelledby="forgotModalTitle">
+    <div class="modal-container forgot-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: var(--teal-soft-bg); color: var(--teal-primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="forgotModalTitle">Mot de passe oublié</h2>
+          <p class="gift-modal-desc" id="forgotModalDesc">Récupérez l'accès à votre compte en toute sécurité grâce à un code e-mail.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseForgotModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Step 1: Request Code by Email -->
+      <form id="formForgotRequestCode" class="forgot-step-form" style="padding-top: 14px;">
+        <div class="input-group">
+          <label for="forgotEmail">Adresse e-mail de votre compte</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </span>
+            <input type="email" id="forgotEmail" placeholder="votre.email@exemple.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="forgot-info-alert">
+          <span class="alert-icon" style="font-size: 1.1rem;">🛡️</span>
+          <span>Un code de sécurité à 6 chiffres vous sera envoyé par e-mail pour confirmer votre identité.</span>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelForgotStep1">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitForgotRequest">
+            <span class="btn-text">Envoyer mon code sécurisé 📩</span>
+            <span class="spinner hidden" id="forgotRequestSpinner"></span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Step 2: Enter OTP Code & Set New Password -->
+      <form id="formForgotVerifyReset" class="forgot-step-form hidden" style="padding-top: 14px;">
+        <div class="forgot-reminder-card">
+          <div class="reminder-header">
+            <span class="reminder-badge">Rappel de sécurité</span>
+            <span class="reminder-timer" id="forgotCodeExpiryNotice">⏱️ Valide 10 min</span>
+          </div>
+          <div class="reminder-body">
+            <strong>🔒 Créez votre nouveau mot de passe</strong>
+            <p>Saisissez le code reçu par e-mail et définissez votre nouveau mot de passe pour vous connecter instantanément.</p>
+          </div>
+        </div>
+
+        <!-- 6-digit Code Field -->
+        <div class="input-group">
+          <label for="forgotCode">Code de vérification reçu (6 chiffres)</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">🔢</span>
+            <input type="text" id="forgotCode" placeholder="Ex: 582914" maxlength="6" inputmode="numeric" required autocomplete="one-time-code" style="letter-spacing: 4px; font-weight: 800; font-size: 1.15rem;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+            <span style="font-size: 0.74rem; color: var(--text-muted);" id="forgotTargetEmail">Envoyé à ...</span>
+            <button type="button" id="btnResendForgotCode" style="background: none; border: none; color: var(--teal-primary); font-size: 0.75rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Renvoyer un code</button>
+          </div>
+        </div>
+
+        <!-- New Password Field -->
+        <div class="input-group" style="margin-top: 14px;">
+          <label for="forgotNewPassword">Nouveau mot de passe</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <input type="password" id="forgotNewPassword" placeholder="Minimum 6 caractères" minlength="6" required autocomplete="new-password">
+            <button type="button" class="password-toggle-btn icon-btn" id="btnToggleForgotPass1" title="Afficher/Masquer" aria-label="Afficher/Masquer">
+              <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm New Password Field -->
+        <div class="input-group">
+          <label for="forgotConfirmPassword">Confirmer le nouveau mot de passe</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </span>
+            <input type="password" id="forgotConfirmPassword" placeholder="Retapez votre mot de passe" minlength="6" required autocomplete="new-password">
+          </div>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnBackToForgotStep1">Changer d'email</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitForgotReset">
+            <span class="btn-text">Valider & Me connecter 🚀</span>
+            <span class="spinner hidden" id="forgotResetSpinner"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
   <!-- In-App Terms & Conditions Modal -->
   <div class="modal-overlay hidden" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
     <div class="modal-container terms-modal-container glass-panel">
