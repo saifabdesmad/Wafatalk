@@ -5,6 +5,17 @@ import { env } from '../config/env.js';
 import { prisma } from '../database/prisma.js';
 import { MessagesService } from '../modules/messages/messages.service.js';
 import { ConversationsService } from '../modules/conversations/conversations.service.js';
+import { SalonsService } from '../modules/salons/salons.service.js';
+
+function getSocketClientIp(socket: any): string {
+  const forwarded = socket.handshake?.headers?.['x-forwarded-for'];
+  if (forwarded) {
+    const list = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    const ip = list.split(',')[0].trim();
+    if (ip) return ip.replace('::ffff:', '');
+  }
+  return (socket.handshake?.address || '127.0.0.1').replace('::ffff:', '');
+}
 
 export function setupSocketServer(server: any, jwtVerify: (token: string) => any) {
   const allowedOrigins = env.FRONTEND_URL.split(',').map((u) => u.trim());
@@ -71,6 +82,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     isCameraOn: boolean;
     isScreenSharing: boolean;
     joinedAt: Date;
+    ipAddress?: string;
   }
   const salonParticipants = new Map<string, Map<string, SalonParticipant>>();
   const socketSalons = new Map<string, Set<string>>();
@@ -145,54 +157,232 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     // =========================================================================
     // 1. SALON ROOM EVENTS (PUBLIC & GROUP SALONS - MULTI-USER CHAT, AUDIO & VIDEO)
     // =========================================================================
-    socket.on('salon:join', async ({ salonId }) => {
+    socket.on('salon:join', async ({ salonId, accessCode, inviteToken }) => {
       if (!salonId) return;
-      const room = `salon:${salonId}`;
-      socket.join(room);
 
-      // Track socket salons for graceful disconnect cleanup
-      if (!socketSalons.has(socket.id)) {
-        socketSalons.set(socket.id, new Set());
+      const clientIp = getSocketClientIp(socket);
+
+      // Verify access, bans, and private access codes
+      try {
+        const { salon, isOwner } = await SalonsService.checkAccess(
+          salonId,
+          user.id,
+          clientIp,
+          accessCode,
+          inviteToken
+        );
+
+        const room = `salon:${salonId}`;
+        socket.join(room);
+
+        // Track socket salons for graceful disconnect cleanup
+        if (!socketSalons.has(socket.id)) {
+          socketSalons.set(socket.id, new Set());
+        }
+        socketSalons.get(socket.id)!.add(salonId);
+
+        // Register participant in salon roster
+        if (!salonParticipants.has(salonId)) {
+          salonParticipants.set(salonId, new Map());
+        }
+        const salonMap = salonParticipants.get(salonId)!;
+
+        const effectiveRole = (isOwner || salon.ownerId === user.id) ? 'Hôte du salon' : (user.role === 'ADMIN' ? 'Hôte du salon' : 'Participant');
+
+        const participant: SalonParticipant = {
+          userId: user.id,
+          socketId: socket.id,
+          username: user.username,
+          displayName: user.displayName || user.username || 'Membre WafaTalk',
+          avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+          country: user.country || 'FR',
+          role: effectiveRole,
+          isMuted: false,
+          isSpeaking: false,
+          isCameraOn: false,
+          isScreenSharing: false,
+          joinedAt: new Date(),
+          ipAddress: clientIp,
+        };
+        salonMap.set(user.id, participant);
+
+        console.log(`🏠 ${user.displayName} joined ${room} (Role: ${effectiveRole}, IP: ${clientIp}, Total: ${salonMap.size})`);
+
+        // 1. Dispatch full active roster to the newcomer
+        const roster = Array.from(salonMap.values());
+        socket.emit('salon:roster', {
+          salonId,
+          participants: roster,
+          isOwner: isOwner || salon.ownerId === user.id,
+          accessCode: (isOwner || salon.ownerId === user.id) ? salon.accessCode : undefined,
+          inviteToken: salon.inviteToken,
+        });
+
+        // 2. Broadcast user joined event to other room members
+        socket.to(room).emit('salon:user_joined', {
+          salonId,
+          participant,
+          timestamp: new Date(),
+        });
+      } catch (err: any) {
+        const msg = err.message || 'Accès refusé.';
+        console.warn(`⛔ salon:join refused for ${user.username}: ${msg}`);
+        if (msg.startsWith('BAN_IP')) {
+          socket.emit('salon:join_error', {
+            salonId,
+            error: 'BAN_IP',
+            message: 'Accès refusé : votre adresse IP est bannie de ce salon définitivement.',
+          });
+        } else if (msg.startsWith('BAN_USER')) {
+          socket.emit('salon:join_error', {
+            salonId,
+            error: 'BAN_USER',
+            message: 'Accès refusé : vous avez été banni de ce salon par l\'administrateur.',
+          });
+        } else if (msg.startsWith('PRIVATE_CODE_REQUIRED')) {
+          socket.emit('salon:join_error', {
+            salonId,
+            error: 'PRIVATE_CODE_REQUIRED',
+            message: 'Ce salon est privé. Veuillez saisir le code d\'accès pour entrer.',
+          });
+        } else {
+          socket.emit('salon:join_error', {
+            salonId,
+            error: 'ACCESS_DENIED',
+            message: msg,
+          });
+        }
       }
-      socketSalons.get(socket.id)!.add(salonId);
+    });
 
-      // Register participant in salon roster
-      if (!salonParticipants.has(salonId)) {
-        salonParticipants.set(salonId, new Map());
+    // Admin Salon Moderation Action (Mute, Cut Camera, Ban User, Ban IP)
+    socket.on('salon:admin_action', async ({ salonId, targetUserId, action, reason }) => {
+      if (!salonId || !targetUserId || !action) return;
+
+      try {
+        const salonMap = salonParticipants.get(salonId);
+        const targetP = salonMap ? salonMap.get(targetUserId) : null;
+        const targetIp = targetP?.ipAddress || '127.0.0.1';
+
+        const res = await SalonsService.executeAdminAction(
+          salonId,
+          user.id,
+          targetUserId,
+          action,
+          reason,
+          targetIp
+        );
+
+        const room = `salon:${salonId}`;
+        const targetName = res.targetUser?.displayName || targetP?.displayName || targetUserId;
+
+        if (action === 'mute') {
+          if (targetP) {
+            targetP.isMuted = true;
+            io.to(targetP.socketId).emit('salon:force_mute', {
+              salonId,
+              reason: reason || 'Votre micro a été coupé par l\'administrateur du salon.',
+            });
+            io.to(room).emit('salon:media_update', {
+              salonId,
+              userId: targetUserId,
+              isMuted: true,
+            });
+          }
+          io.to(room).emit('chat:message', {
+            id: `sys-${Date.now()}`,
+            salonId,
+            userId: 'system',
+            content: `🔇 L'administrateur a coupé le micro de ${targetName}.`,
+            type: 'SYSTEM',
+            createdAt: new Date(),
+            user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },
+          });
+        } else if (action === 'unmute') {
+          if (targetP) {
+            targetP.isMuted = false;
+            io.to(targetP.socketId).emit('salon:force_unmute', { salonId });
+            io.to(room).emit('salon:media_update', {
+              salonId,
+              userId: targetUserId,
+              isMuted: false,
+            });
+          }
+        } else if (action === 'cut_camera') {
+          if (targetP) {
+            targetP.isCameraOn = false;
+            io.to(targetP.socketId).emit('salon:force_cut_camera', {
+              salonId,
+              reason: reason || 'Votre caméra a été coupée par l\'administrateur du salon.',
+            });
+            io.to(room).emit('salon:media_update', {
+              salonId,
+              userId: targetUserId,
+              isCameraOn: false,
+            });
+          }
+          io.to(room).emit('chat:message', {
+            id: `sys-${Date.now()}`,
+            salonId,
+            userId: 'system',
+            content: `📹 L'administrateur a désactivé la caméra de ${targetName}.`,
+            type: 'SYSTEM',
+            createdAt: new Date(),
+            user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },
+          });
+        } else if (action === 'ban_user' || action === 'ban_ip') {
+          const isIpBan = action === 'ban_ip';
+          const banMsg = isIpBan
+            ? 'Votre adresse IP a été bannie définitivement de ce salon.'
+            : 'Vous avez été banni de ce salon définitivement par l\'administrateur.';
+
+          if (targetP) {
+            io.to(targetP.socketId).emit('salon:banned', {
+              salonId,
+              banType: isIpBan ? 'IP' : 'USER',
+              reason: banMsg,
+            });
+
+            const targetSocket = io.sockets.sockets.get(targetP.socketId);
+            if (targetSocket) {
+              targetSocket.leave(room);
+            }
+
+            if (salonMap) {
+              salonMap.delete(targetUserId);
+            }
+
+            io.to(room).emit('salon:user_left', {
+              salonId,
+              userId: targetUserId,
+              displayName: targetP.displayName,
+              timestamp: new Date(),
+            });
+          }
+
+          io.to(room).emit('chat:message', {
+            id: `sys-${Date.now()}`,
+            salonId,
+            userId: 'system',
+            content: `🚫 ${targetName} a été banni du salon (${isIpBan ? 'Bannissement IP' : 'Bannissement Compte'}).`,
+            type: 'SYSTEM',
+            createdAt: new Date(),
+            user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },
+          });
+        }
+
+        socket.emit('salon:admin_action_success', {
+          action,
+          targetUserId,
+          salonId,
+          targetName,
+        });
+      } catch (err: any) {
+        socket.emit('salon:admin_action_error', {
+          salonId,
+          message: err.message || 'Échec de l\'action d\'administration.',
+        });
       }
-      const salonMap = salonParticipants.get(salonId)!;
-
-      const participant: SalonParticipant = {
-        userId: user.id,
-        socketId: socket.id,
-        username: user.username,
-        displayName: user.displayName || user.username || 'Membre WafaTalk',
-        avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-        country: user.country || 'FR',
-        role: user.role === 'ADMIN' ? 'Hôte du salon' : 'Participant',
-        isMuted: false,
-        isSpeaking: false,
-        isCameraOn: false,
-        isScreenSharing: false,
-        joinedAt: new Date(),
-      };
-      salonMap.set(user.id, participant);
-
-      console.log(`🏠 ${user.displayName} joined ${room} (Total active members: ${salonMap.size})`);
-
-      // 1. Dispatch full active roster to the newcomer
-      const roster = Array.from(salonMap.values());
-      socket.emit('salon:roster', {
-        salonId,
-        participants: roster,
-      });
-
-      // 2. Broadcast user joined event to other room members
-      socket.to(room).emit('salon:user_joined', {
-        salonId,
-        participant,
-        timestamp: new Date(),
-      });
     });
 
     socket.on('salon:leave', ({ salonId }) => {

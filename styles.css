@@ -5934,3 +5934,309 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding: 4px 2px 0;
   word-break: break-word;
 }
+
+/* ========================================================================= */
+/* 18. SALON PRIVACY, SHARING & ADMIN MODERATION SYSTEM                      */
+/* ========================================================================= */
+
+/* ── Privacy Selector (Public vs Private) ─────────────────────── */
+.privacy-type-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.privacy-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border-light);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.privacy-tile input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.privacy-tile.active {
+  border-color: var(--teal-primary);
+  background: rgba(22, 163, 155, 0.1);
+  box-shadow: 0 0 16px rgba(22, 163, 155, 0.22);
+}
+
+.privacy-tile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.privacy-tile-icon {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+}
+
+.privacy-tile-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.privacy-tile-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.private-salon-config {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: rgba(242, 91, 62, 0.08);
+  border: 1px dashed rgba(242, 91, 62, 0.35);
+  animation: fadeIn 0.25s ease;
+}
+
+.btn-gen-code {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--teal-primary);
+  background: rgba(22, 163, 155, 0.18);
+  color: var(--teal-light);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-gen-code:hover {
+  background: var(--teal-primary);
+  color: #ffffff;
+  transform: scale(1.04);
+}
+
+/* ── Share Modal & Social Invite Links ────────────────────────── */
+.share-salon-summary {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.share-summary-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.share-summary-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.share-summary-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(242, 91, 62, 0.18);
+  color: var(--coral-light);
+  border: 1px solid rgba(242, 91, 62, 0.3);
+}
+
+.share-code-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(22, 163, 155, 0.15);
+  border: 1px solid var(--teal-primary);
+}
+
+.share-code-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.share-code-val {
+  font-family: monospace;
+  font-size: 1.15rem;
+  letter-spacing: 2px;
+  color: var(--teal-light);
+  font-weight: 800;
+}
+
+.btn-copy-code {
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-copy-code:hover {
+  background: var(--teal-primary);
+  border-color: var(--teal-primary);
+}
+
+.social-share-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.social-share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.82rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.social-share-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.btn-share-whatsapp {
+  background: #25D366;
+  color: #ffffff;
+}
+
+.btn-share-messenger {
+  background: #0084FF;
+  color: #ffffff;
+}
+
+.btn-share-instagram {
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: #ffffff;
+}
+
+/* ── Stage Admin Moderation Controls ──────────────────────────── */
+.stage-admin-trigger {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 15;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(10, 20, 18, 0.85);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stage-admin-trigger:hover {
+  background: var(--coral-primary);
+  border-color: var(--coral-primary);
+  transform: scale(1.12);
+}
+
+.stage-admin-crown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.admin-actions-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-admin-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.btn-admin-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--teal-primary);
+  transform: translateX(4px);
+}
+
+.btn-admin-option .admin-opt-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.btn-admin-option .admin-opt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.btn-admin-option .admin-opt-info strong {
+  font-size: 0.88rem;
+  color: #ffffff;
+}
+
+.btn-admin-option .admin-opt-info span {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.btn-admin-option.btn-admin-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.btn-admin-option.btn-admin-danger:hover {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: #ef4444;
+}
+
+.btn-admin-option.btn-admin-danger .admin-opt-info strong {
+  color: #f87171;
+}

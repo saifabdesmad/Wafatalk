@@ -672,6 +672,10 @@
         </div>
 
         <div class="salon-modal-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnOpenSalonShare" title="Inviter des amis / Partager le salon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            <span>Inviter 🔗</span>
+          </button>
           <button type="button" class="btn btn-gift-special" id="btnModalGiftTrigger" title="Envoyer un cadeau dans le salon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
             <span>Cadeau 🎁</span>
@@ -869,6 +873,43 @@
           </div>
         </div>
 
+        <!-- Salon Privacy Mode Selection -->
+        <div class="input-group">
+          <label>Visibilité du salon</label>
+          <div class="privacy-type-selector">
+            <label class="privacy-tile active" id="tilePublicSalon">
+              <input type="radio" name="salonPrivacyType" value="public" checked>
+              <div class="privacy-tile-content">
+                <span class="privacy-tile-icon">🌐</span>
+                <span class="privacy-tile-title">Salon Public</span>
+                <span class="privacy-tile-desc">Visible par tous, entrée directe</span>
+              </div>
+            </label>
+
+            <label class="privacy-tile" id="tilePrivateSalon">
+              <input type="radio" name="salonPrivacyType" value="private">
+              <div class="privacy-tile-content">
+                <span class="privacy-tile-icon">🔒</span>
+                <span class="privacy-tile-title">Salon Privé</span>
+                <span class="privacy-tile-desc">Accès par code ou lien d'invitation</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Private Salon Options (Code d'accès PIN) -->
+        <div class="private-salon-config hidden" id="privateSalonConfigRow">
+          <div class="input-group">
+            <label for="newSalonAccessCode">Code secret du salon (PIN ou mot de passe)</label>
+            <div class="input-field-wrap">
+              <span class="input-icon">🔑</span>
+              <input type="text" id="newSalonAccessCode" placeholder="Ex: 5829 ou PASS2026" maxlength="20">
+              <button type="button" class="btn-gen-code" id="btnGenRandomCode" title="Générer un code aléatoire">🎲 Générer</button>
+            </div>
+            <span class="input-hint">Vos invités devront saisir ce code ou cliquer sur votre lien d'invitation pour entrer.</span>
+          </div>
+        </div>
+
         <div class="input-group">
           <label for="newSalonCategory">Catégorie</label>
           <div class="input-field-wrap">
@@ -893,13 +934,183 @@
 
         <div class="modal-form-actions">
           <button type="button" class="btn btn-secondary" id="btnCancelCreate">Annuler</button>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" id="btnSubmitCreateSalon">
             <span>Créer le salon</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
         </div>
 
       </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : PRIVATE SALON ACCESS CODE PROMPT                     -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="privateSalonAccessModal" role="dialog" aria-modal="true" aria-labelledby="privateAccessTitle">
+    <div class="modal-container private-access-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(242, 91, 62, 0.15); color: #f25b3e; font-size: 1.4rem;">
+          🔒
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="privateAccessTitle">Salon Privé</h2>
+          <p class="gift-modal-desc" id="privateAccessDesc">Ce salon est protégé. Saisissez le code d'accès pour entrer.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnClosePrivateAccessModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="formPrivateSalonAccess" style="padding: 16px 0 0;">
+        <input type="hidden" id="privateAccessSalonId">
+        <div class="input-group">
+          <label for="privateAccessCodeInput">Code d'accès du salon</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">🔑</span>
+            <input type="text" id="privateAccessCodeInput" placeholder="Ex: 5829" required autofocus style="font-weight: 700; letter-spacing: 2px;">
+          </div>
+          <span class="input-hint">Vous pouvez aussi demander un lien d'invitation direct à l'administrateur du salon.</span>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelPrivateAccess">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnConfirmPrivateAccess">
+            <span>Rejoindre le salon 🚀</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : SALON SHARE & INVITATION (WHATSAPP, MESSENGER, INSTA)-->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="salonShareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="modal-container share-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(22, 163, 155, 0.15); color: var(--teal-primary); font-size: 1.3rem;">
+          🔗
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="shareModalTitle">Inviter des amis</h2>
+          <p class="gift-modal-desc">Partagez l'invitation sur vos applications préférées.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseShareModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="share-modal-body">
+        <!-- Salon Summary Card -->
+        <div class="share-salon-summary glass-card">
+          <div class="share-summary-info">
+            <h3 class="share-summary-name" id="shareSalonName">Nom du salon</h3>
+            <span class="share-summary-badge" id="shareSalonBadge">🔒 Salon Privé</span>
+          </div>
+          <div class="share-code-pill hidden" id="shareCodePill">
+            <span class="share-code-label">Code d'accès :</span>
+            <strong class="share-code-val" id="shareSalonCode">----</strong>
+            <button type="button" class="btn-copy-code" id="btnCopySalonCode" title="Copier le code">Copier</button>
+          </div>
+        </div>
+
+        <!-- Direct Invite Link -->
+        <div class="input-group" style="margin-top: 14px;">
+          <label>Lien d'invitation direct</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">🌐</span>
+            <input type="text" id="shareInviteLinkInput" readonly style="font-size: 0.85rem; color: var(--text-secondary);">
+            <button type="button" class="btn-copy-code" id="btnCopyInviteLink" title="Copier le lien d'invitation">Copier le lien</button>
+          </div>
+        </div>
+
+        <!-- Social Share Buttons Row -->
+        <div class="social-share-buttons-grid">
+          <!-- WhatsApp -->
+          <button type="button" class="social-share-btn btn-share-whatsapp" id="btnShareWhatsApp">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.33C9.36 7.33 9.09 7.39 8.86 7.64C8.63 7.89 8 8.48 8 9.68C8 10.89 8.88 12.05 9 12.21C9.13 12.38 10.74 14.86 13.2 15.92C13.79 16.17 14.24 16.33 14.6 16.44C15.19 16.63 15.73 16.6 16.16 16.54C16.64 16.47 17.63 15.94 17.84 15.36C18.04 14.78 18.04 14.28 17.98 14.18C17.92 14.07 17.76 14.01 17.5 13.88C17.25 13.76 16 13.14 15.77 13.06C15.54 12.97 15.38 12.93 15.21 13.18C15.05 13.43 14.57 14.01 14.42 14.18C14.28 14.34 14.13 14.36 13.88 14.24C13.63 14.11 12.83 13.85 11.88 13C11.14 12.34 10.64 11.53 10.5 11.28C10.35 11.03 10.48 10.9 10.61 10.77C10.72 10.66 10.86 10.48 11 10.33C11.13 10.17 11.17 10.06 11.25 9.89C11.34 9.72 11.29 9.58 11.23 9.45C11.17 9.33 10.7 8.19 10.5 7.72C10.32 7.26 10.13 7.32 9.97 7.32C9.83 7.32 9.68 7.33 9.53 7.33Z"/></svg>
+            <span>WhatsApp</span>
+          </button>
+
+          <!-- Messenger -->
+          <button type="button" class="social-share-btn btn-share-messenger" id="btnShareMessenger">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.03 2 11C2 13.84 3.44 16.34 5.69 17.96V22L9.58 19.87C10.35 20.08 11.16 20.2 12 20.2C17.52 20.2 22 16.17 22 11.2C22 6.23 17.52 2 12 2M13.11 14.23L10.77 11.73L6.2 14.23L11.22 8.89L13.56 11.39L18.13 8.89L13.11 14.23Z"/></svg>
+            <span>Messenger</span>
+          </button>
+
+          <!-- Instagram -->
+          <button type="button" class="social-share-btn btn-share-instagram" id="btnShareInstagram">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            <span>Instagram</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : ADMIN SALON MODERATION & BAN CONFIRMATION            -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="salonAdminConfirmModal" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
+    <div class="modal-container admin-confirm-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-size: 1.4rem;">
+          🛡️
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="adminConfirmTitle">Gestion du participant</h2>
+          <p class="gift-modal-desc" id="adminConfirmTargetText">Participant : Alexandre</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseAdminConfirmModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="admin-confirm-body" style="padding: 16px 0;">
+        <input type="hidden" id="adminTargetUserId">
+
+        <p class="admin-confirm-prompt" id="adminConfirmPromptText">Que souhaitez-vous faire concernant ce participant ?</p>
+
+        <!-- Quick actions buttons -->
+        <div class="admin-actions-options-grid">
+          <button type="button" class="btn-admin-option" id="btnAdminActionMute">
+            <span class="admin-opt-icon">🔇</span>
+            <div class="admin-opt-info">
+              <strong>Couper le micro</strong>
+              <span>Désactive le microphone du membre immédiatement</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option" id="btnAdminActionCutCam">
+            <span class="admin-opt-icon">📹</span>
+            <div class="admin-opt-info">
+              <strong>Couper la caméra</strong>
+              <span>Désactive le flux vidéo du membre</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option btn-admin-danger" id="btnAdminActionBanUser">
+            <span class="admin-opt-icon">🚫</span>
+            <div class="admin-opt-info">
+              <strong>Bannir le compte (Ban User)</strong>
+              <span>Ce nom d'utilisateur ne pourra plus jamais entrer</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option btn-admin-danger" id="btnAdminActionBanIp">
+            <span class="admin-opt-icon">🌐</span>
+            <div class="admin-opt-info">
+              <strong>Bannir l'adresse IP (Ban IP)</strong>
+              <span>Bloque définitivement son adresse IP sur ce salon</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 18px; display: flex; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelAdminAction">Annuler</button>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -291,6 +291,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseCreateModal = document.getElementById('btnCloseCreateModal');
   const btnCancelCreate = document.getElementById('btnCancelCreate');
   const formCreateSalon = document.getElementById('formCreateSalon');
+  const tilePublicSalon = document.getElementById('tilePublicSalon');
+  const tilePrivateSalon = document.getElementById('tilePrivateSalon');
+  const privateSalonConfigRow = document.getElementById('privateSalonConfigRow');
+  const newSalonAccessCode = document.getElementById('newSalonAccessCode');
+  const btnGenRandomCode = document.getElementById('btnGenRandomCode');
+
+  // Private Salon Access Modal
+  const privateSalonAccessModal = document.getElementById('privateSalonAccessModal');
+  const formPrivateSalonAccess = document.getElementById('formPrivateSalonAccess');
+  const privateAccessSalonId = document.getElementById('privateAccessSalonId');
+  const privateAccessCodeInput = document.getElementById('privateAccessCodeInput');
+  const btnClosePrivateAccessModal = document.getElementById('btnClosePrivateAccessModal');
+  const btnCancelPrivateAccess = document.getElementById('btnCancelPrivateAccess');
+
+  // Salon Share Modal
+  const salonShareModal = document.getElementById('salonShareModal');
+  const btnOpenSalonShare = document.getElementById('btnOpenSalonShare');
+  const btnCloseShareModal = document.getElementById('btnCloseShareModal');
+  const shareSalonName = document.getElementById('shareSalonName');
+  const shareSalonBadge = document.getElementById('shareSalonBadge');
+  const shareCodePill = document.getElementById('shareCodePill');
+  const shareSalonCode = document.getElementById('shareSalonCode');
+  const btnCopySalonCode = document.getElementById('btnCopySalonCode');
+  const shareInviteLinkInput = document.getElementById('shareInviteLinkInput');
+  const btnCopyInviteLink = document.getElementById('btnCopyInviteLink');
+  const btnShareWhatsApp = document.getElementById('btnShareWhatsApp');
+  const btnShareMessenger = document.getElementById('btnShareMessenger');
+  const btnShareInstagram = document.getElementById('btnShareInstagram');
+
+  // Salon Admin Moderation & Ban Modal
+  const salonAdminConfirmModal = document.getElementById('salonAdminConfirmModal');
+  const btnCloseAdminConfirmModal = document.getElementById('btnCloseAdminConfirmModal');
+  const btnCancelAdminAction = document.getElementById('btnCancelAdminAction');
+  const adminTargetUserId = document.getElementById('adminTargetUserId');
+  const adminConfirmTargetText = document.getElementById('adminConfirmTargetText');
+  const btnAdminActionMute = document.getElementById('btnAdminActionMute');
+  const btnAdminActionCutCam = document.getElementById('btnAdminActionCutCam');
+  const btnAdminActionBanUser = document.getElementById('btnAdminActionBanUser');
+  const btnAdminActionBanIp = document.getElementById('btnAdminActionBanIp');
 
   // Toast Container
   const toastContainer = document.getElementById('toastContainer');
@@ -1946,16 +1985,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.success && Array.isArray(data.salons) && data.salons.length > 0) {
         data.salons.forEach(bs => {
           const idx = salonsData.findIndex(s => s.id === bs.id);
+          const myId = state.currentUser?.id;
+          const isOwner = Boolean(myId && (bs.ownerId === myId || bs.owner?.id === myId));
           const formatted = {
             id: bs.id,
             name: bs.name,
-            topic: bs.topic || 'Salon communautaire WafaTalk',
+            slug: bs.slug,
+            topic: bs.topic || bs.description || 'Salon communautaire WafaTalk',
             category: (bs.category || 'chill').toLowerCase(),
             isLive: bs.isLive ?? true,
             hasVoice: bs.hasVoice ?? true,
-            participantsCount: bs._count?.members || bs.participantsCount || 4,
+            isPrivate: Boolean(bs.isPrivate),
+            accessCode: bs.accessCode,
+            inviteToken: bs.inviteToken,
+            ownerId: bs.ownerId || bs.owner?.id,
+            isOwner: isOwner,
+            participantsCount: bs._count?.members || bs.participantsCount || 1,
             bannerBg: bs.bannerBg || 'linear-gradient(135deg, #0d837d, #14a39b)',
-            avatars: [
+            avatars: bs.avatars || [
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
               'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80'
             ]
@@ -2018,6 +2065,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="live-dot pulse"></span>
             <span>${salon.isLive ? 'EN DIRECT' : 'SALON RÉSERVÉ'}</span>
           </span>
+          ${salon.isPrivate ? '<span class="salon-card-badge" style="background: rgba(242, 91, 62, 0.35); border-color: rgba(242, 91, 62, 0.6); color: #fff;">🔒 PRIVÉ</span>' : ''}
           <span class="salon-card-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
             <span>${salon.participantsCount}</span>
@@ -2216,9 +2264,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // 6. LIVE MULTI-USER SALON EXPERIENCE (ROSTER, VOCAL MESH, VIDEO & CHAT)
   // =========================================================================
 
+  // Prompt for private salon access code
+  function openPrivateSalonPrompt(salon) {
+    if (!salon || !privateSalonAccessModal) return;
+    if (privateAccessSalonId) privateAccessSalonId.value = salon.id;
+    const titleEl = document.getElementById('privateAccessTitle');
+    const descEl = document.getElementById('privateAccessDesc');
+    if (titleEl) titleEl.textContent = salon.name;
+    if (descEl) descEl.textContent = `Ce salon privé est protégé. Entrez le code secret pour y accéder.`;
+    if (privateAccessCodeInput) {
+      privateAccessCodeInput.value = '';
+      setTimeout(() => privateAccessCodeInput.focus(), 150);
+    }
+    privateSalonAccessModal.classList.remove('hidden');
+  }
+
   // A. Open Live Salon
-  async function openLiveSalon(salon) {
-    state.currentRoom = salon;
+  async function openLiveSalon(salon, accessCode, inviteToken) {
+    if (!salon) return;
+
+    // Check if private and not owner and no code provided
+    const isOwner = Boolean(salon.isOwner || (salon.ownerId && state.currentUser && salon.ownerId === state.currentUser.id));
+    if (salon.isPrivate && !isOwner && !accessCode && !salon.accessCode && !inviteToken) {
+      openPrivateSalonPrompt(salon);
+      return;
+    }
+
+    state.currentRoom = {
+      ...salon,
+      isOwner,
+      accessCode: accessCode || salon.accessCode,
+      inviteToken: inviteToken || salon.inviteToken,
+    };
 
     // Reset controls UI
     state.isMicMuted = false;
@@ -2234,8 +2311,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToggleSalonVideo) btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra';
 
     document.getElementById('liveSalonTitle').textContent = salon.name;
-    document.getElementById('liveSalonTopic').textContent = salon.topic || 'Partagez un moment convivial.';
-    document.getElementById('modalRoomCategory').textContent = `${(salon.category || 'vocal').toUpperCase()} • HD AUDIO & VIDEO`;
+    document.getElementById('liveSalonTopic').textContent = salon.topic || salon.description || 'Partagez un moment convivial.';
+    document.getElementById('modalRoomCategory').textContent = `${(salon.category || 'vocal').toUpperCase()} • ${salon.isPrivate ? '🔒 PRIVÉ' : '🌐 PUBLIC'} • HD AUDIO & VIDEO`;
 
     // Clear previous roster & peer connections
     currentSalonRoster.clear();
@@ -2245,13 +2322,13 @@ document.addEventListener('DOMContentLoaded', () => {
     salonRemoteAudioElements.forEach(el => el.remove());
     salonRemoteAudioElements.clear();
 
-    // Register self in local roster
+    // Register self in local roster with proper role
     const selfUser = state.currentUser || {
       id: 'self-' + Date.now(),
       username: 'vous',
       displayName: 'Alexandre Moreau',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-      role: 'Hôte du salon',
+      role: isOwner ? 'Hôte du salon' : 'Participant',
       country: 'FR',
     };
 
@@ -2260,7 +2337,7 @@ document.addEventListener('DOMContentLoaded', () => {
       username: selfUser.username,
       displayName: (selfUser.displayName || selfUser.username) + ' (Vous)',
       avatarUrl: selfUser.avatarUrl,
-      role: selfUser.role || 'Membre WafaTalk',
+      role: isOwner ? 'Hôte du salon' : (selfUser.role || 'Participant'),
       country: selfUser.country || 'FR',
       isMuted: false,
       isSpeaking: false,
@@ -2295,9 +2372,13 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Microphone access denied or unavailable in salon:', micErr);
     }
 
-    // Join Socket Salon Room
+    // Join Socket Salon Room with accessCode / inviteToken
     if (socket && socket.connected) {
-      socket.emit('salon:join', { salonId: salon.id });
+      socket.emit('salon:join', {
+        salonId: salon.id,
+        accessCode: accessCode || salon.accessCode,
+        inviteToken: inviteToken || salon.inviteToken,
+      });
     }
   }
 
@@ -2555,8 +2636,14 @@ document.addEventListener('DOMContentLoaded', () => {
       chatParticipantsCount.textContent = `${count} participant${count > 1 ? 's' : ''}`;
     }
 
+    const myId = state.currentUser?.id;
+    const isCurrentRoomHost = Boolean(state.currentRoom?.isOwner || (state.currentRoom?.ownerId && myId && state.currentRoom.ownerId === myId));
+
     currentSalonRoster.forEach((p, userId) => {
-      const isSelf = userId === state.currentUser?.id || userId.startsWith('self-');
+      const isSelf = userId === myId || userId.startsWith('self-');
+      const isTargetHost = Boolean(p.role === 'Hôte du salon' || (state.currentRoom?.ownerId && p.userId === state.currentRoom.ownerId));
+      const canAdminModerate = isCurrentRoomHost && !isSelf && !isTargetHost;
+
       let card = document.getElementById(`stageUser_${userId}`);
 
       if (!card) {
@@ -2573,6 +2660,8 @@ document.addEventListener('DOMContentLoaded', () => {
           card.innerHTML = `
             <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+            ${isTargetHost ? '<span class="stage-admin-crown-badge" style="position: absolute; top: 8px; left: 8px; z-index: 10;">👑 Admin</span>' : ''}
+            ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">🛡️</button>` : ''}
             <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
@@ -2615,7 +2704,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (remoteStr) {
               attachStream(remoteStr);
             }
-            // Even if no stream now, ontrack will call attachVideo which has its own retry
           }
         }
       } else {
@@ -2627,6 +2715,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
             </div>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
+            ${isTargetHost ? '<span class="stage-admin-crown-badge" style="position: absolute; top: 8px; left: 8px; z-index: 10;">👑 Admin</span>' : ''}
+            ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">🛡️</button>` : ''}
             <div style="display: flex; align-items: center; gap: 5px;">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
               <span>${flagImg}</span>
@@ -2634,6 +2724,32 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="stage-user-role">${escapeHtml(p.role || 'Participant')}</span>
           `;
         }
+      }
+
+      // Ensure admin trigger button exists if moderator privileges apply
+      let triggerBtn = card.querySelector('.stage-admin-trigger');
+      if (canAdminModerate && !triggerBtn) {
+        triggerBtn = document.createElement('button');
+        triggerBtn.type = 'button';
+        triggerBtn.className = 'stage-admin-trigger';
+        triggerBtn.dataset.userId = userId;
+        triggerBtn.title = 'Gérer ce participant';
+        triggerBtn.innerHTML = '🛡️';
+        card.appendChild(triggerBtn);
+      } else if (!canAdminModerate && triggerBtn) {
+        triggerBtn.remove();
+      }
+
+      // Ensure mute badge reflects real-time mute state
+      let muteBadge = card.querySelector('.stage-mute-badge');
+      if (p.isMuted && !muteBadge) {
+        muteBadge = document.createElement('span');
+        muteBadge.className = 'stage-mute-badge';
+        muteBadge.title = 'Micro coupé';
+        muteBadge.textContent = '🔇';
+        card.appendChild(muteBadge);
+      } else if (!p.isMuted && muteBadge) {
+        muteBadge.remove();
       }
     });
 
@@ -2646,6 +2762,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Voice stage admin trigger click delegation
+  voiceStageGrid?.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.stage-admin-trigger');
+    if (!trigger) return;
+    e.stopPropagation();
+    const targetUserId = trigger.dataset.userId;
+    if (!targetUserId) return;
+    const target = currentSalonRoster.get(targetUserId);
+    if (!target) return;
+    openSalonAdminModal(target);
+  });
 
   // Update single participant speaking visual in stage card
   function updateParticipantSpeakingUI(userId, isSpeaking) {
@@ -3321,33 +3449,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // =========================================================================
-  // 8. CREATE SALON MODAL
+  // 8. CREATE SALON MODAL & PRIVACY CONFIGURATION
   // =========================================================================
   btnOpenCreateSalon?.addEventListener('click', () => {
-    createSalonModal.classList.remove('hidden');
+    createSalonModal?.classList.remove('hidden');
   });
 
   function closeCreateModal() {
-    createSalonModal.classList.add('hidden');
+    createSalonModal?.classList.add('hidden');
   }
 
   btnCloseCreateModal?.addEventListener('click', closeCreateModal);
   btnCancelCreate?.addEventListener('click', closeCreateModal);
 
-  formCreateSalon?.addEventListener('submit', (e) => {
+  // Public vs Private tile selection in Create Modal
+  tilePublicSalon?.addEventListener('click', () => {
+    tilePublicSalon.classList.add('active');
+    tilePrivateSalon?.classList.remove('active');
+    const radioPub = tilePublicSalon.querySelector('input[type="radio"]');
+    if (radioPub) radioPub.checked = true;
+    privateSalonConfigRow?.classList.add('hidden');
+  });
+
+  tilePrivateSalon?.addEventListener('click', () => {
+    tilePrivateSalon.classList.add('active');
+    tilePublicSalon?.classList.remove('active');
+    const radioPriv = tilePrivateSalon.querySelector('input[type="radio"]');
+    if (radioPriv) radioPriv.checked = true;
+    privateSalonConfigRow?.classList.remove('hidden');
+    if (newSalonAccessCode && !newSalonAccessCode.value) {
+      newSalonAccessCode.value = Math.floor(1000 + Math.random() * 9000).toString();
+    }
+  });
+
+  // Random PIN generation
+  btnGenRandomCode?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (newSalonAccessCode) {
+      newSalonAccessCode.value = Math.floor(1000 + Math.random() * 9000).toString();
+      playTone(523, 'sine', 0.1);
+    }
+  });
+
+  formCreateSalon?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('newSalonName').value.trim();
     const topic = document.getElementById('newSalonTopic').value.trim();
     const category = document.getElementById('newSalonCategory').value;
     const voiceEnabled = document.getElementById('newSalonVoiceEnabled').checked;
+    const isPrivate = document.querySelector('input[name="salonPrivacyType"]:checked')?.value === 'private' || category === 'private';
+    let accessCode = (newSalonAccessCode?.value || '').trim();
 
-    const newSalon = {
+    if (isPrivate && !accessCode) {
+      accessCode = Math.floor(1000 + Math.random() * 9000).toString();
+      if (newSalonAccessCode) newSalonAccessCode.value = accessCode;
+    }
+
+    const myId = state.currentUser?.id || 'self-' + Date.now();
+    let createdSalon = {
       id: `salon-${Date.now()}`,
       name: name,
       topic: topic,
       category: category,
       isLive: true,
       hasVoice: voiceEnabled,
+      isPrivate: isPrivate,
+      accessCode: isPrivate ? accessCode : undefined,
+      inviteToken: `inv_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`,
+      ownerId: myId,
+      isOwner: true,
       participantsCount: 1,
       bannerBg: 'linear-gradient(135deg, #0d837d, #f25b3e)',
       avatars: [
@@ -3355,36 +3525,253 @@ document.addEventListener('DOMContentLoaded', () => {
       ]
     };
 
-    salonsData.unshift(newSalon);
-    renderSalons();
-    closeCreateModal();
-    formCreateSalon.reset();
-
     // Persist to backend if authenticated
     const token = getAuthToken();
     if (token) {
-      fetch(`${API_BASE_URL}/salons`, {
+      try {
+        const res = await fetch(`${API_BASE_URL}/salons`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name,
+            topic,
+            category: category.toLowerCase(),
+            hasVoice: voiceEnabled,
+            isPrivate,
+            accessCode: isPrivate ? accessCode : undefined,
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.salon) {
+          createdSalon = {
+            ...createdSalon,
+            ...data.salon,
+            ownerId: myId,
+            isOwner: true,
+            accessCode: data.salon.accessCode || accessCode,
+          };
+          loadSalonsFromApi();
+        }
+      } catch (err) {
+        console.warn('Backend salon creation error:', err);
+      }
+    }
+
+    salonsData.unshift(createdSalon);
+    renderSalons();
+    closeCreateModal();
+    formCreateSalon.reset();
+    privateSalonConfigRow?.classList.add('hidden');
+    tilePublicSalon?.classList.add('active');
+    tilePrivateSalon?.classList.remove('active');
+
+    showToast(`Le salon "${name}" a été créé avec succès ! 👑 Vous êtes l'administrateur.`, 'teal');
+    openLiveSalon(createdSalon);
+  });
+
+  // =========================================================================
+  // PRIVATE SALON ACCESS MODAL CONTROLLER
+  // =========================================================================
+  function closePrivateAccessModal() {
+    privateSalonAccessModal?.classList.add('hidden');
+  }
+
+  btnClosePrivateAccessModal?.addEventListener('click', closePrivateAccessModal);
+  btnCancelPrivateAccess?.addEventListener('click', closePrivateAccessModal);
+
+  formPrivateSalonAccess?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const salonId = privateAccessSalonId?.value;
+    const code = privateAccessCodeInput?.value?.trim();
+    if (!code) {
+      showToast('Veuillez entrer le code d\'accès.', 'coral');
+      return;
+    }
+    const salon = salonsData.find(s => s.id === salonId) || { id: salonId, name: 'Salon Privé', isPrivate: true };
+    closePrivateAccessModal();
+    openLiveSalon(salon, code);
+  });
+
+  // =========================================================================
+  // SALON SHARE & SOCIAL INVITATION CONTROLLER (WHATSAPP, MESSENGER, INSTAGRAM)
+  // =========================================================================
+  function openSalonShareModal() {
+    if (!state.currentRoom) return;
+    const salon = state.currentRoom;
+    if (shareSalonName) shareSalonName.textContent = salon.name;
+    if (shareSalonBadge) {
+      shareSalonBadge.textContent = salon.isPrivate ? '🔒 Salon Privé' : '🌐 Salon Public';
+      shareSalonBadge.style.background = salon.isPrivate ? 'rgba(242, 91, 62, 0.18)' : 'rgba(22, 163, 155, 0.18)';
+      shareSalonBadge.style.color = salon.isPrivate ? 'var(--coral-light)' : 'var(--teal-light)';
+      shareSalonBadge.style.borderColor = salon.isPrivate ? 'rgba(242, 91, 62, 0.3)' : 'rgba(22, 163, 155, 0.3)';
+    }
+
+    if (salon.isPrivate && salon.accessCode) {
+      shareCodePill?.classList.remove('hidden');
+      if (shareSalonCode) shareSalonCode.textContent = salon.accessCode;
+    } else {
+      shareCodePill?.classList.add('hidden');
+    }
+
+    const salonKey = salon.slug || salon.id;
+    const baseUrl = window.location.origin + window.location.pathname;
+    let inviteUrl = `${baseUrl}#salon=${encodeURIComponent(salonKey)}`;
+    if (salon.inviteToken) {
+      inviteUrl += `&token=${encodeURIComponent(salon.inviteToken)}`;
+    } else if (salon.accessCode) {
+      inviteUrl += `&code=${encodeURIComponent(salon.accessCode)}`;
+    }
+
+    if (shareInviteLinkInput) shareInviteLinkInput.value = inviteUrl;
+    salonShareModal?.classList.remove('hidden');
+  }
+
+  function closeSalonShareModal() {
+    salonShareModal?.classList.add('hidden');
+  }
+
+  btnOpenSalonShare?.addEventListener('click', openSalonShareModal);
+  btnCloseShareModal?.addEventListener('click', closeSalonShareModal);
+
+  btnCopySalonCode?.addEventListener('click', () => {
+    const code = shareSalonCode?.textContent?.trim();
+    if (code && code !== '----') {
+      navigator.clipboard?.writeText(code).then(() => {
+        showToast(`Code d'accès "${code}" copié ! 📋`, 'teal');
+      }).catch(() => {
+        showToast(`Code d'accès : ${code}`, 'teal');
+      });
+    }
+  });
+
+  btnCopyInviteLink?.addEventListener('click', () => {
+    const link = shareInviteLinkInput?.value;
+    if (link) {
+      navigator.clipboard?.writeText(link).then(() => {
+        showToast('Lien d\'invitation copié dans le presse-papiers ! 🔗', 'teal');
+      }).catch(() => {
+        if (shareInviteLinkInput) {
+          shareInviteLinkInput.select();
+          document.execCommand('copy');
+          showToast('Lien d\'invitation copié ! 🔗', 'teal');
+        }
+      });
+    }
+  });
+
+  btnShareWhatsApp?.addEventListener('click', () => {
+    const salon = state.currentRoom;
+    const link = shareInviteLinkInput?.value || window.location.href;
+    const codeText = salon?.accessCode ? `\n🔑 Code d'accès : *${salon.accessCode}*` : '';
+    const text = `Rejoins-moi dans le salon "${salon?.name || 'WafaTalk'}" sur WafaTalk ! 🎙️✨\nLien direct : ${link}${codeText}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  });
+
+  btnShareMessenger?.addEventListener('click', () => {
+    const link = shareInviteLinkInput?.value || window.location.href;
+    navigator.clipboard?.writeText(link).catch(() => {});
+    showToast('Lien copié ! Ouverture de Messenger...', 'teal');
+    window.open(`https://www.messenger.com/t/`, '_blank');
+  });
+
+  btnShareInstagram?.addEventListener('click', () => {
+    const link = shareInviteLinkInput?.value || window.location.href;
+    navigator.clipboard?.writeText(link).catch(() => {});
+    showToast('Lien copié ! Collez-le dans vos stories ou messages Instagram 📸', 'teal');
+    window.open(`https://www.instagram.com/direct/inbox/`, '_blank');
+  });
+
+  // =========================================================================
+  // SALON ADMIN MODERATION & BAN CONTROLLER (MUTE, CUT CAM, BAN USER, BAN IP)
+  // =========================================================================
+  function openSalonAdminModal(target) {
+    if (!target || !salonAdminConfirmModal) return;
+    if (adminTargetUserId) adminTargetUserId.value = target.userId;
+    if (adminConfirmTargetText) {
+      adminConfirmTargetText.textContent = `Participant : ${target.displayName || target.name || target.username || 'Membre'}`;
+    }
+    salonAdminConfirmModal.classList.remove('hidden');
+  }
+
+  function closeSalonAdminModal() {
+    salonAdminConfirmModal?.classList.add('hidden');
+  }
+
+  btnCloseAdminConfirmModal?.addEventListener('click', closeSalonAdminModal);
+  btnCancelAdminAction?.addEventListener('click', closeSalonAdminModal);
+
+  function executeSalonModeration(action, reason) {
+    const targetUserId = adminTargetUserId?.value;
+    if (!targetUserId || !state.currentRoom) return;
+
+    const target = currentSalonRoster.get(targetUserId);
+    const targetName = target?.displayName || target?.name || target?.username || 'le participant';
+
+    // 1. Emit real-time WebSocket event
+    if (socket && socket.connected) {
+      socket.emit('salon:admin_action', {
+        salonId: state.currentRoom.id,
+        targetUserId,
+        action,
+        reason,
+      });
+    }
+
+    // 2. Also call REST API for persistence
+    const token = getAuthToken();
+    if (token) {
+      fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/admin-action`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name,
-          topic,
-          category: category.toUpperCase(),
-          hasVoice: voiceEnabled,
-          isPrivate: category === 'private'
-        })
-      }).then(r => r.json()).then(data => {
-        if (data.success && data.salon) {
-          loadSalonsFromApi();
-        }
-      }).catch(() => { });
+        body: JSON.stringify({ action, targetUserId, reason })
+      }).catch(() => {});
     }
 
-    showToast(`Le salon "${name}" a été créé avec succès ! 🎙️`, 'teal');
-    openLiveSalon(newSalon);
+    closeSalonAdminModal();
+
+    if (action === 'mute') {
+      showToast(`Micro coupé pour ${targetName}`, 'teal');
+      if (target) {
+        target.isMuted = true;
+        renderVoiceStage();
+      }
+    } else if (action === 'cut_camera') {
+      showToast(`Caméra coupée pour ${targetName}`, 'teal');
+      if (target) {
+        target.isCameraOn = false;
+        renderVoiceStage();
+      }
+    } else if (action === 'ban_user') {
+      showToast(`Utilisateur banni définitivement : ${targetName}`, 'coral');
+      currentSalonRoster.delete(targetUserId);
+      renderVoiceStage();
+    } else if (action === 'ban_ip') {
+      showToast(`Adresse IP bannie définitivement pour : ${targetName}`, 'coral');
+      currentSalonRoster.delete(targetUserId);
+      renderVoiceStage();
+    }
+  }
+
+  btnAdminActionMute?.addEventListener('click', () => {
+    executeSalonModeration('mute', 'Votre micro a été coupé par l\'administrateur du salon.');
+  });
+
+  btnAdminActionCutCam?.addEventListener('click', () => {
+    executeSalonModeration('cut_camera', 'Votre caméra a été désactivée par l\'administrateur du salon.');
+  });
+
+  btnAdminActionBanUser?.addEventListener('click', () => {
+    executeSalonModeration('ban_user', 'Vous avez été banni définitivement de ce salon par l\'administrateur.');
+  });
+
+  btnAdminActionBanIp?.addEventListener('click', () => {
+    executeSalonModeration('ban_ip', 'Votre adresse IP a été bannie définitivement de ce salon.');
   });
 
 
@@ -3938,6 +4325,76 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!state.currentRoom || state.currentRoom.id !== salonId) return;
       if (userId === state.currentUser?.id) return;
       handleSalonUserTyping(displayName, isTyping);
+    });
+
+    // Salon Moderation: Force Mute by Admin
+    socket.on('salon:force_mute', ({ salonId, reason }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      state.isMicMuted = true;
+      if (salonLocalAudioTrack) salonLocalAudioTrack.enabled = false;
+      btnToggleMic?.classList.add('muted');
+      btnToggleMic?.querySelector('.mic-on-icon')?.classList.add('hidden');
+      btnToggleMic?.querySelector('.mic-off-icon')?.classList.remove('hidden');
+      if (btnToggleMic) btnToggleMic.querySelector('.ctrl-label').textContent = 'Micro coupé';
+      updateParticipantSpeakingUI(state.currentUser?.id, false);
+      showToast(reason || '⚠️ Votre micro a été coupé par l\'administrateur du salon.', 'coral');
+    });
+
+    // Salon Moderation: Force Cut Camera by Admin
+    socket.on('salon:force_cut_camera', ({ salonId, reason }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId) return;
+      if (isSalonCamActive) {
+        isSalonCamActive = false;
+        if (salonLocalVideoTrack) {
+          salonLocalVideoTrack.stop();
+          salonLocalVideoTrack = null;
+        }
+        if (salonLocalStream) {
+          salonLocalStream.getVideoTracks().forEach(t => {
+            t.stop();
+            salonLocalStream.removeTrack(t);
+          });
+        }
+        btnToggleSalonVideo?.classList.remove('active');
+        btnToggleSalonVideo?.querySelector('.cam-on-icon')?.classList.remove('hidden');
+        btnToggleSalonVideo?.querySelector('.cam-off-icon')?.classList.add('hidden');
+        if (btnToggleSalonVideo) btnToggleSalonVideo.querySelector('.ctrl-label').textContent = 'Caméra';
+        if (socket && socket.connected) {
+          socket.emit('salon:media_state', {
+            salonId: state.currentRoom.id,
+            isMuted: state.isMicMuted,
+            isSpeaking: false,
+            isCameraOn: false,
+          });
+        }
+        renderVoiceStage();
+      }
+      showToast(reason || '⚠️ Votre caméra a été désactivée par l\'administrateur du salon.', 'coral');
+    });
+
+    // Salon Moderation: Banned (User or IP)
+    socket.on('salon:banned', ({ salonId, banType, reason }) => {
+      if (state.currentRoom && state.currentRoom.id === salonId) {
+        closeLiveSalon();
+        playTone(220, 'sawtooth', 0.5);
+        showToast(`🚫 ${reason || 'Vous avez été banni de ce salon par l\'administrateur.'}`, 'coral');
+      }
+    });
+
+    // Salon Join Error (e.g. Banned or Wrong Access Code)
+    socket.on('salon:join_error', ({ salonId, error, message }) => {
+      closeLiveSalon();
+      showToast(`❌ ${message || 'Impossible de rejoindre ce salon.'}`, 'coral');
+    });
+
+    // Salon Admin Action Success Notification
+    socket.on('salon:admin_action_success', ({ action, message }) => {
+      showToast(`✅ ${message || 'Action d\'administration exécutée.'}`, 'teal');
+    });
+
+    // Salon Admin Action Error Notification
+    socket.on('salon:admin_action_error', ({ message }) => {
+      showToast(`❌ ${message || 'Erreur lors de l\'action d\'administration.'}`, 'coral');
     });
   }
 
@@ -5814,6 +6271,39 @@ document.addEventListener('DOMContentLoaded', () => {
     div.textContent = str;
     return div.innerHTML;
   }
+
+  // 16. URL Invite Link Auto-Join Handler
+  function checkUrlSalonInvite() {
+    try {
+      const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+      const search = window.location.search.startsWith('?') ? window.location.search.slice(1) : '';
+      const params = new URLSearchParams(hash || search);
+      const salonParam = params.get('salon');
+      const codeParam = params.get('code');
+      const tokenParam = params.get('token');
+
+      if (salonParam) {
+        setTimeout(() => {
+          const match = salonsData.find(s => s.id === salonParam || s.slug === salonParam);
+          if (match) {
+            openLiveSalon(match, codeParam, tokenParam);
+          } else {
+            fetch(`${API_BASE_URL}/salons/${encodeURIComponent(salonParam)}`)
+              .then(r => r.json())
+              .then(data => {
+                if (data.salon) {
+                  openLiveSalon(data.salon, codeParam, tokenParam);
+                }
+              }).catch(() => {});
+          }
+        }, 1200);
+      }
+    } catch (e) {
+      console.warn('URL salon invite check error:', e);
+    }
+  }
+
+  checkUrlSalonInvite();
 
 });
 

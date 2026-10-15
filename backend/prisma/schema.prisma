@@ -57,6 +57,8 @@ model Salon {
   category     String        @default("chill") // vocal, chill, gaming, music, private
   bannerUrl    String?
   isPrivate    Boolean       @default(false)
+  accessCode   String?       // Access code / PIN for private salons
+  inviteToken  String?       @unique // Unique invite token for shareable links
   passwordHash String?
   maxMembers   Int           @default(50)
   ownerId      String
@@ -67,6 +69,24 @@ model Salon {
   members      SalonMember[]
   messages     Message[]
   gifts        GiftLog[]
+  bans         SalonBan[]
+}
+
+model SalonBan {
+  id        String   @id @default(uuid())
+  salonId   String
+  userId    String?
+  username  String?
+  ipAddress String?
+  banType   String   @default("USER") // USER, IP
+  reason    String?
+  bannedBy  String
+  createdAt DateTime @default(now())
+
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@index([salonId, userId])
+  @@index([salonId, ipAddress])
 }
 
 model SalonMember {

@@ -84,7 +84,7 @@ export class SalonsService {
     };
   }
 
-  static async getByIdOrSlug(idOrSlug: string) {
+  static async getByIdOrSlug(idOrSlug: string, currentUserId?: string) {
     const salon = await prisma.salon.findFirst({
       where: {
         OR: [{ id: idOrSlug }, { slug: idOrSlug }],
@@ -131,10 +131,25 @@ export class SalonsService {
 
     if (!salon) throw new Error('Salon introuvable.');
 
+    const isOwner = currentUserId && salon.ownerId === currentUserId;
+
     return {
-      ...salon,
+      id: salon.id,
+      name: salon.name,
+      slug: salon.slug,
+      description: salon.description,
+      category: salon.category,
+      bannerUrl: salon.bannerUrl,
+      isPrivate: salon.isPrivate,
+      accessCode: isOwner ? salon.accessCode : undefined,
+      inviteToken: salon.inviteToken,
+      ownerId: salon.ownerId,
+      owner: salon.owner,
+      members: salon.members,
+      messages: salon.messages,
       participantsCount: salon.members.length,
       avatars: salon.members.map((m) => m.user.avatarUrl).filter(Boolean),
+      createdAt: salon.createdAt,
     };
   }
 
@@ -145,11 +160,18 @@ export class SalonsService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
+    const slug = `${baseSlug || 'salon'}-${Date.now().toString().slice(-4)}`;
 
-    let passwordHash: string | undefined;
-    if (input.isPrivate && input.password) {
-      passwordHash = await bcrypt.hash(input.password, 10);
+    // Generate unique invite token
+    const inviteToken = `inv_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+
+    // Generate or use access code if private
+    let accessCode: string | null = null;
+    let passwordHash: string | null = null;
+
+    if (input.isPrivate) {
+      accessCode = (input.accessCode || input.password || Math.floor(1000 + Math.random() * 9000).toString()).trim();
+      passwordHash = await bcrypt.hash(accessCode, 10);
     }
 
     const salon = await prisma.salon.create({
@@ -160,6 +182,8 @@ export class SalonsService {
         category: input.category,
         bannerUrl: input.bannerUrl || 'linear-gradient(135deg, #0d837d, #14a39b)',
         isPrivate: input.isPrivate,
+        accessCode,
+        inviteToken,
         passwordHash,
         maxMembers: input.maxMembers,
         ownerId: userId,
@@ -177,12 +201,84 @@ export class SalonsService {
       },
     });
 
-    return salon;
+    return {
+      ...salon,
+      accessCode, // return plaintext access code to creator
+      inviteToken,
+    };
   }
 
-  static async join(salonId: string, userId: string, role: string = 'LISTENER') {
-    const salon = await prisma.salon.findUnique({ where: { id: salonId } });
+  static async checkAccess(salonId: string, userId?: string, ipAddress?: string, accessCode?: string, inviteToken?: string) {
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+    });
     if (!salon) throw new Error('Salon introuvable.');
+
+    // 1. Check if user or IP is banned
+    if (userId || ipAddress) {
+      const banConditions: any[] = [];
+      if (userId) banConditions.push({ userId });
+      if (ipAddress) banConditions.push({ ipAddress });
+
+      const ban = await prisma.salonBan.findFirst({
+        where: {
+          salonId,
+          OR: banConditions,
+        },
+      });
+
+      if (ban) {
+        if (ban.banType === 'IP') {
+          throw new Error('BAN_IP: Accès refusé : votre adresse IP est bannie de ce salon.');
+        }
+        throw new Error('BAN_USER: Accès refusé : vous avez été banni de ce salon.');
+      }
+    }
+
+    // 2. If Public, access is granted
+    if (!salon.isPrivate) {
+      return { allowed: true, salon };
+    }
+
+    // 3. If Private:
+    // Creator is always allowed
+    if (userId && salon.ownerId === userId) {
+      return { allowed: true, salon, isOwner: true };
+    }
+
+    // Direct Invite Token match
+    if (inviteToken && salon.inviteToken && inviteToken === salon.inviteToken) {
+      return { allowed: true, salon };
+    }
+
+    // Access Code match
+    if (accessCode && salon.accessCode && accessCode.trim().toLowerCase() === salon.accessCode.trim().toLowerCase()) {
+      return { allowed: true, salon };
+    }
+
+    // Password hash match fallback
+    if (accessCode && salon.passwordHash) {
+      const isMatch = await bcrypt.compare(accessCode.trim(), salon.passwordHash);
+      if (isMatch) return { allowed: true, salon };
+    }
+
+    // Check if user is already an active member of the salon
+    if (userId) {
+      const member = await prisma.salonMember.findUnique({
+        where: {
+          salonId_userId: { salonId, userId },
+        },
+      });
+      if (member) {
+        return { allowed: true, salon };
+      }
+    }
+
+    throw new Error('PRIVATE_CODE_REQUIRED: Code d\'accès ou invitation requis pour ce salon privé.');
+  }
+
+  static async join(salonId: string, userId: string, ipAddress?: string, accessCode?: string, inviteToken?: string) {
+    const { salon } = await this.checkAccess(salonId, userId, ipAddress, accessCode, inviteToken);
 
     const member = await prisma.salonMember.upsert({
       where: {
@@ -192,7 +288,7 @@ export class SalonsService {
       create: {
         salonId,
         userId,
-        role: salon.ownerId === userId ? 'OWNER' : role,
+        role: salon.ownerId === userId ? 'OWNER' : 'LISTENER',
       },
       include: {
         user: {
@@ -201,7 +297,18 @@ export class SalonsService {
       },
     });
 
-    return member;
+    return {
+      member,
+      salon: {
+        id: salon.id,
+        name: salon.name,
+        slug: salon.slug,
+        isPrivate: salon.isPrivate,
+        ownerId: salon.ownerId,
+        accessCode: salon.ownerId === userId ? salon.accessCode : undefined,
+        inviteToken: salon.inviteToken,
+      },
+    };
   }
 
   static async leave(salonId: string, userId: string) {
@@ -209,5 +316,120 @@ export class SalonsService {
       where: { salonId, userId },
     });
     return { success: true };
+  }
+
+  // Admin Actions: Mute / Cut Camera / Ban User / Ban IP
+  static async executeAdminAction(
+    salonId: string,
+    adminUserId: string,
+    targetUserId: string,
+    action: 'mute' | 'unmute' | 'cut_camera' | 'ban_user' | 'ban_ip',
+    reason?: string,
+    targetIp?: string
+  ) {
+    const salon = await prisma.salon.findUnique({
+      where: { id: salonId },
+      include: { owner: true },
+    });
+
+    if (!salon) throw new Error('Salon introuvable.');
+
+    // Permission check: only salon owner can manage participants
+    if (salon.ownerId !== adminUserId) {
+      throw new Error('Action refusée : Seul l\'administrateur/créateur de ce salon a les droits de gestion.');
+    }
+
+    if (adminUserId === targetUserId) {
+      throw new Error('Impossible d\'appliquer cette action sur vous-même.');
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, username: true, displayName: true },
+    });
+
+    if (!targetUser) throw new Error('Utilisateur cible introuvable.');
+
+    if (action === 'mute' || action === 'unmute') {
+      await prisma.salonMember.updateMany({
+        where: { salonId, userId: targetUserId },
+        data: { isMuted: action === 'mute' },
+      });
+      return { success: true, action, targetUser };
+    }
+
+    if (action === 'cut_camera') {
+      return { success: true, action: 'cut_camera', targetUser };
+    }
+
+    if (action === 'ban_user') {
+      // Record permanent ban by username & userId
+      await prisma.salonBan.create({
+        data: {
+          salonId,
+          userId: targetUserId,
+          username: targetUser.username,
+          banType: 'USER',
+          reason: reason || 'Banni par l\'administrateur du salon',
+          bannedBy: adminUserId,
+        },
+      });
+
+      // Remove from members
+      await prisma.salonMember.deleteMany({
+        where: { salonId, userId: targetUserId },
+      });
+
+      return { success: true, action: 'ban_user', targetUser };
+    }
+
+    if (action === 'ban_ip') {
+      // Record permanent ban by IP address
+      await prisma.salonBan.create({
+        data: {
+          salonId,
+          userId: targetUserId,
+          username: targetUser.username,
+          ipAddress: targetIp || '127.0.0.1',
+          banType: 'IP',
+          reason: reason || 'Adresse IP bannie par l\'administrateur du salon',
+          bannedBy: adminUserId,
+        },
+      });
+
+      // Remove from members
+      await prisma.salonMember.deleteMany({
+        where: { salonId, userId: targetUserId },
+      });
+
+      return { success: true, action: 'ban_ip', targetUser, targetIp };
+    }
+
+    throw new Error('Action non reconnue.');
+  }
+
+  static async getBans(salonId: string, adminUserId: string) {
+    const salon = await prisma.salon.findUnique({ where: { id: salonId } });
+    if (!salon || salon.ownerId !== adminUserId) {
+      throw new Error('Non autorisé.');
+    }
+
+    return prisma.salonBan.findMany({
+      where: { salonId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  static async unban(salonId: string, adminUserId: string, banId: string) {
+    const salon = await prisma.salon.findUnique({ where: { id: salonId } });
+    if (!salon || salon.ownerId !== adminUserId) {
+      throw new Error('Non autorisé.');
+    }
+
+    await prisma.salonBan.delete({
+      where: { id: banId },
+    });
+
+    return { success: true, message: 'Bannissement levé avec succès.' };
   }
 }
