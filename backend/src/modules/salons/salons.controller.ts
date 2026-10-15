@@ -77,6 +77,38 @@ export async function salonsRoutes(fastify: FastifyInstance) {
       if (msg.startsWith('BAN_')) {
         return reply.code(403).send({ success: false, error: 'BANNED', message: msg });
       }
+      if (msg.startsWith('INVALID_CODE')) {
+        return reply.code(401).send({ success: false, error: 'INVALID_CODE', message: "Code d'accès incorrect pour ce salon privé." });
+      }
+      if (msg.startsWith('PRIVATE_CODE_REQUIRED')) {
+        return reply.code(401).send({ success: false, error: 'PRIVATE_CODE_REQUIRED', message: msg });
+      }
+      return reply.code(400).send({ success: false, message: msg });
+    }
+  });
+
+  // Verify Access Code / Token (Open to guests & authenticated users)
+  fastify.post('/:id/verify-access', async (request: any, reply: FastifyReply) => {
+    try {
+      const body = joinSalonSchema.parse(request.body || {});
+      const clientIp = extractClientIp(request);
+      const userId = request.user?.id;
+      const result = await SalonsService.checkAccess(
+        request.params.id,
+        userId,
+        clientIp,
+        body.accessCode,
+        body.inviteToken
+      );
+      return reply.send({ success: true, allowed: result.allowed, isOwner: result.isOwner });
+    } catch (error: any) {
+      const msg = error.message || '';
+      if (msg.startsWith('BAN_')) {
+        return reply.code(403).send({ success: false, error: 'BANNED', message: msg });
+      }
+      if (msg.startsWith('INVALID_CODE')) {
+        return reply.code(401).send({ success: false, error: 'INVALID_CODE', message: "Code d'accès incorrect pour ce salon privé." });
+      }
       if (msg.startsWith('PRIVATE_CODE_REQUIRED')) {
         return reply.code(401).send({ success: false, error: 'PRIVATE_CODE_REQUIRED', message: msg });
       }

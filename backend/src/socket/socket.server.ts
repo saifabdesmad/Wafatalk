@@ -239,6 +239,12 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
             error: 'BAN_USER',
             message: 'Accès refusé : vous avez été banni de ce salon par l\'administrateur.',
           });
+        } else if (msg.startsWith('INVALID_CODE')) {
+          socket.emit('salon:join_error', {
+            salonId,
+            error: 'INVALID_CODE',
+            message: 'Code d\'accès incorrect pour ce salon privé.',
+          });
         } else if (msg.startsWith('PRIVATE_CODE_REQUIRED')) {
           socket.emit('salon:join_error', {
             salonId,

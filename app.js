@@ -2283,11 +2283,25 @@ document.addEventListener('DOMContentLoaded', () => {
   async function openLiveSalon(salon, accessCode, inviteToken) {
     if (!salon) return;
 
-    // Check if private and not owner and no code provided
-    const isOwner = Boolean(salon.isOwner || (salon.ownerId && state.currentUser && salon.ownerId === state.currentUser.id));
-    if (salon.isPrivate && !isOwner && !accessCode && !salon.accessCode && !inviteToken) {
-      openPrivateSalonPrompt(salon);
-      return;
+    // Check if private and not owner
+    const myId = state.currentUser?.id;
+    const isOwner = Boolean(salon.isOwner || (salon.ownerId && myId && salon.ownerId === myId));
+
+    if (salon.isPrivate && !isOwner) {
+      // 1. If neither code nor token was provided, prompt user
+      if (!accessCode && !salon.accessCode && !inviteToken) {
+        openPrivateSalonPrompt(salon);
+        return;
+      }
+
+      // 2. If salon has known local accessCode, strictly reject wrong code
+      const givenCode = (accessCode || salon.accessCode || '').trim().toLowerCase();
+      if (salon.accessCode && givenCode && givenCode !== salon.accessCode.trim().toLowerCase()) {
+        showToast('❌ Code d\'accès incorrect pour ce salon privé.', 'coral');
+        playTone(220, 'sawtooth', 0.25);
+        openPrivateSalonPrompt(salon);
+        return;
+      }
     }
 
     state.currentRoom = {
@@ -3582,7 +3596,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnClosePrivateAccessModal?.addEventListener('click', closePrivateAccessModal);
   btnCancelPrivateAccess?.addEventListener('click', closePrivateAccessModal);
 
-  formPrivateSalonAccess?.addEventListener('submit', (e) => {
+  formPrivateSalonAccess?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const salonId = privateAccessSalonId?.value;
     const code = privateAccessCodeInput?.value?.trim();
@@ -3590,9 +3604,67 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Veuillez entrer le code d\'accès.', 'coral');
       return;
     }
+
     const salon = salonsData.find(s => s.id === salonId) || { id: salonId, name: 'Salon Privé', isPrivate: true };
-    closePrivateAccessModal();
-    openLiveSalon(salon, code);
+    const submitBtn = document.getElementById('btnConfirmPrivateAccess');
+    const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>Vérification... ⏳</span>';
+    }
+
+    try {
+      // 1. If salon has known local access code, check it first
+      if (salon.accessCode && salon.accessCode.trim().toLowerCase() !== code.toLowerCase()) {
+        showToast('❌ Code d\'accès incorrect !', 'coral');
+        playTone(220, 'sawtooth', 0.25);
+        if (privateAccessCodeInput) {
+          privateAccessCodeInput.value = '';
+          privateAccessCodeInput.focus();
+        }
+        return;
+      }
+
+      // 2. Server-side verification via verify-access endpoint
+      const token = getAuthToken();
+      try {
+        const res = await fetch(`${API_BASE_URL}/salons/${encodeURIComponent(salon.id)}/verify-access`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ accessCode: code })
+        });
+        const data = await res.json();
+        if (!data.success || !data.allowed) {
+          showToast(`❌ ${data.message || 'Code d\'accès incorrect.'}`, 'coral');
+          playTone(220, 'sawtooth', 0.25);
+          if (privateAccessCodeInput) {
+            privateAccessCodeInput.value = '';
+            privateAccessCodeInput.focus();
+          }
+          return;
+        }
+      } catch (netErr) {
+        // Fallback for offline demo salon
+        if (salon.accessCode && salon.accessCode.trim().toLowerCase() !== code.toLowerCase()) {
+          showToast('❌ Code d\'accès incorrect !', 'coral');
+          return;
+        }
+      }
+
+      // 3. Success: save verified code and grant entrance
+      salon.accessCode = code;
+      closePrivateAccessModal();
+      showToast('✅ Code validé ! Bienvenue dans le salon.', 'teal');
+      openLiveSalon(salon, code);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
+    }
   });
 
   // =========================================================================
@@ -4384,7 +4456,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Salon Join Error (e.g. Banned or Wrong Access Code)
     socket.on('salon:join_error', ({ salonId, error, message }) => {
       closeLiveSalon();
+      playTone(220, 'sawtooth', 0.3);
       showToast(`❌ ${message || 'Impossible de rejoindre ce salon.'}`, 'coral');
+      if (error === 'INVALID_CODE' || error === 'PRIVATE_CODE_REQUIRED') {
+        const targetSalon = salonsData.find(s => s.id === salonId) || { id: salonId, name: 'Salon Privé', isPrivate: true };
+        openPrivateSalonPrompt(targetSalon);
+      }
     });
 
     // Salon Admin Action Success Notification

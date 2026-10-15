@@ -247,31 +247,23 @@ export class SalonsService {
     }
 
     // Direct Invite Token match
-    if (inviteToken && salon.inviteToken && inviteToken === salon.inviteToken) {
+    if (inviteToken && salon.inviteToken && inviteToken.trim() === salon.inviteToken.trim()) {
       return { allowed: true, salon };
     }
 
-    // Access Code match
-    if (accessCode && salon.accessCode && accessCode.trim().toLowerCase() === salon.accessCode.trim().toLowerCase()) {
-      return { allowed: true, salon };
-    }
-
-    // Password hash match fallback
-    if (accessCode && salon.passwordHash) {
-      const isMatch = await bcrypt.compare(accessCode.trim(), salon.passwordHash);
-      if (isMatch) return { allowed: true, salon };
-    }
-
-    // Check if user is already an active member of the salon
-    if (userId) {
-      const member = await prisma.salonMember.findUnique({
-        where: {
-          salonId_userId: { salonId, userId },
-        },
-      });
-      if (member) {
+    // Access Code verification: Must match plain accessCode or passwordHash
+    if (accessCode) {
+      const cleanInput = accessCode.trim().toLowerCase();
+      const isPlainMatch = Boolean(salon.accessCode && salon.accessCode.trim().toLowerCase() === cleanInput);
+      let isHashMatch = false;
+      if (!isPlainMatch && salon.passwordHash) {
+        isHashMatch = await bcrypt.compare(accessCode.trim(), salon.passwordHash).catch(() => false);
+      }
+      if (isPlainMatch || isHashMatch) {
         return { allowed: true, salon };
       }
+      // Provided code does NOT match -> Reject immediately
+      throw new Error('INVALID_CODE: Code d\'accès incorrect pour ce salon privé.');
     }
 
     throw new Error('PRIVATE_CODE_REQUIRED: Code d\'accès ou invitation requis pour ce salon privé.');
