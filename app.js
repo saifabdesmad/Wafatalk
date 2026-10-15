@@ -3635,13 +3635,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCallShareScreen = document.getElementById('btnCallShareScreen');
   const btnCallHangup = document.getElementById('btnCallHangup');
 
-  // DOM Elements: Mini Call Floating Widget
+  // DOM Elements: Floating Draggable Video Call Window (Caméra volante)
   const miniCallWidget = document.getElementById('miniCallWidget');
+  const floatingCallDragHandle = document.getElementById('floatingCallDragHandle');
+  const floatingCallStage = document.getElementById('floatingCallStage');
+  const floatingRemoteWrap = document.getElementById('floatingRemoteWrap');
+  const floatingRemoteVideo = document.getElementById('floatingRemoteVideo');
+  const floatingRemotePlaceholder = document.getElementById('floatingRemotePlaceholder');
+  const floatingPlaceholderAvatar = document.getElementById('floatingPlaceholderAvatar');
+  const floatingLocalPip = document.getElementById('floatingLocalPip');
+  const floatingLocalVideo = document.getElementById('floatingLocalVideo');
+  const floatingLocalPlaceholder = document.getElementById('floatingLocalPlaceholder');
+  const floatingAudioStage = document.getElementById('floatingAudioStage');
+  const floatingAudioRing = document.getElementById('floatingAudioRing');
   const btnRestoreCall = document.getElementById('btnRestoreCall');
+  const btnMiniExpand = document.getElementById('btnMiniExpand');
   const miniCallAvatar = document.getElementById('miniCallAvatar');
   const miniCallName = document.getElementById('miniCallName');
   const miniCallTime = document.getElementById('miniCallTime');
   const btnMiniToggleMic = document.getElementById('btnMiniToggleMic');
+  const btnMiniToggleCamera = document.getElementById('btnMiniToggleCamera');
   const btnMiniHangup = document.getElementById('btnMiniHangup');
 
   let socket = null;
@@ -4942,11 +4955,16 @@ document.addEventListener('DOMContentLoaded', () => {
           remoteAudio.play().catch(e => console.warn('remoteAudio autoplay policy:', e));
         }
 
-        // Attach to video element
+        // Attach to video elements (Main screen and floating PiP window)
         if (remoteVideo && remoteVideo.srcObject !== remoteMediaStream) {
           remoteVideo.srcObject = remoteMediaStream;
           remoteVideo.play().catch(e => console.warn('remoteVideo autoplay policy:', e));
         }
+        if (floatingRemoteVideo && floatingRemoteVideo.srcObject !== remoteMediaStream) {
+          floatingRemoteVideo.srcObject = remoteMediaStream;
+          floatingRemoteVideo.play().catch(e => console.warn('floatingRemoteVideo autoplay policy:', e));
+        }
+        floatingRemotePlaceholder?.classList.add('hidden');
 
         startAudioVisualizer(remoteMediaStream, 'peer');
       };
@@ -5029,8 +5047,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // If Video Call: create dynamic high-tech canvas video stream
     if (currentCallSession?.type === 'video' && remoteVideo) {
       const compStream = createCompanionVideoStream(peer);
+      remoteMediaStream = compStream;
       remoteVideo.srcObject = compStream;
       remoteVideo.play().catch(() => { });
+      if (floatingRemoteVideo) {
+        floatingRemoteVideo.srcObject = compStream;
+        floatingRemoteVideo.play().catch(() => { });
+      }
+      floatingRemotePlaceholder?.classList.add('hidden');
     }
 
     // Natural spoken French companion voice
@@ -5288,14 +5312,20 @@ document.addEventListener('DOMContentLoaded', () => {
         localVideo.srcObject = localMediaStream;
         localVideo.play().catch(() => { });
       }
+      if (floatingLocalVideo && localMediaStream) {
+        floatingLocalVideo.srcObject = localMediaStream;
+        floatingLocalVideo.play().catch(() => { });
+      }
     } else {
       callVideoStage?.classList.add('hidden');
       callAudioStage?.classList.remove('hidden');
     }
 
-    // Mini Widget Info
+    // Mini Floating Widget Info
     if (miniCallAvatar) miniCallAvatar.src = session.peer.avatar;
+    if (floatingPlaceholderAvatar) floatingPlaceholderAvatar.src = session.peer.avatar;
     if (miniCallName) miniCallName.textContent = session.peer.name;
+    syncFloatingControlStates();
   }
 
   // Call Duration Timer
@@ -5380,6 +5410,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (localVideo) {
       localVideo.srcObject = null;
     }
+    if (floatingRemoteVideo) {
+      floatingRemoteVideo.srcObject = null;
+    }
+    if (floatingLocalVideo) {
+      floatingLocalVideo.srcObject = null;
+    }
 
     remoteMediaStream = null;
     currentCallSession = null;
@@ -5399,10 +5435,20 @@ document.addEventListener('DOMContentLoaded', () => {
   btnStartAudioCall?.addEventListener('click', () => initiateCall('audio'));
   btnStartVideoCall?.addEventListener('click', () => initiateCall('video'));
   btnCallHangup?.addEventListener('click', endCurrentCall);
-  btnMiniHangup?.addEventListener('click', endCurrentCall);
-  btnMiniToggleMic?.addEventListener('click', () => {
-    btnCallToggleMic?.click();
-  });
+
+  // Synchronize button states between fullscreen and floating window
+  function syncFloatingControlStates() {
+    // Mic button sync
+    btnMiniToggleMic?.classList.toggle('muted', isCallMicMuted);
+    btnMiniToggleMic?.querySelector('.mini-mic-on')?.classList.toggle('hidden', isCallMicMuted);
+    btnMiniToggleMic?.querySelector('.mini-mic-off')?.classList.toggle('hidden', !isCallMicMuted);
+
+    // Camera button sync
+    btnMiniToggleCamera?.classList.toggle('muted', isCallCameraOff);
+    btnMiniToggleCamera?.querySelector('.mini-cam-on')?.classList.toggle('hidden', isCallCameraOff);
+    btnMiniToggleCamera?.querySelector('.mini-cam-off')?.classList.toggle('hidden', !isCallCameraOff);
+    floatingLocalPlaceholder?.classList.toggle('hidden', !isCallCameraOff);
+  }
 
   // Mute / Unmute Mic
   btnCallToggleMic?.addEventListener('click', () => {
@@ -5414,6 +5460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCallToggleMic.querySelector('.mic-on-icon')?.classList.toggle('hidden', isCallMicMuted);
     btnCallToggleMic.querySelector('.mic-off-icon')?.classList.toggle('hidden', !isCallMicMuted);
     if (localMicBadge) localMicBadge.textContent = isCallMicMuted ? 'Micro coupé' : 'Micro actif';
+    syncFloatingControlStates();
     showToast(isCallMicMuted ? 'Microphone désactivé' : 'Microphone activé', isCallMicMuted ? 'coral' : 'teal');
   });
 
@@ -5427,6 +5474,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCallToggleCamera.querySelector('.camera-on-icon')?.classList.toggle('hidden', isCallCameraOff);
     btnCallToggleCamera.querySelector('.camera-off-icon')?.classList.toggle('hidden', !isCallCameraOff);
     localVideoPlaceholder?.classList.toggle('hidden', !isCallCameraOff);
+    syncFloatingControlStates();
     showToast(isCallCameraOff ? 'Caméra coupée' : 'Caméra activée', isCallCameraOff ? 'coral' : 'teal');
   });
 
@@ -5455,6 +5503,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (localVideo) localVideo.srcObject = displayStream;
+        if (floatingLocalVideo) floatingLocalVideo.srcObject = displayStream;
         isScreenSharing = true;
         btnCallShareScreen.classList.add('active');
         showToast('Partage d\'écran démarré 🖥️', 'teal');
@@ -5466,6 +5515,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (camTrack && sender) sender.replaceTrack(camTrack);
           }
           if (localVideo && localMediaStream) localVideo.srcObject = localMediaStream;
+          if (floatingLocalVideo && localMediaStream) floatingLocalVideo.srcObject = localMediaStream;
           isScreenSharing = false;
           btnCallShareScreen.classList.remove('active');
           showToast('Partage d\'écran arrêté.', 'teal');
@@ -5474,6 +5524,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isScreenSharing = false;
         btnCallShareScreen.classList.remove('active');
         if (localVideo && localMediaStream) localVideo.srcObject = localMediaStream;
+        if (floatingLocalVideo && localMediaStream) floatingLocalVideo.srcObject = localMediaStream;
         showToast('Partage d\'écran arrêté.', 'teal');
       }
     } catch (err) {
@@ -5481,16 +5532,204 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Minimize / Restore PiP Call
-  btnMinimizeCall?.addEventListener('click', () => {
+  // Minimize Active Call to Floating Draggable Window (Caméra volante)
+  function minimizeCallToFloating() {
+    if (!currentCallSession) return;
+
     activeCallModal?.classList.add('hidden');
     miniCallWidget?.classList.remove('hidden');
-  });
 
-  btnRestoreCall?.addEventListener('click', () => {
+    const isVideo = currentCallSession.type === 'video';
+
+    if (isVideo) {
+      floatingCallStage?.classList.remove('hidden');
+      floatingRemoteWrap?.classList.remove('hidden');
+      floatingLocalPip?.classList.remove('hidden');
+      floatingAudioStage?.classList.add('hidden');
+
+      // Attach remote stream
+      if (floatingRemoteVideo) {
+        if (remoteMediaStream) {
+          floatingRemoteVideo.srcObject = remoteMediaStream;
+        } else if (remoteVideo && remoteVideo.srcObject) {
+          floatingRemoteVideo.srcObject = remoteVideo.srcObject;
+        }
+        floatingRemoteVideo.play().catch(() => {});
+      }
+
+      // Attach local stream
+      if (floatingLocalVideo) {
+        if (localMediaStream) {
+          floatingLocalVideo.srcObject = localMediaStream;
+        } else if (localVideo && localVideo.srcObject) {
+          floatingLocalVideo.srcObject = localVideo.srcObject;
+        }
+        floatingLocalVideo.play().catch(() => {});
+      }
+
+      floatingLocalPlaceholder?.classList.toggle('hidden', !isCallCameraOff);
+    } else {
+      floatingRemoteWrap?.classList.add('hidden');
+      floatingLocalPip?.classList.add('hidden');
+      floatingAudioStage?.classList.remove('hidden');
+      if (miniCallAvatar) miniCallAvatar.src = currentCallSession.peer.avatar;
+    }
+
+    if (miniCallName) miniCallName.textContent = currentCallSession.peer.name;
+    syncFloatingControlStates();
+    showToast('Caméra volante active • Déplacez-la où vous voulez !', 'teal');
+  }
+
+  // Restore Active Call from Floating Window to Fullscreen Modal
+  function restoreCallFullScreen() {
     miniCallWidget?.classList.add('hidden');
     activeCallModal?.classList.remove('hidden');
+
+    if (currentCallSession?.type === 'video') {
+      if (remoteVideo) {
+        if (remoteMediaStream) remoteVideo.srcObject = remoteMediaStream;
+        remoteVideo.play().catch(() => {});
+      }
+      if (localVideo) {
+        if (localMediaStream) localVideo.srcObject = localMediaStream;
+        localVideo.play().catch(() => {});
+      }
+    }
+
+    syncFloatingControlStates();
+  }
+
+  // Floating Window Drag and Drop with Pointer Capture (Touch & Mouse Support)
+  function initFloatingCallDraggable() {
+    if (!miniCallWidget) return;
+
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialLeft = 0, initialTop = 0;
+    let hasMoved = false;
+
+    const onPointerDown = (e) => {
+      // Don't drag if user is clicking a button or interactive child
+      if (e.target.closest('button, a, input, [role="button"]')) return;
+
+      isDragging = true;
+      hasMoved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = miniCallWidget.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+
+      // Switch from CSS bottom/right to fixed left/top pixels for dragging
+      miniCallWidget.style.left = `${initialLeft}px`;
+      miniCallWidget.style.top = `${initialTop}px`;
+      miniCallWidget.style.right = 'auto';
+      miniCallWidget.style.bottom = 'auto';
+      miniCallWidget.classList.add('is-dragging');
+
+      try {
+        miniCallWidget.setPointerCapture(e.pointerId);
+      } catch (err) { }
+
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    };
+
+    const onPointerMove = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        hasMoved = true;
+      }
+
+      const widgetW = miniCallWidget.offsetWidth;
+      const widgetH = miniCallWidget.offsetHeight;
+      const maxLeft = window.innerWidth - widgetW - 10;
+      const maxTop = window.innerHeight - widgetH - 10;
+
+      const newLeft = Math.max(10, Math.min(maxLeft, initialLeft + dx));
+      const newTop = Math.max(10, Math.min(maxTop, initialTop + dy));
+
+      miniCallWidget.style.left = `${newLeft}px`;
+      miniCallWidget.style.top = `${newTop}px`;
+    };
+
+    const onPointerUp = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      miniCallWidget.classList.remove('is-dragging');
+
+      try {
+        miniCallWidget.releasePointerCapture(e.pointerId);
+      } catch (err) { }
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      // If user simply clicked on the video stage without dragging, expand to full screen
+      if (!hasMoved && (e.target.closest('#floatingCallStage') || e.target.closest('#btnRestoreCall'))) {
+        restoreCallFullScreen();
+      }
+    };
+
+    miniCallWidget.addEventListener('pointerdown', onPointerDown);
+
+    // Keep floating window inside viewport on window resize
+    window.addEventListener('resize', () => {
+      if (miniCallWidget.classList.contains('hidden')) return;
+      const rect = miniCallWidget.getBoundingClientRect();
+      const widgetW = miniCallWidget.offsetWidth;
+      const widgetH = miniCallWidget.offsetHeight;
+      const maxLeft = window.innerWidth - widgetW - 10;
+      const maxTop = window.innerHeight - widgetH - 10;
+
+      if (rect.left > maxLeft) miniCallWidget.style.left = `${Math.max(10, maxLeft)}px`;
+      if (rect.top > maxTop) miniCallWidget.style.top = `${Math.max(10, maxTop)}px`;
+    });
+  }
+
+  // Floating Window Controls Listeners
+  btnMinimizeCall?.addEventListener('click', minimizeCallToFloating);
+  btnRestoreCall?.addEventListener('click', restoreCallFullScreen);
+  btnMiniExpand?.addEventListener('click', restoreCallFullScreen);
+
+  btnMiniToggleMic?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    btnCallToggleMic?.click();
   });
+
+  btnMiniToggleCamera?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    btnCallToggleCamera?.click();
+  });
+
+  btnMiniHangup?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    endCurrentCall();
+  });
+
+  // Backdrop overlay click & Escape key minimize
+  activeCallModal?.addEventListener('click', (e) => {
+    if (e.target === activeCallModal) {
+      minimizeCallToFloating();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activeCallModal && !activeCallModal.classList.contains('hidden')) {
+      minimizeCallToFloating();
+    }
+  });
+
+  // Initialize floating draggable interactions
+  initFloatingCallDraggable();
 
   // =========================================================================
   // 14b. MOBILE NAVIGATION & RESPONSIVE ADAPTATIONS
