@@ -1232,10 +1232,43 @@
         </div>
       </div>
 
+      <!-- DM Media Preview Bar (shown when file selected) -->
+      <div class="dm-media-preview-bar hidden" id="dmMediaPreviewBar">
+        <div class="dm-media-preview-inner">
+          <div class="dm-media-thumb-wrap" id="dmMediaThumbWrap">
+            <!-- preview populated by JS -->
+          </div>
+          <div class="dm-media-preview-meta">
+            <span class="dm-media-filename" id="dmMediaFilename">fichier.jpg</span>
+            <span class="dm-media-filesize" id="dmMediaFilesize">0 KB</span>
+          </div>
+          <button type="button" class="icon-btn dm-media-remove-btn" id="btnDmMediaRemove" title="Retirer le fichier" aria-label="Retirer le fichier">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <!-- One-View Toggle -->
+        <div class="dm-oneview-toggle-row">
+          <label class="dm-oneview-toggle-label" for="dmOneViewToggle">
+            <span class="dm-oneview-icon">👁</span>
+            <span>Vue unique</span>
+            <span class="dm-oneview-hint">Disparaît après ouverture</span>
+          </label>
+          <input type="checkbox" id="dmOneViewToggle" class="dm-oneview-checkbox" aria-label="Mode vue unique">
+          <span class="dm-oneview-toggle-pill" id="dmOneViewPill" role="switch" aria-checked="false" tabindex="0" aria-label="Activer la vue unique"></span>
+        </div>
+      </div>
+
       <!-- DM Input Bar -->
       <form id="dmMessageForm" class="dm-input-bar">
         <button type="button" class="icon-btn emoji-trigger" id="btnDmEmoji" title="Émojis">😊</button>
-        <input type="text" id="dmTextInput" placeholder="Envoyer un message privé sécurisé..." autocomplete="off" required>
+
+        <!-- Attachment Button -->
+        <button type="button" class="icon-btn dm-attach-btn" id="btnDmAttach" title="Joindre une photo, vidéo ou fichier" aria-label="Joindre un fichier">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+        </button>
+        <input type="file" id="dmFileInput" class="dm-file-input-hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.mp3,.ogg,.wav" aria-label="Choisir un fichier">
+
+        <input type="text" id="dmTextInput" placeholder="Envoyer un message privé sécurisé..." autocomplete="off">
         <button type="submit" class="btn btn-primary btn-sm btn-send-dm" id="btnSendDm" aria-label="Envoyer">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>

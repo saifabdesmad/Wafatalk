@@ -3587,6 +3587,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnStartAudioCall = document.getElementById('btnStartAudioCall');
   const btnStartVideoCall = document.getElementById('btnStartVideoCall');
 
+  // DOM Elements: Media Attachment
+  const btnDmAttach = document.getElementById('btnDmAttach');
+  const dmFileInput = document.getElementById('dmFileInput');
+  const dmMediaPreviewBar = document.getElementById('dmMediaPreviewBar');
+  const dmMediaThumbWrap = document.getElementById('dmMediaThumbWrap');
+  const dmMediaFilename = document.getElementById('dmMediaFilename');
+  const dmMediaFilesize = document.getElementById('dmMediaFilesize');
+  const btnDmMediaRemove = document.getElementById('btnDmMediaRemove');
+  const dmOneViewToggle = document.getElementById('dmOneViewToggle');
+  const dmOneViewPill = document.getElementById('dmOneViewPill');
+
   // DOM Elements: Incoming Call Modal
   const incomingCallModal = document.getElementById('incomingCallModal');
   const incomingCallerAvatar = document.getElementById('incomingCallerAvatar');
@@ -3637,6 +3648,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentDmFriend = null;
   let currentConversation = null;
   let typingDebounceTimer = null;
+  let dmSelectedFile = null; // { file: File, objectUrl: string, type: 'IMAGE'|'VIDEO'|'FILE' }
 
   // Active Call State
   let peerConnection = null;
@@ -3821,6 +3833,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // One-View media opened by recipient
+    socket.on('dm:one_view_seen', ({ messageId, viewedByUserId }) => {
+      const bubble = document.querySelector(`.dm-bubble[data-msg-id="${messageId}"]`);
+      if (bubble) {
+        const cover = bubble.querySelector('.dm-oneview-cover');
+        if (cover) cover.classList.add('revealed');
+        // Update badge to "Vu" for the sender
+        const badge = bubble.querySelector('.dm-oneview-badge');
+        if (badge) {
+          badge.outerHTML = '<span class="dm-oneview-seen-label">👁 Vu</span>';
+        }
+      }
+    });
+
+    // 24h Conversation Expiry Trigger
+    socket.on('dm:conversation_expired', ({ conversationId }) => {
+      if (currentConversation && currentConversation.id === conversationId) {
+        showToast('Cette discussion a atteint sa limite de 24h et a été effacée.', 'coral');
+        document.querySelector('.dm-expiry-banner')?.remove();
+        if (dmMessagesScroll) {
+          dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">⏳</span><p>Cette conversation de 24h est arrivée à expiration et a été supprimée.</p></div>';
+        }
+      }
+    });
+
     // User Presence Update: Real-time update of friends and online members
     socket.on('presence:update', ({ userId, status }) => {
       if (!userId) return;
@@ -3932,6 +3969,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load messages history
         await loadConversationMessages(currentConversation.id);
+
+        // Show 24h expiry banner
+        showDmExpiryBanner(currentConversation.expiresAt);
       } else {
         showToast(data.message || 'Impossible d\'ouvrir la conversation.', 'coral');
       }
@@ -3953,6 +3993,44 @@ document.addEventListener('DOMContentLoaded', () => {
       dmFriendStatusText.textContent = isOnline ? 'En ligne' : 'Hors ligne';
       dmFriendStatusText.style.color = isOnline ? '#10b981' : 'var(--text-muted)';
     }
+  }
+
+  let dmExpiryCountdownTimer = null;
+
+  function showDmExpiryBanner(expiresAt) {
+    if (dmExpiryCountdownTimer) {
+      clearInterval(dmExpiryCountdownTimer);
+      dmExpiryCountdownTimer = null;
+    }
+    document.querySelector('.dm-expiry-banner')?.remove();
+    if (!expiresAt || !dmMessagesScroll) return;
+
+    const updateBanner = () => {
+      const expiry = new Date(expiresAt);
+      const now = new Date();
+      const msLeft = expiry - now;
+      if (msLeft <= 0) {
+        if (dmExpiryCountdownTimer) clearInterval(dmExpiryCountdownTimer);
+        document.querySelector('.dm-expiry-banner')?.remove();
+        return;
+      }
+
+      const hoursLeft = Math.floor(msLeft / (1000 * 60 * 60));
+      const minsLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60));
+      const secsLeft = Math.floor((msLeft % (1000 * 60)) / 1000);
+      const timeStr = hoursLeft > 0 ? `${hoursLeft}h ${minsLeft}m` : `${minsLeft}m ${secsLeft}s`;
+
+      let banner = document.querySelector('.dm-expiry-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'dm-expiry-banner';
+        dmMessagesScroll.parentElement?.insertBefore(banner, dmMessagesScroll);
+      }
+      banner.innerHTML = `<span>🕐</span> Ce salon expire dans <span class="dm-expiry-time">${timeStr}</span> — messages supprimés automatiquement après 24h`;
+    };
+
+    updateBanner();
+    dmExpiryCountdownTimer = setInterval(updateBanner, 15000);
   }
 
   async function loadConversationMessages(conversationId) {
@@ -3997,8 +4075,83 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollDmToBottom();
   }
 
+  // ── Helper: Format file size
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' o';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+  }
+
+  // ── Helper: Get file icon by MIME type
+  function getFileIcon(mimeType, name) {
+    if (!mimeType && name) {
+      const ext = name.split('.').pop()?.toLowerCase();
+      const map = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', zip: '🗜️', txt: '📃', mp3: '🎵', ogg: '🎵', wav: '🎵' };
+      return map[ext] || '📎';
+    }
+    if (mimeType?.startsWith('image/')) return '🖼️';
+    if (mimeType?.startsWith('video/')) return '🎬';
+    if (mimeType?.startsWith('audio/')) return '🎵';
+    if (mimeType?.includes('pdf')) return '📄';
+    if (mimeType?.includes('word')) return '📝';
+    if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return '📊';
+    if (mimeType?.includes('zip')) return '🗜️';
+    return '📎';
+  }
+
+  // ── Open media lightbox
+  // ── Open media lightbox
+  function openDmLightbox(url, type, onClose) {
+    const overlay = document.createElement('div');
+    overlay.className = 'dm-lightbox-overlay';
+
+    let isClosed = false;
+    const closeLightbox = () => {
+      if (isClosed) return;
+      isClosed = true;
+      overlay.remove();
+      document.removeEventListener('keydown', esc);
+      if (typeof onClose === 'function') onClose();
+    };
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'dm-lightbox-close';
+    closeBtn.innerHTML = '✕';
+    closeBtn.addEventListener('click', closeLightbox);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+    function esc(e) {
+      if (e.key === 'Escape') closeLightbox();
+    }
+    document.addEventListener('keydown', esc);
+
+    let media;
+    if (type === 'IMAGE') {
+      media = document.createElement('img');
+      media.className = 'dm-lightbox-img';
+      media.src = url;
+    } else if (type === 'VIDEO') {
+      media = document.createElement('video');
+      media.className = 'dm-lightbox-video';
+      media.src = url;
+      media.controls = true;
+      media.autoplay = true;
+    }
+
+    if (media) {
+      media.addEventListener('click', (e) => e.stopPropagation());
+      overlay.appendChild(closeBtn);
+      overlay.appendChild(media);
+      document.body.appendChild(overlay);
+    }
+  }
+
   function appendDirectMessageBubble(message, shouldScroll = true) {
     if (!dmMessagesScroll) return;
+
+    // Deduplicate by message ID
+    if (message.id && dmMessagesScroll.querySelector(`.dm-bubble[data-msg-id="${message.id}"]`)) {
+      return;
+    }
 
     // Remove empty placeholder if present
     const emptyState = dmMessagesScroll.querySelector('.dm-empty-state');
@@ -4006,14 +4159,237 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
     const bubble = document.createElement('div');
+    if (message.id) bubble.dataset.msgId = message.id;
 
-    if (message.type === 'CALL_LOG') {
+    const msgType = message.type || 'TEXT';
+    const viewMode = message.viewMode || 'PERMANENT';
+    const viewedBy = Array.isArray(message.viewedBy) ? message.viewedBy : [];
+    const myId = state.currentUser?.id;
+    const alreadyViewed = (myId && viewedBy.includes(myId)) || (!isFromMe && viewedBy.length > 0) || !message.mediaUrl;
+
+    if (msgType === 'CALL_LOG') {
       bubble.className = 'dm-bubble call-log';
       bubble.textContent = message.content;
+
+    } else if (msgType === 'IMAGE' && (message.mediaUrl || alreadyViewed)) {
+      bubble.className = `dm-bubble ${isFromMe ? 'from-me' : 'from-other'}`;
+
+      if (viewMode === 'ONE_VIEW' && !isFromMe) {
+        // One-view for the RECIPIENT
+        if (alreadyViewed) {
+          const exp = document.createElement('div');
+          exp.className = 'dm-oneview-expired-card';
+          exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Photo (vue unique expirée)</span>`;
+          bubble.appendChild(exp);
+        } else {
+          const wrap = document.createElement('div');
+          wrap.className = 'dm-oneview-wrap';
+          wrap.dataset.msgId = message.id;
+          const img = document.createElement('img');
+          img.className = 'dm-media-img';
+          img.src = message.mediaUrl;
+          img.alt = 'Photo';
+          const cover = document.createElement('div');
+          cover.className = 'dm-oneview-cover';
+          cover.innerHTML = `<span class="dm-oneview-cover-icon">👁</span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vue unique · disparaît après ouverture</span>`;
+          wrap.appendChild(img);
+          wrap.appendChild(cover);
+
+          wrap.addEventListener('click', () => {
+            cover.classList.add('revealed');
+            if (socket && currentConversation) {
+              socket.emit('dm:one_view_opened', { conversationId: currentConversation.id, messageId: message.id });
+            }
+            const token = getAuthToken();
+            if (token && message.id) {
+              fetch(`${API_BASE_URL}/conversations/messages/${message.id}/view`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).catch(() => {});
+            }
+            openDmLightbox(message.mediaUrl, 'IMAGE', () => {
+              const exp = document.createElement('div');
+              exp.className = 'dm-oneview-expired-card';
+              exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Photo (vue unique expirée)</span>`;
+              wrap.replaceWith(exp);
+            });
+          });
+
+          bubble.appendChild(wrap);
+        }
+
+        if (message.content) {
+          const cap = document.createElement('div');
+          cap.className = 'dm-bubble-media-caption';
+          cap.textContent = message.content;
+          bubble.appendChild(cap);
+        }
+
+      } else if (viewMode === 'ONE_VIEW' && isFromMe) {
+        // Sender sees their sent photo thumbnail with badge
+        if (message.mediaUrl) {
+          const img = document.createElement('img');
+          img.className = 'dm-media-img';
+          img.src = message.mediaUrl;
+          img.alt = 'Photo';
+          img.addEventListener('click', () => openDmLightbox(message.mediaUrl, 'IMAGE'));
+          bubble.appendChild(img);
+        }
+        if (message.content) {
+          const cap = document.createElement('div');
+          cap.className = 'dm-bubble-media-caption';
+          cap.textContent = message.content;
+          bubble.appendChild(cap);
+        }
+        bubble.insertAdjacentHTML('beforeend', alreadyViewed
+          ? '<span class="dm-oneview-seen-label">👁 Vu</span>'
+          : '<span class="dm-oneview-badge">👁 Vue unique</span>');
+
+      } else {
+        // Permanent image
+        if (message.mediaUrl) {
+          const img = document.createElement('img');
+          img.className = 'dm-media-img';
+          img.src = message.mediaUrl;
+          img.alt = 'Photo';
+          img.addEventListener('click', () => openDmLightbox(message.mediaUrl, 'IMAGE'));
+          bubble.appendChild(img);
+        }
+        if (message.content) {
+          const cap = document.createElement('div');
+          cap.className = 'dm-bubble-media-caption';
+          cap.textContent = message.content;
+          bubble.appendChild(cap);
+        }
+      }
+      const meta = document.createElement('div');
+      meta.className = 'dm-bubble-meta';
+      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem">✓</span>' : ''}`;
+      bubble.appendChild(meta);
+
+    } else if (msgType === 'VIDEO' && (message.mediaUrl || alreadyViewed)) {
+      bubble.className = `dm-bubble ${isFromMe ? 'from-me' : 'from-other'}`;
+
+      if (viewMode === 'ONE_VIEW' && !isFromMe) {
+        if (alreadyViewed) {
+          const exp = document.createElement('div');
+          exp.className = 'dm-oneview-expired-card';
+          exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Vidéo (vue unique expirée)</span>`;
+          bubble.appendChild(exp);
+        } else {
+          const wrap = document.createElement('div');
+          wrap.className = 'dm-oneview-wrap';
+          wrap.dataset.msgId = message.id;
+          const videoWrap = document.createElement('div');
+          videoWrap.className = 'dm-media-video-wrap';
+          const video = document.createElement('video');
+          video.className = 'dm-media-video';
+          video.src = message.mediaUrl;
+          video.muted = true;
+          video.preload = 'metadata';
+          videoWrap.appendChild(video);
+          videoWrap.innerHTML += '<div class="dm-media-video-play-btn">▶</div>';
+          const cover = document.createElement('div');
+          cover.className = 'dm-oneview-cover';
+          cover.innerHTML = `<span class="dm-oneview-cover-icon">👁</span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vidéo · vue unique</span>`;
+          wrap.appendChild(videoWrap);
+          wrap.appendChild(cover);
+
+          wrap.addEventListener('click', () => {
+            cover.classList.add('revealed');
+            if (socket && currentConversation) {
+              socket.emit('dm:one_view_opened', { conversationId: currentConversation.id, messageId: message.id });
+            }
+            const token = getAuthToken();
+            if (token && message.id) {
+              fetch(`${API_BASE_URL}/conversations/messages/${message.id}/view`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).catch(() => {});
+            }
+            openDmLightbox(message.mediaUrl, 'VIDEO', () => {
+              const exp = document.createElement('div');
+              exp.className = 'dm-oneview-expired-card';
+              exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Vidéo (vue unique expirée)</span>`;
+              wrap.replaceWith(exp);
+            });
+          });
+
+          bubble.appendChild(wrap);
+        }
+
+      } else if (viewMode === 'ONE_VIEW' && isFromMe) {
+        if (message.mediaUrl) {
+          const videoWrap = document.createElement('div');
+          videoWrap.className = 'dm-media-video-wrap';
+          const video = document.createElement('video');
+          video.className = 'dm-media-video';
+          video.src = message.mediaUrl;
+          video.controls = true;
+          video.preload = 'metadata';
+          videoWrap.appendChild(video);
+          bubble.appendChild(videoWrap);
+        }
+        bubble.insertAdjacentHTML('beforeend', alreadyViewed
+          ? '<span class="dm-oneview-seen-label">👁 Vu</span>'
+          : '<span class="dm-oneview-badge">👁 Vue unique</span>');
+
+      } else {
+        if (message.mediaUrl) {
+          const videoWrap = document.createElement('div');
+          videoWrap.className = 'dm-media-video-wrap';
+          const video = document.createElement('video');
+          video.className = 'dm-media-video';
+          video.src = message.mediaUrl;
+          video.controls = true;
+          video.preload = 'metadata';
+          videoWrap.appendChild(video);
+          bubble.appendChild(videoWrap);
+        }
+      }
+      if (message.content) {
+        const cap = document.createElement('div');
+        cap.className = 'dm-bubble-media-caption';
+        cap.textContent = message.content;
+        bubble.appendChild(cap);
+      }
+      const meta = document.createElement('div');
+      meta.className = 'dm-bubble-meta';
+      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem">✓</span>' : ''}`;
+      bubble.appendChild(meta);
+
+    } else if (msgType === 'FILE' && message.mediaUrl) {
+      bubble.className = `dm-bubble ${isFromMe ? 'from-me' : 'from-other'}`;
+      const card = document.createElement('a');
+      card.className = 'dm-media-file-card';
+      card.href = message.mediaUrl;
+      card.target = '_blank';
+      card.download = message.mediaName || 'fichier';
+      card.innerHTML = `
+        <span class="dm-media-file-icon">${getFileIcon(message.mediaType, message.mediaName)}</span>
+        <div class="dm-media-file-info">
+          <span class="dm-media-file-name">${escapeHtml(message.mediaName || 'Fichier')}</span>
+          <span class="dm-media-file-size">${message.mediaSize ? formatBytes(message.mediaSize) : ''}</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="dm-media-file-dl"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      `;
+      bubble.appendChild(card);
+      if (message.content) {
+        const cap = document.createElement('div');
+        cap.className = 'dm-bubble-media-caption';
+        cap.textContent = message.content;
+        bubble.appendChild(cap);
+      }
+      const meta = document.createElement('div');
+      meta.className = 'dm-bubble-meta';
+      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem">✓</span>' : ''}`;
+      bubble.appendChild(meta);
+
     } else {
+      // Plain TEXT message
       bubble.className = `dm-bubble ${isFromMe ? 'from-me' : 'from-other'}`;
       bubble.innerHTML = `
-        <div class="dm-bubble-text">${escapeHtml(message.content)}</div>
+        <div class="dm-bubble-text">${escapeHtml(message.content || '')}</div>
         <div class="dm-bubble-meta">
           <span>${message.time || 'À l\'instant'}</span>
           ${isFromMe ? '<span style="font-size: 0.75rem;">✓</span>' : ''}
@@ -4030,36 +4406,198 @@ document.addEventListener('DOMContentLoaded', () => {
     dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
   }
 
-  // Handle DM message submission
-  dmMessageForm?.addEventListener('submit', (e) => {
+  // Handle DM message submission (text or file)
+  dmMessageForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!currentConversation || !dmTextInput) return;
+    if (!currentConversation) return;
 
-    const text = dmTextInput.value.trim();
-    if (!text) return;
+    const text = dmTextInput?.value.trim() || '';
+    const hasFile = Boolean(dmSelectedFile);
 
-    if (socket && socket.connected) {
-      socket.emit('dm:send', {
-        conversationId: currentConversation.id,
-        content: text,
-        type: 'TEXT',
-      });
-      socket.emit('dm:typing', {
-        conversationId: currentConversation.id,
-        targetUserId: currentDmFriend?.id,
-        isTyping: false,
-      });
+    // Must have either text or file
+    if (!text && !hasFile) return;
+
+    if (hasFile) {
+      // ── Upload file then send via socket
+      await uploadAndSendDmMedia(text);
     } else {
-      // Offline fallback
-      appendDirectMessageBubble({
-        content: text,
-        isFromMe: true,
-        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      });
+      // ── Text-only send
+      if (socket && socket.connected) {
+        socket.emit('dm:send', {
+          conversationId: currentConversation.id,
+          content: text,
+          type: 'TEXT',
+        });
+        socket.emit('dm:typing', {
+          conversationId: currentConversation.id,
+          targetUserId: currentDmFriend?.id,
+          isTyping: false,
+        });
+      } else {
+        appendDirectMessageBubble({
+          content: text,
+          isFromMe: true,
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        });
+      }
     }
 
-    dmTextInput.value = '';
-    dmTextInput.focus();
+    if (dmTextInput) dmTextInput.value = '';
+    dmTextInput?.focus();
+  });
+
+  // ── Upload & send media attachment
+  async function uploadAndSendDmMedia(caption = '') {
+    if (!dmSelectedFile || !currentConversation) return;
+
+    const token = getAuthToken();
+    if (!token) { showToast('Connectez-vous pour envoyer des fichiers.', 'coral'); return; }
+
+    const isOneView = dmOneViewToggle?.checked || false;
+
+    // Show upload progress in messages area
+    const progressEl = document.createElement('div');
+    progressEl.className = 'dm-upload-progress';
+    progressEl.innerHTML = `<span>⬆️ Envoi en cours...</span><div class="dm-upload-progress-bar-wrap"><div class="dm-upload-progress-bar"></div></div>`;
+    dmMessagesScroll?.appendChild(progressEl);
+    scrollDmToBottom();
+
+    const formData = new FormData();
+    formData.append('file', dmSelectedFile.file);
+    formData.append('viewMode', isOneView ? 'ONE_VIEW' : 'PERMANENT');
+    if (caption) formData.append('caption', caption);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/conversations/${currentConversation.id}/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+
+      progressEl.remove();
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Backend upload route already broadcasts dm:message to the room via WebSocket.
+        // If socket is disconnected/offline, append locally:
+        if (!socket || !socket.connected) {
+          appendDirectMessageBubble({ ...data.message, isFromMe: true });
+        }
+        clearDmMediaPreview();
+      } else {
+        showToast(data.message || 'Échec de l\'envoi.', 'coral');
+      }
+    } catch (err) {
+      progressEl.remove();
+      showToast('Erreur réseau lors de l\'envoi du fichier.', 'coral');
+    }
+  }
+
+  // ── Clear selected media
+  function clearDmMediaPreview() {
+    if (dmSelectedFile?.objectUrl) URL.revokeObjectURL(dmSelectedFile.objectUrl);
+    dmSelectedFile = null;
+    if (dmFileInput) dmFileInput.value = '';
+    dmMediaPreviewBar?.classList.add('hidden');
+    if (dmMediaThumbWrap) dmMediaThumbWrap.innerHTML = '';
+    btnDmAttach?.classList.remove('has-file');
+    if (dmOneViewToggle) dmOneViewToggle.checked = false;
+    dmOneViewPill?.classList.remove('active');
+  }
+
+  // ── Attach button click → open file picker
+  btnDmAttach?.addEventListener('click', () => dmFileInput?.click());
+
+  // ── File selected
+  dmFileInput?.addEventListener('change', () => {
+    const file = dmFileInput.files?.[0];
+    if (!file) return;
+
+    const MAX = 50 * 1024 * 1024;
+    if (file.size > MAX) {
+      showToast('Fichier trop volumineux (max 50 Mo).', 'coral');
+      dmFileInput.value = '';
+      return;
+    }
+
+    const mime = file.type;
+    let mediaType = 'FILE';
+    if (mime.startsWith('image/')) mediaType = 'IMAGE';
+    else if (mime.startsWith('video/')) mediaType = 'VIDEO';
+
+    if (dmSelectedFile?.objectUrl) URL.revokeObjectURL(dmSelectedFile.objectUrl);
+    const objectUrl = URL.createObjectURL(file);
+    dmSelectedFile = { file, objectUrl, type: mediaType };
+
+    // Populate preview bar
+    if (dmMediaFilename) dmMediaFilename.textContent = file.name;
+    if (dmMediaFilesize) dmMediaFilesize.textContent = formatBytes(file.size);
+
+    if (dmMediaThumbWrap) {
+      dmMediaThumbWrap.innerHTML = '';
+      if (mediaType === 'IMAGE') {
+        const img = document.createElement('img');
+        img.src = objectUrl;
+        img.alt = 'preview';
+        dmMediaThumbWrap.appendChild(img);
+      } else if (mediaType === 'VIDEO') {
+        const vid = document.createElement('video');
+        vid.src = objectUrl;
+        vid.muted = true;
+        vid.preload = 'metadata';
+        dmMediaThumbWrap.appendChild(vid);
+      } else {
+        dmMediaThumbWrap.innerHTML = `<span class="dm-media-thumb-icon">${getFileIcon(mime, file.name)}</span>`;
+      }
+    }
+
+    dmMediaPreviewBar?.classList.remove('hidden');
+    btnDmAttach?.classList.add('has-file');
+    dmTextInput?.setAttribute('placeholder', 'Ajouter une légende (optionnel)...');
+    dmTextInput?.focus();
+  });
+
+  // ── Remove selected media
+  btnDmMediaRemove?.addEventListener('click', () => {
+    clearDmMediaPreview();
+    if (dmTextInput) dmTextInput.setAttribute('placeholder', 'Envoyer un message privé sécurisé...');
+  });
+
+  // ── One-view pill toggle
+  dmOneViewPill?.addEventListener('click', () => {
+    if (!dmSelectedFile) return;
+    if (dmOneViewToggle) dmOneViewToggle.checked = !dmOneViewToggle.checked;
+    dmOneViewPill.classList.toggle('active', dmOneViewToggle?.checked);
+    dmOneViewPill.setAttribute('aria-checked', dmOneViewToggle?.checked ? 'true' : 'false');
+  });
+  dmOneViewPill?.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); dmOneViewPill.click(); }
+  });
+
+  // Close Direct Chat Modal
+  btnCloseDirectChat?.addEventListener('click', () => {
+    if (dmExpiryCountdownTimer) {
+      clearInterval(dmExpiryCountdownTimer);
+      dmExpiryCountdownTimer = null;
+    }
+    document.querySelector('.dm-expiry-banner')?.remove();
+    if (currentConversation && socket) {
+      socket.emit('dm:leave', { conversationId: currentConversation.id });
+    }
+    directChatModal?.classList.add('hidden');
+    clearDmMediaPreview();
+    currentConversation = null;
+    currentDmFriend = null;
+  });
+
+  // Emoji trigger for DMs
+  btnDmEmoji?.addEventListener('click', () => {
+    const emojis = ['🎈', '☕', '❤️', '🔥', '✨', '👋', '🌟', '🎧'];
+    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+    if (dmTextInput) {
+      dmTextInput.value += ` ${randomEmoji}`;
+      dmTextInput.focus();
+    }
   });
 
   // Typing debounce emitter
@@ -4080,26 +4618,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isTyping: false,
       });
     }, 2000);
-  });
-
-  // Close Direct Chat Modal
-  btnCloseDirectChat?.addEventListener('click', () => {
-    if (currentConversation && socket) {
-      socket.emit('dm:leave', { conversationId: currentConversation.id });
-    }
-    directChatModal?.classList.add('hidden');
-    currentConversation = null;
-    currentDmFriend = null;
-  });
-
-  // Emoji trigger for DMs
-  btnDmEmoji?.addEventListener('click', () => {
-    const emojis = ['🎈', '☕', '❤️', '🔥', '✨', '👋', '🌟', '🎧'];
-    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-    if (dmTextInput) {
-      dmTextInput.value += ` ${randomEmoji}`;
-      dmTextInput.focus();
-    }
   });
 
   // =========================================================================

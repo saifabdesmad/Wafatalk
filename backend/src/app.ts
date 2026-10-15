@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 import { env } from './config/env.js';
 import { authRoutes } from './modules/auth/auth.controller.js';
 import { salonsRoutes } from './modules/salons/salons.controller.js';
@@ -10,6 +11,9 @@ import { messagesRoutes } from './modules/messages/messages.controller.js';
 import { conversationsRoutes } from './modules/conversations/conversations.controller.js';
 import { setupSocketServer } from './socket/socket.server.js';
 import { prisma } from './database/prisma.js';
+import { ConversationsService } from './modules/conversations/conversations.service.js';
+import path from 'path';
+import fs from 'fs';
 
 // Extend Fastify types
 declare module 'fastify' {
@@ -17,6 +21,11 @@ declare module 'fastify' {
     authenticate: (request: any, reply: any) => Promise<void>;
     io: any;
   }
+}
+
+const UPLOADS_DIR = path.resolve('./uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
 async function buildApp() {
@@ -49,6 +58,13 @@ async function buildApp() {
     },
   });
 
+  // 4. Multipart (File Uploads) — 50 MB limit
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: 50 * 1024 * 1024, // 50 MB
+    },
+  });
+
   // Decorate fastify with authenticate middleware
   fastify.decorate('authenticate', async (request: any, reply: any) => {
     try {
@@ -58,7 +74,45 @@ async function buildApp() {
     }
   });
 
-  // 4. API Routes Registration
+  // 5. Static uploads serving
+  fastify.get('/uploads/:filename', async (request: any, reply: any) => {
+    const { filename } = request.params;
+    // Prevent path traversal
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(UPLOADS_DIR, safeFilename);
+    if (!fs.existsSync(filePath)) {
+      return reply.code(404).send({ error: 'Fichier introuvable.' });
+    }
+    const ext = path.extname(safeFilename).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.ogg': 'video/ogg',
+      '.mov': 'video/quicktime',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls': 'application/vnd.ms-excel',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.zip': 'application/zip',
+      '.txt': 'text/plain',
+    };
+    if (mimeMap[ext]) {
+      reply.type(mimeMap[ext]);
+    }
+    const stream = fs.createReadStream(filePath);
+    return reply.send(stream);
+  });
+
+  // 6. API Routes Registration
   fastify.get('/api/health', async () => ({
     status: 'ok',
     service: 'WafaTalk Backend',
@@ -97,6 +151,20 @@ async function start() {
   📡 WebSocket Gateway ready on ws://${env.HOST}:${env.PORT}
   📋 Health check: http://localhost:${env.PORT}/api/health
     `);
+
+    // ── 24h Conversation Cleanup Cron ──────────────────────────────────────────
+    // Runs every 10 minutes, deletes conversations whose expiresAt has passed.
+    const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+    setInterval(async () => {
+      try {
+        await ConversationsService.cleanupExpiredConversations(io);
+      } catch (e) {
+        console.error('Cleanup error:', e);
+      }
+    }, CLEANUP_INTERVAL_MS);
+
+    // Also run once on startup to clean any stale expired conversations
+    ConversationsService.cleanupExpiredConversations(io).catch(() => {});
 
     // Graceful Shutdown
     const signals = ['SIGINT', 'SIGTERM'];

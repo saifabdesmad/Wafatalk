@@ -126,6 +126,7 @@ model Conversation {
   user2Id     String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  expiresAt   DateTime?       // 24h TTL — set on first message sent
 
   user1       User            @relation("User1Conversations", fields: [user1Id], references: [id], onDelete: Cascade)
   user2       User            @relation("User2Conversations", fields: [user2Id], references: [id], onDelete: Cascade)
@@ -135,6 +136,7 @@ model Conversation {
   @@unique([user1Id, user2Id])
   @@index([user1Id])
   @@index([user2Id])
+  @@index([expiresAt])
 }
 
 model DirectMessage {
@@ -142,7 +144,13 @@ model DirectMessage {
   conversationId String
   senderId       String
   content        String
-  type           String       @default("TEXT") // TEXT, IMAGE, GIFT, SYSTEM, CALL_LOG
+  type           String       @default("TEXT") // TEXT, IMAGE, VIDEO, FILE, GIFT, SYSTEM, CALL_LOG
+  mediaUrl       String?      // URL of uploaded media (image/video/file)
+  mediaType      String?      // MIME type of the media
+  mediaName      String?      // Original filename for file attachments
+  mediaSize      Int?         // File size in bytes
+  viewMode       String       @default("PERMANENT") // PERMANENT | ONE_VIEW
+  viewedBy       String       @default("")          // Comma-separated user IDs who have viewed (for ONE_VIEW)
   isRead         Boolean      @default(false)
   createdAt      DateTime     @default(now())
 

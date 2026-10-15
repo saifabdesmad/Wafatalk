@@ -340,15 +340,20 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       socket.leave(`conv:${conversationId}`);
     });
 
-    socket.on('dm:send', async ({ conversationId, content, type }) => {
+    socket.on('dm:send', async ({ conversationId, content, type, mediaUrl, mediaType, mediaName, mediaSize, viewMode }) => {
       try {
-        if (!content || !content.trim()) return;
+        const msgContent = (content || '').trim();
+        const msgType = type || 'TEXT';
+
+        // For text-only, ensure content is not empty
+        if (msgType === 'TEXT' && !msgContent) return;
 
         const { message, targetUserId } = await ConversationsService.createDirectMessage(
           conversationId,
           user.id,
-          content.trim(),
-          type || 'TEXT'
+          msgContent,
+          msgType,
+          mediaUrl ? { mediaUrl, mediaType, mediaName, mediaSize: mediaSize ? Number(mediaSize) : undefined, viewMode: viewMode || 'PERMANENT' } : undefined
         );
 
         // Broadcast to everyone inside the conversation room
@@ -384,21 +389,24 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
                 isTyping: false,
               });
 
-              const replies = [
-                `Salut ${user.displayName} ! Ravi de te parler dans ce salon privé ✨`,
-                `Je suis dispo pour un appel vocal ou vidéo quand tu veux ! 🎧🎙️`,
-                `Bien reçu ton message ! La connexion WafaTalk est super fluide 🚀`,
-                `Top ! Tout fonctionne parfaitement bien 👍`,
-              ];
-              const replyText = replies[Math.floor(Math.random() * replies.length)];
+              // Only auto-reply to text messages
+              if (msgType === 'TEXT') {
+                const replies = [
+                  `Salut ${user.displayName} ! Ravi de te parler dans ce salon privé ✨`,
+                  `Je suis dispo pour un appel vocal ou vidéo quand tu veux ! 🎧🎙️`,
+                  `Bien reçu ton message ! La connexion WafaTalk est super fluide 🚀`,
+                  `Top ! Tout fonctionne parfaitement bien 👍`,
+                ];
+                const replyText = replies[Math.floor(Math.random() * replies.length)];
 
-              const replyResult = await ConversationsService.createDirectMessage(
-                conversationId,
-                peer.id,
-                replyText,
-                'TEXT'
-              );
-              io.to(`conv:${conversationId}`).emit('dm:message', replyResult.message);
+                const replyResult = await ConversationsService.createDirectMessage(
+                  conversationId,
+                  peer.id,
+                  replyText,
+                  'TEXT'
+                );
+                io.to(`conv:${conversationId}`).emit('dm:message', replyResult.message);
+              }
             }, 2600);
           }
         }
@@ -414,6 +422,21 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         displayName: user.displayName,
         isTyping,
       });
+    });
+
+    // One-view media reveal: notify the sender their media was opened
+    socket.on('dm:one_view_opened', async ({ conversationId, messageId }) => {
+      try {
+        const result = await ConversationsService.markOneViewViewed(messageId, user.id);
+        if (!result.alreadyViewed) {
+          // Notify the conversation room (so sender knows it was opened)
+          io.to(`conv:${conversationId}`).emit('dm:one_view_seen', {
+            conversationId,
+            messageId,
+            viewedByUserId: user.id,
+          });
+        }
+      } catch (e) {}
     });
 
     socket.on('dm:read', async ({ conversationId }) => {
