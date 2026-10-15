@@ -77,6 +77,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
     avatarUrl?: string;
     country?: string;
     role: string;
+    badgeType?: 'OWNER' | 'ADMIN' | 'SUPERADMIN' | 'USER';
     isMuted: boolean;
     isSpeaking: boolean;
     isCameraOn: boolean;
@@ -187,7 +188,27 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         }
         const salonMap = salonParticipants.get(salonId)!;
 
-        const effectiveRole = (isOwner || salon.ownerId === user.id) ? 'Hôte du salon' : (user.role === 'ADMIN' ? 'Hôte du salon' : 'Participant');
+        // Resolve hierarchical salon role & badge
+        const isSalonOwner = Boolean(isOwner || salon.ownerId === user.id);
+        const isSuperAdmin = Boolean(user.role === 'SUPERADMIN' || user.role === 'ADMIN');
+        const member = await prisma.salonMember.findUnique({
+          where: { salonId_userId: { salonId, userId: user.id } },
+        });
+        const isSalonAdmin = Boolean(member?.role === 'ADMIN');
+
+        let effectiveRole = 'Participant';
+        let badgeType: 'OWNER' | 'ADMIN' | 'SUPERADMIN' | 'USER' = 'USER';
+
+        if (isSalonOwner) {
+          effectiveRole = 'Propriétaire';
+          badgeType = 'OWNER';
+        } else if (isSuperAdmin) {
+          effectiveRole = 'SuperAdmin';
+          badgeType = 'SUPERADMIN';
+        } else if (isSalonAdmin) {
+          effectiveRole = 'Admin';
+          badgeType = 'ADMIN';
+        }
 
         const participant: SalonParticipant = {
           userId: user.id,
@@ -197,6 +218,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
           country: user.country || 'FR',
           role: effectiveRole,
+          badgeType,
           isMuted: false,
           isSpeaking: false,
           isCameraOn: false,
@@ -371,6 +393,42 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
             salonId,
             userId: 'system',
             content: `🚫 ${targetName} a été banni du salon (${isIpBan ? 'Bannissement IP' : 'Bannissement Compte'}).`,
+            type: 'SYSTEM',
+            createdAt: new Date(),
+            user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },
+          });
+        } else if (action === 'promote_admin' || action === 'revoke_admin') {
+          const isPromote = action === 'promote_admin';
+          const newRole = isPromote ? 'Admin' : 'Participant';
+          const newBadge: 'ADMIN' | 'USER' = isPromote ? 'ADMIN' : 'USER';
+
+          if (targetP) {
+            targetP.role = newRole;
+            targetP.badgeType = newBadge;
+            io.to(targetP.socketId).emit('salon:role_changed', {
+              salonId,
+              role: newRole,
+              badgeType: newBadge,
+              message: isPromote
+                ? '👑 Félicitations ! Vous avez été nommé Administrateur de ce salon.'
+                : '🛡️ Votre statut d\'Administrateur a été révoqué.',
+            });
+          }
+
+          io.to(room).emit('salon:role_update', {
+            salonId,
+            userId: targetUserId,
+            role: newRole,
+            badgeType: newBadge,
+          });
+
+          io.to(room).emit('chat:message', {
+            id: `sys-${Date.now()}`,
+            salonId,
+            userId: 'system',
+            content: isPromote
+              ? `👑 ${targetName} a été nommé Administrateur du salon.`
+              : `🛡️ Le statut Administrateur a été retiré à ${targetName}.`,
             type: 'SYSTEM',
             createdAt: new Date(),
             user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },

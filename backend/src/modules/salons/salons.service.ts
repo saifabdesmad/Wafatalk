@@ -310,12 +310,12 @@ export class SalonsService {
     return { success: true };
   }
 
-  // Admin Actions: Mute / Cut Camera / Ban User / Ban IP
+  // Admin Actions: Mute / Cut Camera / Ban User / Ban IP / Promote Admin / Revoke Admin
   static async executeAdminAction(
     salonId: string,
     adminUserId: string,
     targetUserId: string,
-    action: 'mute' | 'unmute' | 'cut_camera' | 'ban_user' | 'ban_ip',
+    action: 'mute' | 'unmute' | 'cut_camera' | 'ban_user' | 'ban_ip' | 'promote_admin' | 'revoke_admin',
     reason?: string,
     targetIp?: string
   ) {
@@ -326,13 +326,42 @@ export class SalonsService {
 
     if (!salon) throw new Error('Salon introuvable.');
 
-    // Permission check: only salon owner can manage participants
-    if (salon.ownerId !== adminUserId) {
-      throw new Error('Action refusée : Seul l\'administrateur/créateur de ce salon a les droits de gestion.');
+    // Check requester permissions
+    const requesterMember = await prisma.salonMember.findUnique({
+      where: { salonId_userId: { salonId, userId: adminUserId } },
+    });
+    const requesterUser = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { role: true },
+    });
+
+    const isOwner = salon.ownerId === adminUserId || requesterMember?.role === 'OWNER';
+    const isSuperAdmin = requesterUser?.role === 'SUPERADMIN' || requesterUser?.role === 'ADMIN';
+    const isSalonAdmin = requesterMember?.role === 'ADMIN';
+
+    if (!isOwner && !isSuperAdmin && !isSalonAdmin) {
+      throw new Error('Action refusée : Seuls le propriétaire et les administrateurs ont les droits de gestion.');
     }
 
     if (adminUserId === targetUserId) {
       throw new Error('Impossible d\'appliquer cette action sur vous-même.');
+    }
+
+    // Role promotion / demotion can ONLY be done by the Salon Owner or SuperAdmin
+    if (action === 'promote_admin' || action === 'revoke_admin') {
+      if (!isOwner && !isSuperAdmin) {
+        throw new Error('Action refusée : Seul le propriétaire du salon peut nommer ou révoquer un administrateur.');
+      }
+    }
+
+    // A Salon Admin cannot moderate the Owner or another Admin
+    if (!isOwner && !isSuperAdmin && isSalonAdmin) {
+      const targetMember = await prisma.salonMember.findUnique({
+        where: { salonId_userId: { salonId, userId: targetUserId } },
+      });
+      if (targetUserId === salon.ownerId || targetMember?.role === 'ADMIN' || targetMember?.role === 'OWNER') {
+        throw new Error('Action refusée : Un administrateur ne peut pas modérer le propriétaire ou un autre administrateur.');
+      }
     }
 
     const targetUser = await prisma.user.findUnique({
@@ -341,6 +370,23 @@ export class SalonsService {
     });
 
     if (!targetUser) throw new Error('Utilisateur cible introuvable.');
+
+    if (action === 'promote_admin') {
+      await prisma.salonMember.upsert({
+        where: { salonId_userId: { salonId, userId: targetUserId } },
+        update: { role: 'ADMIN' },
+        create: { salonId, userId: targetUserId, role: 'ADMIN' },
+      });
+      return { success: true, action: 'promote_admin', targetUser, newRole: 'ADMIN' };
+    }
+
+    if (action === 'revoke_admin') {
+      await prisma.salonMember.updateMany({
+        where: { salonId, userId: targetUserId },
+        data: { role: 'LISTENER' },
+      });
+      return { success: true, action: 'revoke_admin', targetUser, newRole: 'LISTENER' };
+    }
 
     if (action === 'mute' || action === 'unmute') {
       await prisma.salonMember.updateMany({

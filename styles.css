@@ -6240,3 +6240,217 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .btn-admin-option.btn-admin-danger .admin-opt-info strong {
   color: #f87171;
 }
+
+.btn-admin-option.btn-admin-role-toggle {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.btn-admin-option.btn-admin-role-toggle:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+}
+
+.btn-admin-option.btn-admin-role-toggle .admin-opt-info strong {
+  color: #34d399;
+}
+
+/* ========================================================================= */
+/* SALON HIERARCHICAL ROLE BADGES & AVATAR RINGS                             */
+/* Propriétaire: ROUGE | Admin: VERT | SuperAdmin: BLEU | Membre: NOIR       */
+/* ========================================================================= */
+
+/* Avatar Image Rings (Around Avatar) */
+.stage-avatar-card.role-owner .stage-avatar-img {
+  border: 3.5px solid #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35), 0 0 16px rgba(239, 68, 68, 0.5) !important;
+}
+
+.stage-avatar-card.role-admin .stage-avatar-img {
+  border: 3.5px solid #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35), 0 0 16px rgba(16, 185, 129, 0.5) !important;
+}
+
+.stage-avatar-card.role-superadmin .stage-avatar-img {
+  border: 3.5px solid #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35), 0 0 16px rgba(59, 130, 246, 0.5) !important;
+}
+
+.stage-avatar-card.role-user .stage-avatar-img {
+  border: 3.5px solid #09090b !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Speaking pulses themed by role */
+.stage-avatar-card.role-owner.is-speaking .stage-avatar-img {
+  animation: pulseSpeakingOwner 1.5s infinite !important;
+}
+@keyframes pulseSpeakingOwner {
+  0% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35), 0 0 10px rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0.6), 0 0 25px rgba(239, 68, 68, 0.8); }
+  100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35), 0 0 10px rgba(239, 68, 68, 0.4); }
+}
+
+.stage-avatar-card.role-admin.is-speaking .stage-avatar-img {
+  animation: pulseSpeakingAdmin 1.5s infinite !important;
+}
+@keyframes pulseSpeakingAdmin {
+  0% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35), 0 0 10px rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0.6), 0 0 25px rgba(16, 185, 129, 0.8); }
+  100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35), 0 0 10px rgba(16, 185, 129, 0.4); }
+}
+
+.stage-avatar-card.role-superadmin.is-speaking .stage-avatar-img {
+  animation: pulseSpeakingSuperAdmin 1.5s infinite !important;
+}
+@keyframes pulseSpeakingSuperAdmin {
+  0% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35), 0 0 10px rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 7px rgba(59, 130, 246, 0.6), 0 0 25px rgba(59, 130, 246, 0.8); }
+  100% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35), 0 0 10px rgba(59, 130, 246, 0.4); }
+}
+
+/* Badge dot on corner of avatar */
+.stage-avatar-ring-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  z-index: 5;
+  border: 2px solid var(--bg-surface, #1e293b);
+  line-height: 1;
+}
+.stage-avatar-ring-badge.badge-owner {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.6);
+}
+.stage-avatar-ring-badge.badge-admin {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.6);
+}
+.stage-avatar-ring-badge.badge-superadmin {
+  background: #3b82f6;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.6);
+}
+.stage-avatar-ring-badge.badge-user {
+  background: #09090b;
+  color: #a1a1aa;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  border-color: #27272a;
+}
+
+/* Role Pill Badges (Displayed below participant name) */
+.stage-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+.stage-role-pill.badge-owner {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+.stage-role-pill.badge-admin {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+.stage-role-pill.badge-superadmin {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+}
+.stage-role-pill.badge-user {
+  background: rgba(24, 24, 27, 0.85);
+  color: #94a3b8;
+  border: 1px solid rgba(39, 39, 42, 0.95);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Video card border matching roles */
+.stage-avatar-card.has-video.role-owner {
+  border: 2.5px solid #ef4444 !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.35) !important;
+}
+.stage-avatar-card.has-video.role-admin {
+  border: 2.5px solid #10b981 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35) !important;
+}
+.stage-avatar-card.has-video.role-superadmin {
+  border: 2.5px solid #3b82f6 !important;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.35) !important;
+}
+.stage-avatar-card.has-video.role-user {
+  border: 2.5px solid #18181b !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Video Header Role Badge */
+.stage-video-role-badge {
+  position: absolute;
+  top: 10px;
+  left: 80px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 3;
+  backdrop-filter: blur(8px);
+}
+.stage-video-role-badge.badge-owner {
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+.stage-video-role-badge.badge-admin {
+  background: rgba(16, 185, 129, 0.9);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+.stage-video-role-badge.badge-superadmin {
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+.stage-video-role-badge.badge-user {
+  background: rgba(9, 9, 11, 0.85);
+  color: #d1d5db;
+  border: 1px solid rgba(39, 39, 42, 0.8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Card hover glow accent */
+.stage-avatar-card.role-owner:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.stage-avatar-card.role-admin:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+.stage-avatar-card.role-superadmin:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+.stage-avatar-card.role-user:hover {
+  border-color: rgba(0, 0, 0, 0.8);
+}
+

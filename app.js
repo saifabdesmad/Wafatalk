@@ -326,6 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCancelAdminAction = document.getElementById('btnCancelAdminAction');
   const adminTargetUserId = document.getElementById('adminTargetUserId');
   const adminConfirmTargetText = document.getElementById('adminConfirmTargetText');
+  const btnAdminActionToggleAdmin = document.getElementById('btnAdminActionToggleAdmin');
+  const adminRoleToggleIcon = document.getElementById('adminRoleToggleIcon');
+  const adminRoleToggleTitle = document.getElementById('adminRoleToggleTitle');
+  const adminRoleToggleDesc = document.getElementById('adminRoleToggleDesc');
   const btnAdminActionMute = document.getElementById('btnAdminActionMute');
   const btnAdminActionCutCam = document.getElementById('btnAdminActionCutCam');
   const btnAdminActionBanUser = document.getElementById('btnAdminActionBanUser');
@@ -2336,13 +2340,18 @@ document.addEventListener('DOMContentLoaded', () => {
     salonRemoteAudioElements.forEach(el => el.remove());
     salonRemoteAudioElements.clear();
 
-    // Register self in local roster with proper role
+    // Register self in local roster with proper role & badge
+    const isSuper = Boolean(state.currentUser?.role === 'SUPERADMIN');
+    const selfBadge = isOwner ? 'OWNER' : (isSuper ? 'SUPERADMIN' : 'USER');
+    const selfRole = isOwner ? 'Propriétaire' : (isSuper ? 'SuperAdmin' : 'Participant');
+
     const selfUser = state.currentUser || {
       id: 'self-' + Date.now(),
       username: 'vous',
       displayName: 'Alexandre Moreau',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-      role: isOwner ? 'Hôte du salon' : 'Participant',
+      role: selfRole,
+      badgeType: selfBadge,
       country: 'FR',
     };
 
@@ -2351,7 +2360,8 @@ document.addEventListener('DOMContentLoaded', () => {
       username: selfUser.username,
       displayName: (selfUser.displayName || selfUser.username) + ' (Vous)',
       avatarUrl: selfUser.avatarUrl,
-      role: isOwner ? 'Hôte du salon' : (selfUser.role || 'Participant'),
+      role: selfRole,
+      badgeType: selfBadge,
       country: selfUser.country || 'FR',
       isMuted: false,
       isSpeaking: false,
@@ -2641,6 +2651,87 @@ document.addEventListener('DOMContentLoaded', () => {
     return stream;
   }
 
+  // =========================================================================
+  // SALON ROLE BADGES & HIERARCHY
+  // Propriétaire: ROUGE | Admin: VERT | SuperAdmin: BLEU | Membre: NOIR
+  // =========================================================================
+  function getParticipantRoleInfo(p) {
+    if (!p) {
+      return {
+        type: 'user',
+        label: 'Membre',
+        icon: '👤',
+        badgeClass: 'badge-user',
+        cardClass: 'role-user',
+        ringColor: '#09090b',
+      };
+    }
+
+    const myId = state.currentUser?.id;
+    const isOwner = Boolean(
+      p.badgeType === 'OWNER' ||
+      p.role === 'Propriétaire' ||
+      p.role === 'Hôte du salon' ||
+      (state.currentRoom?.ownerId && (p.userId === state.currentRoom.ownerId || p.id === state.currentRoom.ownerId)) ||
+      (state.currentRoom?.isOwner && (p.userId === myId || p.userId?.startsWith('self-')))
+    );
+
+    const isSuperAdmin = Boolean(
+      !isOwner && (
+        p.badgeType === 'SUPERADMIN' ||
+        p.role === 'SuperAdmin' ||
+        (p.userId === myId && (state.currentUser?.role === 'SUPERADMIN'))
+      )
+    );
+
+    const isAdmin = Boolean(
+      !isOwner && !isSuperAdmin && (
+        p.badgeType === 'ADMIN' ||
+        p.role === 'Admin' ||
+        p.role === 'Administrateur'
+      )
+    );
+
+    if (isOwner) {
+      return {
+        type: 'owner',
+        label: 'Propriétaire',
+        icon: '👑',
+        badgeClass: 'badge-owner',
+        cardClass: 'role-owner',
+        ringColor: '#ef4444',
+      };
+    }
+    if (isSuperAdmin) {
+      return {
+        type: 'superadmin',
+        label: 'SuperAdmin',
+        icon: '⚡',
+        badgeClass: 'badge-superadmin',
+        cardClass: 'role-superadmin',
+        ringColor: '#3b82f6',
+      };
+    }
+    if (isAdmin) {
+      return {
+        type: 'admin',
+        label: 'Admin',
+        icon: '🛡️',
+        badgeClass: 'badge-admin',
+        cardClass: 'role-admin',
+        ringColor: '#10b981',
+      };
+    }
+    return {
+      type: 'user',
+      label: 'Membre',
+      icon: '👤',
+      badgeClass: 'badge-user',
+      cardClass: 'role-user',
+      ringColor: '#09090b',
+    };
+  }
+
   // D. Render Voice & Video Stage Grid (Targeted updates preserving playing videos)
   function renderVoiceStage() {
     if (!voiceStageGrid) return;
@@ -2651,12 +2742,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const myId = state.currentUser?.id;
-    const isCurrentRoomHost = Boolean(state.currentRoom?.isOwner || (state.currentRoom?.ownerId && myId && state.currentRoom.ownerId === myId));
+    const myParticipant = currentSalonRoster.get(myId) || (myId ? null : Array.from(currentSalonRoster.values())[0]) || {
+      userId: myId || 'self',
+      role: state.currentRoom?.isOwner ? 'Propriétaire' : (state.currentUser?.role || 'Participant'),
+      badgeType: state.currentRoom?.isOwner ? 'OWNER' : undefined
+    };
+    const myRoleInfo = getParticipantRoleInfo(myParticipant);
+    const isMeOwnerOrSuper = myRoleInfo.type === 'owner' || myRoleInfo.type === 'superadmin';
+    const isMeAdmin = myRoleInfo.type === 'admin';
 
     currentSalonRoster.forEach((p, userId) => {
       const isSelf = userId === myId || userId.startsWith('self-');
-      const isTargetHost = Boolean(p.role === 'Hôte du salon' || (state.currentRoom?.ownerId && p.userId === state.currentRoom.ownerId));
-      const canAdminModerate = isCurrentRoomHost && !isSelf && !isTargetHost;
+      const roleInfo = getParticipantRoleInfo(p);
+
+      // Moderation permissions:
+      // Owner or SuperAdmin can moderate anyone except themselves
+      // Admin can moderate regular users only
+      let canAdminModerate = false;
+      if (!isSelf) {
+        if (isMeOwnerOrSuper) {
+          canAdminModerate = true;
+        } else if (isMeAdmin) {
+          canAdminModerate = (roleInfo.type === 'user');
+        }
+      }
 
       let card = document.getElementById(`stageUser_${userId}`);
 
@@ -2666,21 +2775,22 @@ document.addEventListener('DOMContentLoaded', () => {
         voiceStageGrid.appendChild(card);
       }
 
-      card.className = `stage-avatar-card ${p.isSpeaking ? 'is-speaking' : ''} ${p.isCameraOn ? 'has-video' : ''}`;
+      // Update card classes with role class (role-owner: Red, role-admin: Green, role-superadmin: Blue, role-user: Black)
+      card.className = `stage-avatar-card ${roleInfo.cardClass} ${p.isSpeaking ? 'is-speaking' : ''} ${p.isCameraOn ? 'has-video' : ''}`;
 
       if (p.isCameraOn) {
         // Video Stream Card
         if (!card.querySelector('.stage-video-stream')) {
           card.innerHTML = `
             <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
+            <span class="stage-video-role-badge ${roleInfo.badgeClass}">${roleInfo.icon} ${roleInfo.label}</span>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
-            ${isTargetHost ? '<span class="stage-admin-crown-badge" style="position: absolute; top: 8px; left: 8px; z-index: 10;">👑 Admin</span>' : ''}
             ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">🛡️</button>` : ''}
             <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
-              <span class="stage-user-role" style="color: rgba(255,255,255,0.7);">${escapeHtml(p.role || '')}</span>
+              <span class="stage-role-pill ${roleInfo.badgeClass}">${roleInfo.icon} ${roleInfo.label}</span>
             </div>
           `;
         }
@@ -2703,7 +2813,6 @@ document.addEventListener('DOMContentLoaded', () => {
           if (isSelf && salonLocalStream) {
             attachStream(salonLocalStream);
           } else {
-            // Try salonRemoteStreams first, then fallback to receiver track
             let remoteStr = salonRemoteStreams.get(userId);
             if (!remoteStr) {
               const pc = salonPeerConnections.get(userId);
@@ -2727,17 +2836,35 @@ document.addEventListener('DOMContentLoaded', () => {
           card.innerHTML = `
             <div class="stage-avatar-img-wrap">
               <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="stage-avatar-ring-badge ${roleInfo.badgeClass}" title="${roleInfo.label}">${roleInfo.icon}</span>
             </div>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
-            ${isTargetHost ? '<span class="stage-admin-crown-badge" style="position: absolute; top: 8px; left: 8px; z-index: 10;">👑 Admin</span>' : ''}
             ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">🛡️</button>` : ''}
             <div style="display: flex; align-items: center; gap: 5px;">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
               <span>${flagImg}</span>
             </div>
-            <span class="stage-user-role">${escapeHtml(p.role || 'Participant')}</span>
+            <span class="stage-role-pill ${roleInfo.badgeClass}">${roleInfo.icon} ${roleInfo.label}</span>
           `;
         }
+      }
+
+      // Always update dynamic role badge elements if card already exists
+      const ringBadge = card.querySelector('.stage-avatar-ring-badge');
+      if (ringBadge) {
+        ringBadge.className = `stage-avatar-ring-badge ${roleInfo.badgeClass}`;
+        ringBadge.title = roleInfo.label;
+        ringBadge.textContent = roleInfo.icon;
+      }
+      const rolePill = card.querySelector('.stage-role-pill');
+      if (rolePill) {
+        rolePill.className = `stage-role-pill ${roleInfo.badgeClass}`;
+        rolePill.innerHTML = `${roleInfo.icon} ${roleInfo.label}`;
+      }
+      const videoRoleBadge = card.querySelector('.stage-video-role-badge');
+      if (videoRoleBadge) {
+        videoRoleBadge.className = `stage-video-role-badge ${roleInfo.badgeClass}`;
+        videoRoleBadge.innerHTML = `${roleInfo.icon} ${roleInfo.label}`;
       }
 
       // Ensure admin trigger button exists if moderator privileges apply
@@ -2828,7 +2955,8 @@ document.addEventListener('DOMContentLoaded', () => {
         userId: 'demo-sarah',
         displayName: 'Sarah B.',
         avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-        role: 'Modérateur',
+        role: 'Admin',
+        badgeType: 'ADMIN',
         country: 'FR',
         isMuted: false,
         isSpeaking: true,
@@ -2838,7 +2966,8 @@ document.addEventListener('DOMContentLoaded', () => {
         userId: 'demo-youssef',
         displayName: 'Youssef K.',
         avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100',
-        role: 'Participant VIP',
+        role: 'Participant',
+        badgeType: 'USER',
         country: 'MA',
         isMuted: false,
         isSpeaking: false,
@@ -3757,7 +3886,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================================================================
-  // SALON ADMIN MODERATION & BAN CONTROLLER (MUTE, CUT CAM, BAN USER, BAN IP)
+  // SALON ADMIN MODERATION & BAN CONTROLLER (MUTE, CUT CAM, BAN USER, BAN IP, PROMOTE/REVOKE ADMIN)
   // =========================================================================
   function openSalonAdminModal(target) {
     if (!target || !salonAdminConfirmModal) return;
@@ -3765,6 +3894,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminConfirmTargetText) {
       adminConfirmTargetText.textContent = `Participant : ${target.displayName || target.name || target.username || 'Membre'}`;
     }
+
+    const myId = state.currentUser?.id;
+    const myParticipant = currentSalonRoster.get(myId) || (myId ? null : Array.from(currentSalonRoster.values())[0]) || {
+      userId: myId || 'self',
+      role: state.currentRoom?.isOwner ? 'Propriétaire' : (state.currentUser?.role || 'Participant'),
+      badgeType: state.currentRoom?.isOwner ? 'OWNER' : undefined
+    };
+    const myRoleInfo = getParticipantRoleInfo(myParticipant);
+    const isMeOwnerOrSuper = myRoleInfo.type === 'owner' || myRoleInfo.type === 'superadmin';
+    const targetRoleInfo = getParticipantRoleInfo(target);
+
+    // Only Salon Owner or SuperAdmin can Promote or Revoke Admins
+    if (btnAdminActionToggleAdmin) {
+      if (isMeOwnerOrSuper) {
+        btnAdminActionToggleAdmin.style.display = 'flex';
+        const isTargetAdmin = targetRoleInfo.type === 'admin';
+        if (isTargetAdmin) {
+          if (adminRoleToggleIcon) adminRoleToggleIcon.textContent = '⚪';
+          if (adminRoleToggleTitle) adminRoleToggleTitle.textContent = 'Retirer le statut Admin';
+          if (adminRoleToggleDesc) adminRoleToggleDesc.textContent = 'Rétrograder en utilisateur normal (Cercle Noir)';
+          btnAdminActionToggleAdmin.dataset.nextAction = 'revoke_admin';
+        } else {
+          if (adminRoleToggleIcon) adminRoleToggleIcon.textContent = '🟢';
+          if (adminRoleToggleTitle) adminRoleToggleTitle.textContent = 'Nommer Administrateur';
+          if (adminRoleToggleDesc) adminRoleToggleDesc.textContent = 'Accorder les droits de gestion sur ce salon (Cercle Vert)';
+          btnAdminActionToggleAdmin.dataset.nextAction = 'promote_admin';
+        }
+      } else {
+        btnAdminActionToggleAdmin.style.display = 'none';
+      }
+    }
+
     salonAdminConfirmModal.classList.remove('hidden');
   }
 
@@ -3807,7 +3968,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     closeSalonAdminModal();
 
-    if (action === 'mute') {
+    if (action === 'promote_admin') {
+      showToast(`🟢 ${targetName} est maintenant Administrateur du salon !`, 'teal');
+      if (target) {
+        target.role = 'Admin';
+        target.badgeType = 'ADMIN';
+        renderVoiceStage();
+      }
+    } else if (action === 'revoke_admin') {
+      showToast(`⚪ Statut Administrateur retiré à ${targetName}.`, 'coral');
+      if (target) {
+        target.role = 'Participant';
+        target.badgeType = 'USER';
+        renderVoiceStage();
+      }
+    } else if (action === 'mute') {
       showToast(`Micro coupé pour ${targetName}`, 'teal');
       if (target) {
         target.isMuted = true;
@@ -3829,6 +4004,11 @@ document.addEventListener('DOMContentLoaded', () => {
       renderVoiceStage();
     }
   }
+
+  btnAdminActionToggleAdmin?.addEventListener('click', () => {
+    const action = btnAdminActionToggleAdmin.dataset.nextAction || 'promote_admin';
+    executeSalonModeration(action);
+  });
 
   btnAdminActionMute?.addEventListener('click', () => {
     executeSalonModeration('mute', 'Votre micro a été coupé par l\'administrateur du salon.');
@@ -4472,6 +4652,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Salon Admin Action Error Notification
     socket.on('salon:admin_action_error', ({ message }) => {
       showToast(`❌ ${message || 'Erreur lors de l\'action d\'administration.'}`, 'coral');
+    });
+
+    // Salon Role Update Broadcast (Promote / Revoke Admin)
+    socket.on('salon:role_update', ({ salonId, userId, role, badgeType }) => {
+      if (state.currentRoom && state.currentRoom.id === salonId) {
+        const p = currentSalonRoster.get(userId);
+        if (p) {
+          p.role = role;
+          p.badgeType = badgeType;
+          renderVoiceStage();
+        }
+      }
+    });
+
+    // Salon Role Changed for Current User
+    socket.on('salon:role_changed', ({ salonId, role, badgeType, message }) => {
+      if (state.currentRoom && state.currentRoom.id === salonId) {
+        const myId = state.currentUser?.id;
+        const selfP = currentSalonRoster.get(myId) || (myId ? null : Array.from(currentSalonRoster.values())[0]);
+        if (selfP) {
+          selfP.role = role;
+          selfP.badgeType = badgeType;
+          renderVoiceStage();
+        }
+        playTone(badgeType === 'ADMIN' ? 660 : 330, 'sine', 0.25);
+        showToast(message || `Votre rôle a changé : ${role}`, badgeType === 'ADMIN' ? 'teal' : 'coral');
+      }
     });
   }
 
