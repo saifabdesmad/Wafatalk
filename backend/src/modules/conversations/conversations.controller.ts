@@ -107,43 +107,58 @@ export async function conversationsRoutes(fastify: FastifyInstance) {
       const user = (request as any).user;
       const { id: conversationId } = request.params;
 
-      const data = await (request as any).file();
-      if (!data) {
+      const parts = request.parts();
+      let fileBuffer: Buffer | null = null;
+      let filename = '';
+      let mimeType = '';
+      let totalSize = 0;
+      let viewMode: 'PERMANENT' | 'ONE_VIEW' = 'PERMANENT';
+      let caption = '';
+
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          filename = part.filename || 'fichier';
+          mimeType = (part.mimetype as string) || '';
+          const chunks: Buffer[] = [];
+          for await (const chunk of part.file) {
+            totalSize += chunk.length;
+            if (totalSize > MAX_FILE_SIZE) {
+              return reply.code(413).send({ success: false, message: 'Fichier trop volumineux. Maximum 50 MB.' });
+            }
+            chunks.push(chunk);
+          }
+          fileBuffer = Buffer.concat(chunks);
+        } else if (part.type === 'field') {
+          if (part.fieldname === 'viewMode') {
+            viewMode = part.value === 'ONE_VIEW' ? 'ONE_VIEW' : 'PERMANENT';
+          } else if (part.fieldname === 'caption') {
+            caption = String(part.value || '');
+          }
+        }
+      }
+
+      if (!fileBuffer || !filename) {
         return reply.code(400).send({ success: false, message: 'Aucun fichier fourni.' });
       }
 
-      const mimeType = data.mimetype as string;
-      const messageTypeKey = ALLOWED_MIME_TYPES[mimeType];
-      if (!messageTypeKey) {
-        return reply.code(400).send({ success: false, message: 'Type de fichier non supporté.' });
+      // Detect message type dynamically
+      let messageTypeKey = 'FILE';
+      const ext = path.extname(filename).toLowerCase() || '';
+      if (mimeType.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico', '.heic'].includes(ext)) {
+        messageTypeKey = 'IMAGE';
+      } else if (mimeType.startsWith('video/') || ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.3gp'].includes(ext)) {
+        messageTypeKey = 'VIDEO';
       }
-
-      // Read into buffer and check size
-      const chunks: Buffer[] = [];
-      let totalSize = 0;
-      for await (const chunk of data.file) {
-        totalSize += chunk.length;
-        if (totalSize > MAX_FILE_SIZE) {
-          return reply.code(413).send({ success: false, message: 'Fichier trop volumineux. Maximum 50 MB.' });
-        }
-        chunks.push(chunk);
-      }
-      const buffer = Buffer.concat(chunks);
 
       // Save file
-      const ext = path.extname(data.filename || '').toLowerCase() || '';
       const fileName = `${randomUUID()}${ext}`;
       const filePath = path.join(UPLOADS_DIR, fileName);
-      fs.writeFileSync(filePath, buffer);
+      fs.writeFileSync(filePath, fileBuffer);
 
-      // Build public URL
-      const protocol = request.protocol || 'http';
-      const host = request.hostname || 'localhost:4000';
+      // Build public URL with proper port and protocol
+      const protocol = (request.headers['x-forwarded-proto'] as string) || request.protocol || 'http';
+      const host = request.headers.host || `${request.hostname}:${process.env.PORT || 4000}`;
       const mediaUrl = `${protocol}://${host}/uploads/${fileName}`;
-
-      const viewMode = (data.fields?.viewMode?.value || 'PERMANENT') as 'PERMANENT' | 'ONE_VIEW';
-      const originalName = data.filename || 'fichier';
-      const caption = data.fields?.caption?.value || '';
 
       const result = await ConversationsService.createDirectMessage(
         conversationId,
@@ -153,7 +168,7 @@ export async function conversationsRoutes(fastify: FastifyInstance) {
         {
           mediaUrl,
           mediaType: mimeType,
-          mediaName: originalName,
+          mediaName: filename,
           mediaSize: totalSize,
           viewMode,
         }

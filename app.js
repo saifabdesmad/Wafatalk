@@ -3851,7 +3851,6 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('dm:conversation_expired', ({ conversationId }) => {
       if (currentConversation && currentConversation.id === conversationId) {
         showToast('Cette discussion a atteint sa limite de 24h et a été effacée.', 'coral');
-        document.querySelector('.dm-expiry-banner')?.remove();
         if (dmMessagesScroll) {
           dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">⏳</span><p>Cette conversation de 24h est arrivée à expiration et a été supprimée.</p></div>';
         }
@@ -3969,9 +3968,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load messages history
         await loadConversationMessages(currentConversation.id);
-
-        // Show 24h expiry banner
-        showDmExpiryBanner(currentConversation.expiresAt);
       } else {
         showToast(data.message || 'Impossible d\'ouvrir la conversation.', 'coral');
       }
@@ -3993,44 +3989,6 @@ document.addEventListener('DOMContentLoaded', () => {
       dmFriendStatusText.textContent = isOnline ? 'En ligne' : 'Hors ligne';
       dmFriendStatusText.style.color = isOnline ? '#10b981' : 'var(--text-muted)';
     }
-  }
-
-  let dmExpiryCountdownTimer = null;
-
-  function showDmExpiryBanner(expiresAt) {
-    if (dmExpiryCountdownTimer) {
-      clearInterval(dmExpiryCountdownTimer);
-      dmExpiryCountdownTimer = null;
-    }
-    document.querySelector('.dm-expiry-banner')?.remove();
-    if (!expiresAt || !dmMessagesScroll) return;
-
-    const updateBanner = () => {
-      const expiry = new Date(expiresAt);
-      const now = new Date();
-      const msLeft = expiry - now;
-      if (msLeft <= 0) {
-        if (dmExpiryCountdownTimer) clearInterval(dmExpiryCountdownTimer);
-        document.querySelector('.dm-expiry-banner')?.remove();
-        return;
-      }
-
-      const hoursLeft = Math.floor(msLeft / (1000 * 60 * 60));
-      const minsLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60));
-      const secsLeft = Math.floor((msLeft % (1000 * 60)) / 1000);
-      const timeStr = hoursLeft > 0 ? `${hoursLeft}h ${minsLeft}m` : `${minsLeft}m ${secsLeft}s`;
-
-      let banner = document.querySelector('.dm-expiry-banner');
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.className = 'dm-expiry-banner';
-        dmMessagesScroll.parentElement?.insertBefore(banner, dmMessagesScroll);
-      }
-      banner.innerHTML = `<span>🕐</span> Ce salon expire dans <span class="dm-expiry-time">${timeStr}</span> — messages supprimés automatiquement après 24h`;
-    };
-
-    updateBanner();
-    dmExpiryCountdownTimer = setInterval(updateBanner, 15000);
   }
 
   async function loadConversationMessages(conversationId) {
@@ -4446,12 +4404,54 @@ document.addEventListener('DOMContentLoaded', () => {
     dmTextInput?.focus();
   });
 
+  // Client-side image compression for fast transfer & avoiding reverse-proxy limits
+  async function compressImageIfNeeded(file) {
+    if (!file || !file.type.startsWith('image/') || file.type === 'image/gif' || file.size < 700 * 1024) {
+      return file;
+    }
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          const maxDim = 1920;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob && blob.size < file.size) {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' }));
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.85);
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ── Upload & send media attachment
   async function uploadAndSendDmMedia(caption = '') {
     if (!dmSelectedFile || !currentConversation) return;
 
     const token = getAuthToken();
-    if (!token) { showToast('Connectez-vous pour envoyer des fichiers.', 'coral'); return; }
+    if (!token) { showToast('Veuillez vous connecter pour envoyer des fichiers.', 'coral'); return; }
 
     const isOneView = dmOneViewToggle?.checked || false;
 
@@ -4462,12 +4462,15 @@ document.addEventListener('DOMContentLoaded', () => {
     dmMessagesScroll?.appendChild(progressEl);
     scrollDmToBottom();
 
-    const formData = new FormData();
-    formData.append('file', dmSelectedFile.file);
-    formData.append('viewMode', isOneView ? 'ONE_VIEW' : 'PERMANENT');
-    if (caption) formData.append('caption', caption);
-
     try {
+      // Optimize image if photo
+      const fileToUpload = await compressImageIfNeeded(dmSelectedFile.file);
+
+      const formData = new FormData();
+      formData.append('viewMode', isOneView ? 'ONE_VIEW' : 'PERMANENT');
+      if (caption) formData.append('caption', caption);
+      formData.append('file', fileToUpload);
+
       const res = await fetch(`${API_BASE_URL}/conversations/${currentConversation.id}/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -4476,20 +4479,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
       progressEl.remove();
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        // Backend upload route already broadcasts dm:message to the room via WebSocket.
-        // If socket is disconnected/offline, append locally:
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        if (res.status === 413) {
+          showToast('Le fichier dépasse la taille maximale autorisée par le serveur (Nginx).', 'coral');
+          return;
+        }
+        showToast(`Erreur serveur (${res.status} ${res.statusText || ''})`, 'coral');
+        return;
+      }
+
+      if (res.ok && data?.success) {
         if (!socket || !socket.connected) {
           appendDirectMessageBubble({ ...data.message, isFromMe: true });
         }
         clearDmMediaPreview();
       } else {
-        showToast(data.message || 'Échec de l\'envoi.', 'coral');
+        showToast(data?.message || 'Échec de l\'envoi du fichier.', 'coral');
       }
     } catch (err) {
       progressEl.remove();
-      showToast('Erreur réseau lors de l\'envoi du fichier.', 'coral');
+      console.error('Upload error:', err);
+      showToast('Impossible de joindre le serveur. Vérifiez la connexion.', 'coral');
     }
   }
 
@@ -4576,11 +4589,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close Direct Chat Modal
   btnCloseDirectChat?.addEventListener('click', () => {
-    if (dmExpiryCountdownTimer) {
-      clearInterval(dmExpiryCountdownTimer);
-      dmExpiryCountdownTimer = null;
-    }
-    document.querySelector('.dm-expiry-banner')?.remove();
     if (currentConversation && socket) {
       socket.emit('dm:leave', { conversationId: currentConversation.id });
     }

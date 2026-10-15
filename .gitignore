@@ -9,3 +9,6 @@ backend/.env
 *.exe
 *.tar.gz
 scratch/
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/scripts/test-upload.ts
