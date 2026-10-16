@@ -4052,6 +4052,820 @@ document.addEventListener('DOMContentLoaded', () => {
     notifDropdown?.classList.add('hidden');
   });
 
+  // =========================================================================
+  // 9b. CONTROLLER: MON PROFIL & STATUT + PARAMÈTRES AUDIO & COMPTE
+  // =========================================================================
+
+  // DOM Elements: Profile & Status Modal
+  const btnViewProfile = document.getElementById('btnViewProfile');
+  const profileStatusModal = document.getElementById('profileStatusModal');
+  const btnCloseProfileModal = document.getElementById('btnCloseProfileModal');
+  const btnCancelProfileModal = document.getElementById('btnCancelProfileModal');
+  const btnSaveProfileModal = document.getElementById('btnSaveProfileModal');
+  const profileSaveSpinner = document.getElementById('profileSaveSpinner');
+  const profileAvatarPreview = document.getElementById('profileAvatarPreview');
+  const profileAvatarStatusDot = document.getElementById('profileAvatarStatusDot');
+  const avatarFileInput = document.getElementById('avatarFileInput');
+  const profileAvatarUrlInput = document.getElementById('profileAvatarUrlInput');
+  const avatarPresetsGrid = document.getElementById('avatarPresetsGrid');
+  const presenceCardsGrid = document.getElementById('presenceCardsGrid');
+  const profileMoodInput = document.getElementById('profileMoodInput');
+  const profileDisplayNameInput = document.getElementById('profileDisplayNameInput');
+  const profileUsernameDisplay = document.getElementById('profileUsernameDisplay');
+  const profileBioInput = document.getElementById('profileBioInput');
+  const profileBioCounter = document.getElementById('profileBioCounter');
+  const profileCountrySelect = document.getElementById('profileCountrySelect');
+  const profilePointsChip = document.getElementById('profilePointsChip');
+  const profileSaveFeedback = document.getElementById('profileSaveFeedback');
+
+  // Active Profile Modal Internal State
+  let activeProfileAvatar = '';
+  let activePresenceStatus = 'ONLINE';
+
+  // Open "Mon Profil & Statut" Modal
+  function openProfileStatusModal() {
+    if (!profileStatusModal) return;
+    profileDropdown?.classList.add('hidden');
+
+    const user = state.currentUser || {};
+    const displayName = user.displayName || user.name || user.username || 'Ami WafaTalk';
+    const username = user.username || 'utilisateur';
+    const avatar = user.avatarUrl || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80';
+    const bio = user.bio || '';
+    const country = user.country || 'France';
+    const status = (user.status || 'ONLINE').toUpperCase();
+    const mood = user.mood || '';
+
+    activeProfileAvatar = avatar;
+    activePresenceStatus = ['ONLINE', 'BUSY', 'IDLE', 'OFFLINE'].includes(status) ? status : 'ONLINE';
+
+    // Populate Fields
+    if (profileAvatarPreview) profileAvatarPreview.src = avatar;
+    if (profileAvatarUrlInput) profileAvatarUrlInput.value = avatar.startsWith('data:') ? '' : avatar;
+    if (profileDisplayNameInput) profileDisplayNameInput.value = displayName;
+    if (profileUsernameDisplay) profileUsernameDisplay.value = username;
+    if (profileBioInput) profileBioInput.value = bio;
+    if (profileBioCounter) profileBioCounter.textContent = `${bio.length}/160`;
+    if (profileMoodInput) profileMoodInput.value = mood;
+    if (profileCountrySelect) {
+      // Find matching country option by value or text
+      const opts = Array.from(profileCountrySelect.options);
+      const match = opts.find(o => o.value.toLowerCase() === country.toLowerCase() || o.text.toLowerCase().includes(country.toLowerCase()));
+      if (match) profileCountrySelect.value = match.value;
+    }
+    if (profilePointsChip) {
+      profilePointsChip.textContent = `🪙 ${state.userPoints || 150} WafaPoints`;
+    }
+
+    // Set Presence Visuals
+    updatePresenceSelectionUI(activePresenceStatus);
+
+    // Reset feedback
+    if (profileSaveFeedback) {
+      profileSaveFeedback.className = 'modal-feedback-alert hidden';
+      profileSaveFeedback.textContent = '';
+    }
+
+    // Mark preset selected if matching
+    updatePresetSelectionUI(avatar);
+
+    profileStatusModal.classList.remove('hidden');
+  }
+
+  function closeProfileStatusModal() {
+    profileStatusModal?.classList.add('hidden');
+  }
+
+  function updatePresenceSelectionUI(status) {
+    activePresenceStatus = status;
+    const cards = presenceCardsGrid?.querySelectorAll('.presence-card');
+    cards?.forEach(card => {
+      const cardStat = card.getAttribute('data-status');
+      card.classList.toggle('selected', cardStat === status);
+    });
+
+    if (profileAvatarStatusDot) {
+      profileAvatarStatusDot.className = `profile-status-indicator ${status.toLowerCase()}`;
+    }
+  }
+
+  function updatePresetSelectionUI(url) {
+    const presetBtns = avatarPresetsGrid?.querySelectorAll('.avatar-preset-btn');
+    presetBtns?.forEach(btn => {
+      const match = btn.getAttribute('data-url') === url;
+      btn.classList.toggle('selected', match);
+    });
+  }
+
+  // Preset Avatars Click
+  avatarPresetsGrid?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.avatar-preset-btn');
+    if (!btn) return;
+    const url = btn.getAttribute('data-url');
+    if (url) {
+      activeProfileAvatar = url;
+      if (profileAvatarPreview) profileAvatarPreview.src = url;
+      if (profileAvatarUrlInput) profileAvatarUrlInput.value = url;
+      updatePresetSelectionUI(url);
+    }
+  });
+
+  // Custom Avatar URL Input
+  profileAvatarUrlInput?.addEventListener('input', (e) => {
+    const url = e.target.value.trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      activeProfileAvatar = url;
+      if (profileAvatarPreview) profileAvatarPreview.src = url;
+      updatePresetSelectionUI('');
+    }
+  });
+
+  // Local Image File Upload -> Base64
+  avatarFileInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).', 'coral');
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('L\'image dépasse 3 Mo. Veuillez choisir une photo plus légère.', 'coral');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64Url = evt.target?.result;
+      if (base64Url) {
+        activeProfileAvatar = base64Url;
+        if (profileAvatarPreview) profileAvatarPreview.src = base64Url;
+        if (profileAvatarUrlInput) profileAvatarUrlInput.value = '';
+        updatePresetSelectionUI('');
+        showToast('Photo prête ! Cliquez sur « Enregistrer » pour confirmer.', 'teal');
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Presence Cards Click
+  presenceCardsGrid?.addEventListener('click', (e) => {
+    const card = e.target.closest('.presence-card');
+    if (!card) return;
+    const status = card.getAttribute('data-status');
+    if (status) {
+      updatePresenceSelectionUI(status);
+    }
+  });
+
+  // Mood Quick Pills
+  document.querySelectorAll('.mood-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const mood = pill.getAttribute('data-mood');
+      if (profileMoodInput && mood) {
+        profileMoodInput.value = mood;
+        profileMoodInput.focus();
+      }
+    });
+  });
+
+  // Bio Live Character Counter
+  profileBioInput?.addEventListener('input', (e) => {
+    if (profileBioCounter) {
+      profileBioCounter.textContent = `${e.target.value.length}/160`;
+    }
+  });
+
+  // Save Profile Form Submission
+  btnSaveProfileModal?.addEventListener('click', async () => {
+    const displayName = profileDisplayNameInput?.value.trim();
+    const bio = profileBioInput?.value.trim() || '';
+    const country = profileCountrySelect?.value || 'France';
+    const mood = profileMoodInput?.value.trim() || '';
+
+    if (!displayName) {
+      showToast('Veuillez renseigner un nom d\'affichage.', 'coral');
+      profileDisplayNameInput?.focus();
+      return;
+    }
+
+    btnSaveProfileModal.disabled = true;
+    profileSaveSpinner?.classList.remove('hidden');
+
+    const updatePayload = {
+      displayName,
+      avatarUrl: activeProfileAvatar,
+      bio,
+      country,
+      status: activePresenceStatus,
+    };
+
+    const token = getAuthToken();
+
+    try {
+      let updatedUser = null;
+
+      if (token) {
+        const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updatePayload)
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success && data.user) {
+          updatedUser = data.user;
+        } else {
+          throw new Error(data.message || 'Erreur lors de la mise à jour du profil.');
+        }
+      } else {
+        // Local mode fallback
+        updatedUser = {
+          ...(state.currentUser || {}),
+          ...updatePayload,
+        };
+      }
+
+      // Synchronize App State
+      updatedUser.mood = mood;
+      state.currentUser = { ...state.currentUser, ...updatedUser };
+      localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+
+      // Update Nav Bar & Header Elements Instantly
+      const navUserName = document.getElementById('navUserName');
+      const heroUserGreeting = document.getElementById('heroUserGreeting');
+      const navUserAvatar = document.getElementById('navUserAvatar');
+      const mobNavUserAvatar = document.getElementById('mobNavUserAvatar');
+      const menuFullName = document.getElementById('menuFullName');
+      const menuCountryName = document.getElementById('menuCountryName');
+      const navUserCountryFlag = document.getElementById('navUserCountryFlag');
+      const menuCountryFlag = document.getElementById('menuCountryFlag');
+
+      if (navUserName) navUserName.textContent = displayName.split(' ')[0];
+      if (heroUserGreeting) heroUserGreeting.textContent = displayName.split(' ')[0];
+      if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
+      if (mobNavUserAvatar) mobNavUserAvatar.src = activeProfileAvatar;
+      if (menuFullName) menuFullName.textContent = displayName;
+      if (menuCountryName) menuCountryName.textContent = country;
+
+      // Update Presence Dot in User Menu
+      const menuStatusDot = document.querySelector('.user-profile-trigger .user-status-dot');
+      if (menuStatusDot) {
+        menuStatusDot.className = `user-status-dot ${activePresenceStatus.toLowerCase()}`;
+      }
+
+      // Update Country Flag
+      const countryObj = COUNTRIES.find(c => c.name.toLowerCase() === country.toLowerCase() || c.code.toLowerCase() === country.toLowerCase());
+      const countryCode = countryObj ? countryObj.code : 'FR';
+      const flagImgTag = `<img src="https://flagcdn.com/w40/${countryCode.toLowerCase()}.png" class="user-country-flag-img" alt="${country}" loading="lazy">`;
+      if (navUserCountryFlag) navUserCountryFlag.innerHTML = flagImgTag;
+      if (menuCountryFlag) menuCountryFlag.innerHTML = flagImgTag;
+
+      // Broadcast presence update via Socket if connected
+      if (socket && socket.connected) {
+        socket.emit('presence:set_status', {
+          status: activePresenceStatus.toLowerCase(),
+          mood: mood,
+        });
+      }
+
+      showToast('Profil et statut mis à jour avec succès ! ✨', 'success');
+      playTone(520, 'sine', 0.2);
+      closeProfileStatusModal();
+    } catch (err) {
+      console.warn('Profile update error:', err);
+      // Fallback: save to local state anyway
+      state.currentUser = { ...(state.currentUser || {}), ...updatePayload, mood };
+      localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+
+      const navUserName = document.getElementById('navUserName');
+      if (navUserName) navUserName.textContent = displayName.split(' ')[0];
+      const navUserAvatar = document.getElementById('navUserAvatar');
+      if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
+
+      showToast('Profil mis à jour en local avec succès ! ✨', 'teal');
+      closeProfileStatusModal();
+    } finally {
+      btnSaveProfileModal.disabled = false;
+      profileSaveSpinner?.classList.add('hidden');
+    }
+  });
+
+  // Modal Open/Close Event Listeners
+  btnViewProfile?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openProfileStatusModal();
+  });
+
+  btnCloseProfileModal?.addEventListener('click', closeProfileStatusModal);
+  btnCancelProfileModal?.addEventListener('click', closeProfileStatusModal);
+
+  profileStatusModal?.addEventListener('click', (e) => {
+    if (e.target === profileStatusModal) closeProfileStatusModal();
+  });
+
+
+  // =========================================================================
+  // DOM Elements: Settings Modal (Paramètres Audio & Compte)
+  // =========================================================================
+  const btnOpenSettings = document.getElementById('btnOpenSettings');
+  const settingsModal = document.getElementById('settingsModal');
+  const btnCloseSettingsModal = document.getElementById('btnCloseSettingsModal');
+  const btnDoneSettingsModal = document.getElementById('btnDoneSettingsModal');
+
+  // Tabs
+  const settingsTabs = document.querySelectorAll('.settings-tab-btn');
+  const settingsPanes = document.querySelectorAll('.settings-tab-pane');
+
+  // Audio Section
+  const selectMicDevice = document.getElementById('selectMicDevice');
+  const btnTestMic = document.getElementById('btnTestMic');
+  const micTestDot = document.getElementById('micTestDot');
+  const btnTestMicText = document.getElementById('btnTestMicText');
+  const micVuMeterBar = document.getElementById('micVuMeterBar');
+  const micTestHint = document.getElementById('micTestHint');
+  const inputMicSensitivity = document.getElementById('inputMicSensitivity');
+  const micSensitivityVal = document.getElementById('micSensitivityVal');
+  const toggleEchoCancellation = document.getElementById('toggleEchoCancellation');
+  const toggleNoiseSuppression = document.getElementById('toggleNoiseSuppression');
+  const toggleAutoGain = document.getElementById('toggleAutoGain');
+
+  const selectSpeakerDevice = document.getElementById('selectSpeakerDevice');
+  const sliderOutputVolume = document.getElementById('sliderOutputVolume');
+  const outputVolumeVal = document.getElementById('outputVolumeVal');
+  const btnTestSpeakerTone = document.getElementById('btnTestSpeakerTone');
+  const toggleNotifSounds = document.getElementById('toggleNotifSounds');
+  const toggleRoomChimes = document.getElementById('toggleRoomChimes');
+
+  // Account Section
+  const settingsUserEmail = document.getElementById('settingsUserEmail');
+  const settingsUserId = document.getElementById('settingsUserId');
+  const btnCopyUserId = document.getElementById('btnCopyUserId');
+  const formSettingsPassword = document.getElementById('formSettingsPassword');
+  const settingsCurrentPass = document.getElementById('settingsCurrentPass');
+  const settingsNewPass = document.getElementById('settingsNewPass');
+  const settingsConfirmPass = document.getElementById('settingsConfirmPass');
+  const settingsPasswordHint = document.getElementById('settingsPasswordHint');
+  const passwordUpdateFeedback = document.getElementById('passwordUpdateFeedback');
+  const btnSubmitChangePassword = document.getElementById('btnSubmitChangePassword');
+  const passwordChangeSpinner = document.getElementById('passwordChangeSpinner');
+  const btnSettingsLogout = document.getElementById('btnSettingsLogout');
+
+  // Appearance Section
+  const themeCardLight = document.getElementById('themeCardLight');
+  const themeCardDark = document.getElementById('themeCardDark');
+  const toggleAutoPip = document.getElementById('toggleAutoPip');
+  const toggleHdVideo = document.getElementById('toggleHdVideo');
+  const toggleAmbientFx = document.getElementById('toggleAmbientFx');
+
+  // Live Mic Testing State
+  let micTestAudioCtx = null;
+  let micTestStream = null;
+  let micTestAnalyser = null;
+  let micTestAnimFrame = null;
+  let isTestingMic = false;
+
+  // Open Settings Modal
+  async function openSettingsModal(defaultTab = 'tabPaneAudio') {
+    if (!settingsModal) return;
+    profileDropdown?.classList.add('hidden');
+
+    // Populate Account Info
+    const user = state.currentUser || {};
+    if (settingsUserEmail) settingsUserEmail.textContent = user.email || 'alexandre@wafatalk.com';
+    if (settingsUserId) settingsUserId.textContent = user.id || 'usr_wafatalk_demo';
+
+    // Populate Audio Preferences from LocalStorage
+    loadAudioSettings();
+
+    // Enumerate Physical Audio Devices
+    await enumerateAudioDevices();
+
+    // Select Active Tab
+    switchSettingsTab(defaultTab);
+
+    // Sync Theme Card Visuals
+    updateThemeCardsUI(state.theme);
+
+    // Reset Password Form & Feedback
+    if (formSettingsPassword) formSettingsPassword.reset();
+    if (settingsPasswordHint) settingsPasswordHint.className = 'password-match-hint hidden';
+    if (passwordUpdateFeedback) passwordUpdateFeedback.className = 'modal-feedback-alert hidden';
+
+    settingsModal.classList.remove('hidden');
+  }
+
+  function closeSettingsModal() {
+    stopMicTest();
+    settingsModal?.classList.add('hidden');
+  }
+
+  // Switch Settings Tab
+  function switchSettingsTab(targetPaneId) {
+    settingsTabs.forEach(tab => {
+      const match = tab.getAttribute('data-tab') === targetPaneId;
+      tab.classList.toggle('active', match);
+      tab.setAttribute('aria-selected', match ? 'true' : 'false');
+    });
+
+    settingsPanes.forEach(pane => {
+      const match = pane.id === targetPaneId;
+      pane.classList.toggle('active', match);
+    });
+
+    if (targetPaneId !== 'tabPaneAudio') {
+      stopMicTest();
+    }
+  }
+
+  settingsTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-tab');
+      if (target) switchSettingsTab(target);
+    });
+  });
+
+  // Enumerate Audio Devices (Microphones & Speakers)
+  async function enumerateAudioDevices() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const micDevices = devices.filter(d => d.kind === 'audioinput');
+      const speakerDevices = devices.filter(d => d.kind === 'audiooutput');
+
+      if (selectMicDevice && micDevices.length > 0) {
+        selectMicDevice.innerHTML = micDevices.map((d, idx) =>
+          `<option value="${d.deviceId}">${d.label || `Microphone ${idx + 1}`}</option>`
+        ).join('');
+      }
+
+      if (selectSpeakerDevice && speakerDevices.length > 0) {
+        selectSpeakerDevice.innerHTML = speakerDevices.map((d, idx) =>
+          `<option value="${d.deviceId}">${d.label || `Haut-parleurs ${idx + 1}`}</option>`
+        ).join('');
+      }
+    } catch (e) {
+      console.warn('Could not enumerate audio devices:', e);
+    }
+  }
+
+  // Live Mic Test VU-Meter Engine
+  async function startMicTest() {
+    if (isTestingMic) return;
+
+    const deviceId = selectMicDevice?.value;
+    const constraints = {
+      audio: deviceId && deviceId !== 'default'
+        ? { deviceId: { exact: deviceId } }
+        : true,
+    };
+
+    try {
+      micTestStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) throw new Error('Web Audio API unsupported');
+
+      micTestAudioCtx = new AudioCtx();
+      const source = micTestAudioCtx.createMediaStreamSource(micTestStream);
+      micTestAnalyser = micTestAudioCtx.createAnalyser();
+      micTestAnalyser.fftSize = 256;
+      micTestAnalyser.smoothingTimeConstant = 0.5;
+      source.connect(micTestAnalyser);
+
+      isTestingMic = true;
+      if (micTestDot) micTestDot.classList.add('active');
+      if (btnTestMicText) btnTestMicText.textContent = 'Arrêter le test';
+      if (micTestHint) micTestHint.textContent = '🎙️ Micro actif ! Parlez pour vérifier le niveau sonore en direct.';
+
+      const dataArray = new Uint8Array(micTestAnalyser.frequencyBinCount);
+
+      function renderVuMeter() {
+        if (!isTestingMic || !micTestAnalyser) return;
+        micTestAnalyser.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / dataArray.length;
+        const sensitivityFactor = (parseInt(inputMicSensitivity?.value || '80', 10) / 100) * 2.2;
+        const normalized = Math.min(100, Math.round(avg * sensitivityFactor));
+
+        if (micVuMeterBar) {
+          micVuMeterBar.style.width = `${normalized}%`;
+        }
+
+        micTestAnimFrame = requestAnimationFrame(renderVuMeter);
+      }
+
+      renderVuMeter();
+    } catch (err) {
+      console.warn('Mic test error:', err);
+      showToast('Impossible d\'accéder au microphone pour le test.', 'coral');
+      stopMicTest();
+    }
+  }
+
+  function stopMicTest() {
+    isTestingMic = false;
+    if (micTestAnimFrame) {
+      cancelAnimationFrame(micTestAnimFrame);
+      micTestAnimFrame = null;
+    }
+    if (micTestStream) {
+      micTestStream.getTracks().forEach(t => t.stop());
+      micTestStream = null;
+    }
+    if (micTestAudioCtx) {
+      micTestAudioCtx.close().catch(() => {});
+      micTestAudioCtx = null;
+      micTestAnalyser = null;
+    }
+
+    if (micVuMeterBar) micVuMeterBar.style.width = '0%';
+    if (micTestDot) micTestDot.classList.remove('active');
+    if (btnTestMicText) btnTestMicText.textContent = 'Tester mon micro';
+    if (micTestHint) micTestHint.textContent = 'Cliquez sur « Tester mon micro » et parlez à voix haute pour vérifier le niveau sonore.';
+  }
+
+  btnTestMic?.addEventListener('click', () => {
+    if (isTestingMic) {
+      stopMicTest();
+    } else {
+      startMicTest();
+    }
+  });
+
+  // Mic Sensitivity Slider
+  inputMicSensitivity?.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (micSensitivityVal) micSensitivityVal.textContent = `${val}%`;
+    saveAudioSettings();
+  });
+
+  // Output Volume Slider
+  sliderOutputVolume?.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (outputVolumeVal) outputVolumeVal.textContent = `${val}%`;
+    saveAudioSettings();
+
+    // Adjust volume on all active remote audio elements in salon
+    const gain = parseInt(val, 10) / 100;
+    salonRemoteAudioElements.forEach(el => {
+      el.volume = gain;
+    });
+  });
+
+  // Speaker Sound Test Melodic Chime (Web Audio API)
+  function playSpeakerTestChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const actx = new AudioCtx();
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      const volumeLevel = (parseInt(sliderOutputVolume?.value || '100', 10) / 100) * 0.25;
+
+      notes.forEach((freq, idx) => {
+        const osc = actx.createOscillator();
+        const gain = actx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, actx.currentTime + idx * 0.1);
+
+        gain.gain.setValueAtTime(0, actx.currentTime + idx * 0.1);
+        gain.gain.linearRampToValueAtTime(volumeLevel, actx.currentTime + idx * 0.1 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + idx * 0.1 + 0.4);
+
+        osc.connect(gain);
+        gain.connect(actx.destination);
+
+        osc.start(actx.currentTime + idx * 0.1);
+        osc.stop(actx.currentTime + idx * 0.1 + 0.42);
+      });
+
+      setTimeout(() => actx.close(), 1200);
+      showToast('🔊 Son de test joué avec succès !', 'teal');
+    } catch (e) {
+      console.warn('Speaker chime error:', e);
+    }
+  }
+
+  btnTestSpeakerTone?.addEventListener('click', playSpeakerTestChime);
+
+  // Copy User ID Button
+  btnCopyUserId?.addEventListener('click', () => {
+    const uid = settingsUserId?.textContent?.trim() || '';
+    if (!uid) return;
+    navigator.clipboard.writeText(uid).then(() => {
+      const origText = btnCopyUserId.innerHTML;
+      btnCopyUserId.innerHTML = `<span>Copié ! ✓</span>`;
+      btnCopyUserId.style.color = 'var(--brand-teal)';
+      setTimeout(() => {
+        btnCopyUserId.innerHTML = origText;
+        btnCopyUserId.style.color = '';
+      }, 2000);
+      showToast('Identifiant utilisateur copié dans le presse-papier ! 📋', 'teal');
+    }).catch(() => {
+      showToast('Impossible de copier l\'identifiant.', 'coral');
+    });
+  });
+
+  // Change Password Form Handling
+  function checkPasswordMatch() {
+    const newPass = settingsNewPass?.value || '';
+    const confirmPass = settingsConfirmPass?.value || '';
+
+    if (!confirmPass) {
+      if (settingsPasswordHint) settingsPasswordHint.className = 'password-match-hint hidden';
+      return;
+    }
+
+    if (newPass === confirmPass) {
+      if (settingsPasswordHint) {
+        settingsPasswordHint.className = 'password-match-hint match';
+        settingsPasswordHint.textContent = '✓ Les mots de passe correspondent parfaitement.';
+      }
+    } else {
+      if (settingsPasswordHint) {
+        settingsPasswordHint.className = 'password-match-hint mismatch';
+        settingsPasswordHint.textContent = '✕ Les deux mots de passe ne correspondent pas.';
+      }
+    }
+  }
+
+  settingsNewPass?.addEventListener('input', checkPasswordMatch);
+  settingsConfirmPass?.addEventListener('input', checkPasswordMatch);
+
+  formSettingsPassword?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentPassword = settingsCurrentPass?.value || '';
+    const newPassword = settingsNewPass?.value || '';
+    const confirmPassword = settingsConfirmPass?.value || '';
+
+    if (newPassword.length < 6) {
+      showToast('Le nouveau mot de passe doit comporter au moins 6 caractères.', 'coral');
+      settingsNewPass?.focus();
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showToast('Les deux mots de passe ne correspondent pas.', 'coral');
+      settingsConfirmPass?.focus();
+      return;
+    }
+
+    const token = getAuthToken();
+    btnSubmitChangePassword.disabled = true;
+    passwordChangeSpinner?.classList.remove('hidden');
+
+    try {
+      if (token) {
+        const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          if (passwordUpdateFeedback) {
+            passwordUpdateFeedback.className = 'modal-feedback-alert success';
+            passwordUpdateFeedback.textContent = '🎉 Mot de passe mis à jour avec succès !';
+          }
+          showToast('Mot de passe mis à jour avec succès ! 🔒', 'success');
+          formSettingsPassword.reset();
+          if (settingsPasswordHint) settingsPasswordHint.className = 'password-match-hint hidden';
+          playTone(520, 'sine', 0.25);
+        } else {
+          throw new Error(data.message || 'Erreur lors de la modification du mot de passe.');
+        }
+      } else {
+        // Offline / demo fallback
+        if (passwordUpdateFeedback) {
+          passwordUpdateFeedback.className = 'modal-feedback-alert success';
+          passwordUpdateFeedback.textContent = '🎉 Mot de passe mis à jour avec succès (mode session) !';
+        }
+        showToast('Mot de passe mis à jour avec succès ! 🔒', 'success');
+        formSettingsPassword.reset();
+      }
+    } catch (err) {
+      if (passwordUpdateFeedback) {
+        passwordUpdateFeedback.className = 'modal-feedback-alert error';
+        passwordUpdateFeedback.textContent = err.message || 'Mot de passe actuel incorrect.';
+      }
+      showToast(err.message || 'Erreur lors de la modification.', 'coral');
+      playTone(240, 'sawtooth', 0.2);
+    } finally {
+      btnSubmitChangePassword.disabled = false;
+      passwordChangeSpinner?.classList.add('hidden');
+    }
+  });
+
+  // Settings Danger Zone Logout
+  btnSettingsLogout?.addEventListener('click', () => {
+    closeSettingsModal();
+    btnLogout?.click();
+  });
+
+  // Theme Selector Cards
+  function updateThemeCardsUI(activeTheme) {
+    themeCardLight?.classList.toggle('selected', activeTheme === 'light');
+    themeCardDark?.classList.toggle('selected', activeTheme === 'dark');
+  }
+
+  themeCardLight?.addEventListener('click', () => {
+    applyTheme('light');
+    updateThemeCardsUI('light');
+    showToast('☀️ Thème Lumineux activé !', 'teal');
+  });
+
+  themeCardDark?.addEventListener('click', () => {
+    applyTheme('dark');
+    updateThemeCardsUI('dark');
+    showToast('🌙 Thème Sombre activé !', 'amber');
+  });
+
+  // Audio & Settings Preferences Storage
+  function saveAudioSettings() {
+    const prefs = {
+      micSensitivity: inputMicSensitivity?.value || '80',
+      outputVolume: sliderOutputVolume?.value || '100',
+      echoCancellation: toggleEchoCancellation?.checked ?? true,
+      noiseSuppression: toggleNoiseSuppression?.checked ?? true,
+      autoGain: toggleAutoGain?.checked ?? true,
+      notifSounds: toggleNotifSounds?.checked ?? true,
+      roomChimes: toggleRoomChimes?.checked ?? true,
+      autoPip: toggleAutoPip?.checked ?? true,
+      hdVideo: toggleHdVideo?.checked ?? true,
+      ambientFx: toggleAmbientFx?.checked ?? true,
+    };
+    localStorage.setItem('wafatalk_audio_settings', JSON.stringify(prefs));
+  }
+
+  function loadAudioSettings() {
+    try {
+      const raw = localStorage.getItem('wafatalk_audio_settings');
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (p.micSensitivity && inputMicSensitivity) {
+        inputMicSensitivity.value = p.micSensitivity;
+        if (micSensitivityVal) micSensitivityVal.textContent = `${p.micSensitivity}%`;
+      }
+      if (p.outputVolume && sliderOutputVolume) {
+        sliderOutputVolume.value = p.outputVolume;
+        if (outputVolumeVal) outputVolumeVal.textContent = `${p.outputVolume}%`;
+      }
+      if (typeof p.echoCancellation === 'boolean' && toggleEchoCancellation) toggleEchoCancellation.checked = p.echoCancellation;
+      if (typeof p.noiseSuppression === 'boolean' && toggleNoiseSuppression) toggleNoiseSuppression.checked = p.noiseSuppression;
+      if (typeof p.autoGain === 'boolean' && toggleAutoGain) toggleAutoGain.checked = p.autoGain;
+      if (typeof p.notifSounds === 'boolean' && toggleNotifSounds) toggleNotifSounds.checked = p.notifSounds;
+      if (typeof p.roomChimes === 'boolean' && toggleRoomChimes) toggleRoomChimes.checked = p.roomChimes;
+      if (typeof p.autoPip === 'boolean' && toggleAutoPip) toggleAutoPip.checked = p.autoPip;
+      if (typeof p.hdVideo === 'boolean' && toggleHdVideo) toggleHdVideo.checked = p.hdVideo;
+      if (typeof p.ambientFx === 'boolean' && toggleAmbientFx) toggleAmbientFx.checked = p.ambientFx;
+    } catch (e) {}
+  }
+
+  [toggleEchoCancellation, toggleNoiseSuppression, toggleAutoGain, toggleNotifSounds, toggleRoomChimes, toggleAutoPip, toggleHdVideo, toggleAmbientFx].forEach(sw => {
+    sw?.addEventListener('change', saveAudioSettings);
+  });
+
+  // Settings Modal Triggers
+  btnOpenSettings?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openSettingsModal('tabPaneAudio');
+  });
+
+  btnCloseSettingsModal?.addEventListener('click', closeSettingsModal);
+  btnDoneSettingsModal?.addEventListener('click', closeSettingsModal);
+
+  settingsModal?.addEventListener('click', (e) => {
+    if (e.target === settingsModal) closeSettingsModal();
+  });
+
+  // Escape Key Closes Modals
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (profileStatusModal && !profileStatusModal.classList.contains('hidden')) {
+        closeProfileStatusModal();
+      }
+      if (settingsModal && !settingsModal.classList.contains('hidden')) {
+        closeSettingsModal();
+      }
+    }
+  });
+
+  // Quick Join Trending Room button
+
   // Quick Join Trending Room button
   document.getElementById('btnQuickJoinTrending')?.addEventListener('click', () => {
     if (salonsData.length > 0) {

@@ -433,6 +433,26 @@ export class AuthService {
     return user;
   }
 
+  static async changePassword(userId: string, currentPass: string, newPass: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('Utilisateur non trouvé.');
+
+    const isValid = await bcrypt.compare(currentPass, user.passwordHash);
+    if (!isValid) throw new Error('Le mot de passe actuel est incorrect.');
+
+    if (!newPass || newPass.length < 6) {
+      throw new Error('Le nouveau mot de passe doit comporter au moins 6 caractères.');
+    }
+
+    const passwordHash = await bcrypt.hash(newPass, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { success: true, message: 'Mot de passe modifié avec succès !' };
+  }
+
   /**
    * Request Password Reset OTP Code by Email
    */

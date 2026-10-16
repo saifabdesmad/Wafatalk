@@ -9,6 +9,7 @@ import {
   resendVerificationSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
 } from './auth.schema.js';
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -211,6 +212,72 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true, user });
     } catch (error: any) {
       return reply.code(404).send({ success: false, message: error.message });
+    }
+  });
+
+  // Update Profile & Status
+  fastify.patch('/profile', {
+    onRequest: [fastify.authenticate],
+  }, async (request: any, reply: FastifyReply) => {
+    try {
+      const input = updateProfileSchema.parse(request.body);
+      const user = await AuthService.updateProfile(request.user.id, input);
+
+      // Broadcast presence and profile update via Socket.IO
+      const io = (fastify as any).io;
+      if (io) {
+        if (input.status) {
+          io.emit('presence:update', {
+            userId: user.id,
+            status: input.status.toLowerCase(),
+          });
+        }
+        io.emit('user:profile_updated', {
+          userId: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          country: user.country,
+          status: user.status,
+          bio: user.bio,
+        });
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Profil et statut mis à jour avec succès ! ✨',
+        user,
+      });
+    } catch (error: any) {
+      let message = 'Erreur lors de la mise à jour du profil';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
+    }
+  });
+
+  // Change Password (Authenticated)
+  fastify.post('/change-password', {
+    onRequest: [fastify.authenticate],
+  }, async (request: any, reply: FastifyReply) => {
+    try {
+      const input = changePasswordSchema.parse(request.body);
+      const result = await AuthService.changePassword(
+        request.user.id,
+        input.currentPassword,
+        input.newPassword
+      );
+      return reply.send(result);
+    } catch (error: any) {
+      let message = 'Erreur lors de la modification du mot de passe';
+      if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+        message = error.errors[0].message;
+      } else if (error?.message) {
+        message = error.message;
+      }
+      return reply.code(400).send({ success: false, message });
     }
   });
 

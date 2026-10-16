@@ -462,14 +462,14 @@
                 </div>
               </div>
               <div class="profile-dropdown-divider"></div>
-              <a href="#" class="dropdown-item" id="btnViewProfile">
+              <button type="button" class="dropdown-item" id="btnViewProfile">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span>Mon Profil & Statut</span>
-              </a>
-              <a href="#" class="dropdown-item" id="btnOpenSettings">
+              </button>
+              <button type="button" class="dropdown-item" id="btnOpenSettings">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 <span>Paramètres Audio & Compte</span>
-              </a>
+              </button>
               <div class="profile-dropdown-divider"></div>
               <button type="button" class="dropdown-item text-danger" id="btnLogout">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -1638,6 +1638,555 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
           <span class="ctrl-label">Raccrocher</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : MON PROFIL & STATUT                                -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="profileStatusModal" role="dialog" aria-modal="true" aria-labelledby="profileStatusModalTitle">
+    <div class="modal-container modal-profile-card glass-panel">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-header-icon-wrap icon-profile-glow">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div class="modal-header-text">
+          <h2 class="modal-title" id="profileStatusModalTitle">Mon Profil & Statut</h2>
+          <p class="modal-subtitle">Personnalisez votre identité, votre avatar et votre statut en temps réel.</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseProfileModal" aria-label="Fermer la boîte de dialogue">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-scrollable-body">
+        <!-- Profile Banner & Live Avatar Showcase -->
+        <div class="profile-preview-banner">
+          <div class="profile-avatar-customizer">
+            <div class="profile-avatar-ring">
+              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" alt="Avatar actuel" class="profile-avatar-large" id="profileAvatarPreview">
+              <span class="profile-status-indicator online" id="profileAvatarStatusDot"></span>
+            </div>
+            <div class="avatar-actions-wrap">
+              <label for="avatarFileInput" class="btn-avatar-upload" title="Téléverser une image">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Changer la photo</span>
+              </label>
+              <input type="file" id="avatarFileInput" accept="image/png, image/jpeg, image/webp" class="hidden">
+              <span class="avatar-filesize-hint">JPG, PNG ou WEBP (Max 2 Mo)</span>
+            </div>
+          </div>
+
+          <div class="profile-identity-chips">
+            <span class="identity-chip chip-points" id="profilePointsChip">🪙 150 WafaPoints</span>
+            <span class="identity-chip chip-tier">VIP Membre ✨</span>
+            <span class="identity-chip chip-verified">Compte Vérifié ✓</span>
+          </div>
+        </div>
+
+        <!-- Avatar Presets Row -->
+        <div class="form-section-block">
+          <label class="form-section-label">Avatars prédéfinis express</label>
+          <div class="avatar-presets-grid" id="avatarPresetsGrid">
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" title="Alexandre">
+              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80" alt="Preset 1">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" title="Sarah">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80" alt="Preset 2">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&auto=format&fit=crop&q=80" title="Youssef">
+              <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80" alt="Preset 3">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&auto=format&fit=crop&q=80" title="Lina">
+              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80" alt="Preset 4">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&auto=format&fit=crop&q=80" title="Marc">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80" alt="Preset 5">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&auto=format&fit=crop&q=80" title="Emma">
+              <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80" alt="Preset 6">
+            </button>
+          </div>
+          <div class="avatar-custom-url-row">
+            <span class="custom-url-hint">Ou URL d'image personnalisée :</span>
+            <input type="url" id="profileAvatarUrlInput" class="custom-url-input" placeholder="https://example.com/avatar.jpg">
+          </div>
+        </div>
+
+        <!-- Real-time Presence Status Cards -->
+        <div class="form-section-block">
+          <label class="form-section-label">Statut de présence en direct</label>
+          <div class="presence-cards-grid" id="presenceCardsGrid">
+            <div class="presence-card selected" data-status="ONLINE">
+              <div class="presence-card-dot online"></div>
+              <div class="presence-card-content">
+                <span class="presence-title">En ligne</span>
+                <span class="presence-desc">Prêt à discuter et rejoindre les salons vocaux</span>
+              </div>
+              <span class="presence-check-icon">✓</span>
+            </div>
+
+            <div class="presence-card" data-status="BUSY">
+              <div class="presence-card-dot busy"></div>
+              <div class="presence-card-content">
+                <span class="presence-title">Ne pas déranger</span>
+                <span class="presence-desc">Sonneries et alertes directes en sourdine</span>
+              </div>
+              <span class="presence-check-icon">✓</span>
+            </div>
+
+            <div class="presence-card" data-status="IDLE">
+              <div class="presence-card-dot idle"></div>
+              <div class="presence-card-content">
+                <span class="presence-title">Absent</span>
+                <span class="presence-desc">En pause café ou temporairement indisponible</span>
+              </div>
+              <span class="presence-check-icon">✓</span>
+            </div>
+
+            <div class="presence-card" data-status="OFFLINE">
+              <div class="presence-card-dot offline"></div>
+              <div class="presence-card-content">
+                <span class="presence-title">Invisible (Fantôme)</span>
+                <span class="presence-desc">Apparaître hors ligne tout en restant connecté</span>
+              </div>
+              <span class="presence-check-icon">✓</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Mood Message with Quick Emoji Pills -->
+        <div class="form-section-block">
+          <label for="profileMoodInput" class="form-section-label">Humeur & message personnalisé</label>
+          <div class="mood-input-wrap">
+            <span class="mood-icon">💭</span>
+            <input type="text" id="profileMoodInput" class="mood-input" placeholder="Partagez votre humeur du moment..." maxlength="80">
+          </div>
+          <div class="quick-mood-pills">
+            <button type="button" class="mood-pill" data-mood="🚀 En plein travail">🚀 Au boulot</button>
+            <button type="button" class="mood-pill" data-mood="🎮 En session gaming">🎮 Gaming</button>
+            <button type="button" class="mood-pill" data-mood="☕ Pause café">☕ Pause café</button>
+            <button type="button" class="mood-pill" data-mood="🎧 En musique">🎧 En musique</button>
+            <button type="button" class="mood-pill" data-mood="🌴 En vacances">🌴 En vacances</button>
+          </div>
+        </div>
+
+        <!-- Editable User Identity Fields -->
+        <div class="form-section-block">
+          <label class="form-section-label">Coordonnées & profil public</label>
+          
+          <div class="profile-fields-grid">
+            <div class="input-group">
+              <label for="profileDisplayNameInput">Nom complet affiché</label>
+              <input type="text" id="profileDisplayNameInput" class="input-field" placeholder="Ex: Alexandre Moreau" required maxlength="50">
+            </div>
+
+            <div class="input-group">
+              <label for="profileUsernameDisplay">Nom d'utilisateur unique</label>
+              <div class="input-readonly-wrap">
+                <span class="readonly-prefix">@</span>
+                <input type="text" id="profileUsernameDisplay" class="input-field input-readonly" readonly>
+                <span class="readonly-badge">Unique</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-top: 14px;">
+            <div class="label-with-counter">
+              <label for="profileBioInput">Biographie</label>
+              <span class="char-counter" id="profileBioCounter">0/160</span>
+            </div>
+            <textarea id="profileBioInput" class="input-field textarea-field" rows="3" placeholder="Parlez un peu de vous, vos passions, vos centres d'intérêt..." maxlength="160"></textarea>
+          </div>
+
+          <div class="input-group country-picker-group" style="margin-top: 14px;">
+            <label for="profileCountrySelect">Pays de résidence</label>
+            <select id="profileCountrySelect" class="input-field select-field">
+              <option value="France">🇫🇷 France</option>
+              <option value="Maroc">🇲🇦 Maroc</option>
+              <option value="Tunisie">🇹🇳 Tunisie</option>
+              <option value="Algérie">🇩🇿 Algérie</option>
+              <option value="Belgique">🇧🇪 Belgique</option>
+              <option value="Suisse">🇨🇭 Suisse</option>
+              <option value="Canada">🇨🇦 Canada</option>
+              <option value="Sénégal">🇸🇳 Sénégal</option>
+              <option value="Côte d'Ivoire">🇨🇮 Côte d'Ivoire</option>
+              <option value="Espagne">🇪🇸 Espagne</option>
+              <option value="Italie">🇮🇹 Italie</option>
+              <option value="Allemagne">🇩🇪 Allemagne</option>
+              <option value="Royaume-Uni">🇬🇧 Royaume-Uni</option>
+              <option value="États-Unis">🇺🇸 États-Unis</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="profileSaveFeedback" class="modal-feedback-alert hidden"></div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelProfileModal">Annuler</button>
+        <button type="button" class="btn btn-primary btn-save-profile" id="btnSaveProfileModal">
+          <span class="btn-text">Enregistrer les modifications</span>
+          <div class="btn-spinner hidden" id="profileSaveSpinner"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : PARAMÈTRES AUDIO & COMPTE                          -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <div class="modal-container modal-settings-card glass-panel">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-header-icon-wrap icon-settings-glow">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </div>
+        <div class="modal-header-text">
+          <h2 class="modal-title" id="settingsModalTitle">Paramètres WafaTalk</h2>
+          <p class="modal-subtitle">Gérez vos périphériques audio, votre sécurité et vos préférences d'application.</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseSettingsModal" aria-label="Fermer les paramètres">✕</button>
+      </div>
+
+      <!-- Settings Tabs Navigation Bar -->
+      <div class="settings-tabs-bar" role="tablist">
+        <button type="button" class="settings-tab-btn active" id="tabSettingsAudio" role="tab" aria-selected="true" data-tab="tabPaneAudio">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span>Audio & Voix</span>
+        </button>
+        <button type="button" class="settings-tab-btn" id="tabSettingsAccount" role="tab" aria-selected="false" data-tab="tabPaneAccount">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Compte & Sécurité</span>
+        </button>
+        <button type="button" class="settings-tab-btn" id="tabSettingsPrefs" role="tab" aria-selected="false" data-tab="tabPanePrefs">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <span>Apparence & Salons</span>
+        </button>
+      </div>
+
+      <!-- Settings Tab Panes Container -->
+      <div class="modal-scrollable-body settings-panes-wrapper">
+
+        <!-- TAB 1 : AUDIO & VOIX -->
+        <div class="settings-tab-pane active" id="tabPaneAudio" role="tabpanel">
+          <!-- Section 1 : Microphone Input -->
+          <div class="settings-card-group">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble mic-bubble">🎙️</div>
+              <div>
+                <h3 class="settings-group-heading">Périphérique d'entrée (Microphone)</h3>
+                <p class="settings-group-caption">Choisissez le micro utilisé lors des appels et dans les salons vocaux.</p>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+              <select id="selectMicDevice" class="input-field select-field">
+                <option value="default">Microphone par défaut du système</option>
+              </select>
+            </div>
+
+            <!-- Live Mic Test with Animated VU-Meter -->
+            <div class="mic-live-test-box">
+              <div class="mic-test-header">
+                <span class="mic-test-label">Test du micro en temps réel</span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnTestMic">
+                  <span class="mic-test-status-dot" id="micTestDot"></span>
+                  <span id="btnTestMicText">Tester mon micro</span>
+                </button>
+              </div>
+              <div class="vu-meter-track" id="micVuMeterTrack">
+                <div class="vu-meter-fill" id="micVuMeterBar"></div>
+              </div>
+              <span class="mic-test-hint" id="micTestHint">Cliquez sur « Tester mon micro » et parlez à voix haute pour vérifier le niveau sonore.</span>
+            </div>
+
+            <!-- Sensitivity slider -->
+            <div class="slider-control-group">
+              <div class="slider-label-row">
+                <label for="inputMicSensitivity">Sensibilité d'entrée</label>
+                <span class="slider-val-badge" id="micSensitivityVal">80%</span>
+              </div>
+              <input type="range" id="inputMicSensitivity" min="0" max="100" value="80" class="custom-range-slider">
+            </div>
+
+            <!-- Audio Enhancements Toggles -->
+            <div class="toggles-list">
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Annulation de l'écho acoustique (AEC)</strong>
+                  <span>Supprime les échos gênants causés par vos haut-parleurs.</span>
+                </div>
+                <input type="checkbox" id="toggleEchoCancellation" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Suppression intelligente du bruit (Noise Suppression)</strong>
+                  <span>Filtre les bruits de frappe de clavier, ventilateur et bruits de fond.</span>
+                </div>
+                <input type="checkbox" id="toggleNoiseSuppression" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Contrôle automatique du gain (AGC)</strong>
+                  <span>Harmonise automatiquement le niveau de votre voix pour être toujours audible.</span>
+                </div>
+                <input type="checkbox" id="toggleAutoGain" class="ios-switch" checked>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 2 : Speakers / Output -->
+          <div class="settings-card-group" style="margin-top: 18px;">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble speaker-bubble">🔊</div>
+              <div>
+                <h3 class="settings-group-heading">Périphérique de sortie (Haut-parleurs / Casque)</h3>
+                <p class="settings-group-caption">Définissez vos écouteurs ou enceintes et ajustez le volume des voix.</p>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+              <select id="selectSpeakerDevice" class="input-field select-field">
+                <option value="default">Haut-parleurs par défaut du système</option>
+              </select>
+            </div>
+
+            <!-- Volume Slider & Chime Test -->
+            <div class="slider-control-group">
+              <div class="slider-label-row">
+                <label for="sliderOutputVolume">Volume général des salons vocaux</label>
+                <span class="slider-val-badge" id="outputVolumeVal">100%</span>
+              </div>
+              <input type="range" id="sliderOutputVolume" min="0" max="100" value="100" class="custom-range-slider">
+            </div>
+
+            <div class="speaker-test-row">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnTestSpeakerTone">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <span>Écouter un son de test</span>
+              </button>
+              <span class="speaker-test-note">Joue un doux carillon pour vérifier votre sortie audio.</span>
+            </div>
+
+            <div class="toggles-list" style="margin-top: 14px;">
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Sons de notification des messages & cadeaux</strong>
+                  <span>Émettre une sonnerie discrète à l'arrivée d'un message ou cadeau.</span>
+                </div>
+                <input type="checkbox" id="toggleNotifSounds" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Bip d'entrée / sortie de salon</strong>
+                  <span>Indicateur audio quand un ami rejoint ou quitte votre salon vocal.</span>
+                </div>
+                <input type="checkbox" id="toggleRoomChimes" class="ios-switch" checked>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2 : COMPTE & SÉCURITÉ -->
+        <div class="settings-tab-pane" id="tabPaneAccount" role="tabpanel">
+          <!-- Account Summary Card -->
+          <div class="settings-card-group">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble security-bubble">🛡️</div>
+              <div>
+                <h3 class="settings-group-heading">Identité & Sécurité du compte</h3>
+                <p class="settings-group-caption">Consultez l'état de votre compte et mettez à jour votre mot de passe.</p>
+              </div>
+            </div>
+
+            <div class="account-summary-pills-row" style="margin-top: 14px;">
+              <div class="acc-summary-box">
+                <span class="acc-box-label">Adresse email</span>
+                <div class="acc-email-row">
+                  <span class="acc-box-val" id="settingsUserEmail">alexandre@wafatalk.com</span>
+                  <span class="badge-verified-inline">Vérifié ✓</span>
+                </div>
+              </div>
+
+              <div class="acc-summary-box">
+                <span class="acc-box-label">Identifiant utilisateur (UID)</span>
+                <div class="acc-uid-row">
+                  <span class="acc-box-val font-mono" id="settingsUserId">usr_...</span>
+                  <button type="button" class="btn-copy-uid" id="btnCopyUserId" title="Copier l'identifiant">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Copier</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change Password Form -->
+          <form id="formSettingsPassword" class="settings-card-group" style="margin-top: 18px;">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble lock-bubble">🔑</div>
+              <div>
+                <h3 class="settings-group-heading">Modifier mon mot de passe</h3>
+                <p class="settings-group-caption">Choisissez un mot de passe sécurisé comportant au moins 6 caractères.</p>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+              <label for="settingsCurrentPass">Mot de passe actuel</label>
+              <div class="input-field-wrap">
+                <input type="password" id="settingsCurrentPass" class="input-field" placeholder="Entrez votre mot de passe actuel" required autocomplete="current-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 12px;">
+              <label for="settingsNewPass">Nouveau mot de passe</label>
+              <div class="input-field-wrap">
+                <input type="password" id="settingsNewPass" class="input-field" placeholder="Au moins 6 caractères" required minlength="6" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 12px;">
+              <label for="settingsConfirmPass">Confirmer le nouveau mot de passe</label>
+              <div class="input-field-wrap">
+                <input type="password" id="settingsConfirmPass" class="input-field" placeholder="Retapez le nouveau mot de passe" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <div id="settingsPasswordHint" class="password-match-hint hidden"></div>
+            </div>
+
+            <div id="passwordUpdateFeedback" class="modal-feedback-alert hidden"></div>
+
+            <div style="margin-top: 16px;">
+              <button type="submit" class="btn btn-primary" id="btnSubmitChangePassword">
+                <span class="btn-text">Mettre à jour le mot de passe</span>
+                <div class="btn-spinner hidden" id="passwordChangeSpinner"></div>
+              </button>
+            </div>
+          </form>
+
+          <!-- Danger Zone -->
+          <div class="settings-card-group danger-card-group" style="margin-top: 18px;">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble danger-bubble">⚠️</div>
+              <div>
+                <h3 class="settings-group-heading text-danger">Zone sensible & Déconnexion</h3>
+                <p class="settings-group-caption">Actions directes sur votre session active.</p>
+              </div>
+            </div>
+
+            <div class="danger-actions-row" style="margin-top: 14px;">
+              <button type="button" class="btn btn-outline-danger" id="btnSettingsLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Déconnecter cette session</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3 : APPARENCE & SALONS -->
+        <div class="settings-tab-pane" id="tabPanePrefs" role="tabpanel">
+          <!-- Theme selector cards -->
+          <div class="settings-card-group">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble theme-bubble">🎨</div>
+              <div>
+                <h3 class="settings-group-heading">Thème de l'interface</h3>
+                <p class="settings-group-caption">Choisissez le style visuel qui correspond le mieux à votre confort.</p>
+              </div>
+            </div>
+
+            <div class="theme-selection-grid" style="margin-top: 14px;">
+              <div class="theme-select-card" id="themeCardLight" data-theme="light">
+                <div class="theme-card-preview preview-light">
+                  <div class="theme-mock-header"></div>
+                  <div class="theme-mock-content">
+                    <span class="mock-line"></span>
+                    <span class="mock-line short"></span>
+                  </div>
+                </div>
+                <div class="theme-card-footer">
+                  <span class="theme-card-name">☀️ Thème Lumineux</span>
+                  <span class="theme-selected-check">✓</span>
+                </div>
+              </div>
+
+              <div class="theme-select-card" id="themeCardDark" data-theme="dark">
+                <div class="theme-card-preview preview-dark">
+                  <div class="theme-mock-header"></div>
+                  <div class="theme-mock-content">
+                    <span class="mock-line"></span>
+                    <span class="mock-line short"></span>
+                  </div>
+                </div>
+                <div class="theme-card-footer">
+                  <span class="theme-card-name">🌙 Thème Sombre & Nuit</span>
+                  <span class="theme-selected-check">✓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video & Room Call Preferences -->
+          <div class="settings-card-group" style="margin-top: 18px;">
+            <div class="settings-card-title-row">
+              <div class="icon-bubble cam-bubble">📹</div>
+              <div>
+                <h3 class="settings-group-heading">Options des Salons & Caméra Volante</h3>
+                <p class="settings-group-caption">Ajustez l'expérience visuelle et le mode Picture-in-Picture.</p>
+              </div>
+            </div>
+
+            <div class="toggles-list" style="margin-top: 14px;">
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Caméra volante automatique (Mini PiP)</strong>
+                  <span>Garde automatiquement une fenêtre flottante déplaçable lorsque vous réduisez l'appel vidéo.</span>
+                </div>
+                <input type="checkbox" id="toggleAutoPip" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Haute Définition Vidéo (HD 1080p)</strong>
+                  <span>Augmente la netteté des flux webcam si votre connexion le permet.</span>
+                </div>
+                <input type="checkbox" id="toggleHdVideo" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Effets visuels et animations d'ambiance</strong>
+                  <span>Active les particules dorées, les confettis et les lueurs d'ambiance.</span>
+                </div>
+                <input type="checkbox" id="toggleAmbientFx" class="ios-switch" checked>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Settings Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="btnDoneSettingsModal">Terminer</button>
       </div>
     </div>
   </div>

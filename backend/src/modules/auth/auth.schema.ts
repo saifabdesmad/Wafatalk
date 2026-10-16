@@ -26,9 +26,15 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
   bio: z.string().max(200).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().min(1).optional(),
   country: z.string().optional(),
   birthDate: z.string().optional(),
+  status: z.enum(['ONLINE', 'BUSY', 'IDLE', 'OFFLINE']).optional(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Mot de passe actuel requis'),
+  newPassword: z.string().min(6, 'Le nouveau mot de passe doit comporter au moins 6 caractères'),
 });
 
 export const sendVerificationSchema = z.object({
