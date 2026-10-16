@@ -385,23 +385,29 @@ document.addEventListener('DOMContentLoaded', () => {
   tabLogin?.addEventListener('click', () => switchAuthTab('login'));
   tabRegister?.addEventListener('click', () => switchAuthTab('register'));
 
-  // Password Visibility Toggle
-  passwordToggleBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const input = btn.parentElement.querySelector('input');
-      const eyeOpen = btn.querySelector('.eye-open');
-      const eyeClosed = btn.querySelector('.eye-closed');
+  // Password Visibility Toggle (Universal delegation for all auth and modal password fields)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.password-toggle-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
 
-      if (input.type === 'password') {
-        input.type = 'text';
-        eyeOpen.classList.add('hidden');
-        eyeClosed.classList.remove('hidden');
-      } else {
-        input.type = 'password';
-        eyeOpen.classList.remove('hidden');
-        eyeClosed.classList.add('hidden');
-      }
-    });
+    const wrap = btn.closest('.input-field-wrap') || btn.parentElement;
+    const input = wrap?.querySelector('input');
+    if (!input) return;
+
+    const eyeOpen = btn.querySelector('.eye-open');
+    const eyeClosed = btn.querySelector('.eye-closed');
+
+    if (input.type === 'password') {
+      input.type = 'text';
+      eyeOpen?.classList.add('hidden');
+      eyeClosed?.classList.remove('hidden');
+    } else {
+      input.type = 'password';
+      eyeOpen?.classList.remove('hidden');
+      eyeClosed?.classList.add('hidden');
+    }
   });
 
   // Password Strength Visual Indicator
@@ -1585,6 +1591,14 @@ document.addEventListener('DOMContentLoaded', () => {
       forgotEmailInput.value = currentLoginVal;
     }
 
+    // Reset password fields and eye icons to default masked mode
+    if (forgotNewPasswordInput) forgotNewPasswordInput.type = 'password';
+    if (forgotConfirmPasswordInput) forgotConfirmPasswordInput.type = 'password';
+    document.querySelectorAll('#forgotPasswordModal .password-toggle-btn').forEach(btn => {
+      btn.querySelector('.eye-open')?.classList.remove('hidden');
+      btn.querySelector('.eye-closed')?.classList.add('hidden');
+    });
+
     // Reset to step 1
     formForgotRequestCode?.classList.remove('hidden');
     formForgotVerifyReset?.classList.add('hidden');
@@ -1616,15 +1630,6 @@ document.addEventListener('DOMContentLoaded', () => {
     formForgotVerifyReset?.classList.add('hidden');
     formForgotRequestCode?.classList.remove('hidden');
     forgotEmailInput?.focus();
-  });
-
-  // Toggle password visibility in forgot password modal
-  btnToggleForgotPass1?.addEventListener('click', () => {
-    const isPass = forgotNewPasswordInput.type === 'password';
-    forgotNewPasswordInput.type = isPass ? 'text' : 'password';
-    forgotConfirmPasswordInput.type = isPass ? 'text' : 'password';
-    btnToggleForgotPass1.querySelector('.eye-open')?.classList.toggle('hidden', isPass);
-    btnToggleForgotPass1.querySelector('.eye-closed')?.classList.toggle('hidden', !isPass);
   });
 
   function startForgotResendCooldown(seconds) {
