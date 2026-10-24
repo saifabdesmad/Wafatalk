@@ -514,15 +514,18 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         signal,
       };
 
-      // 1. Primary: emit to target user room
-      io.to(`user:${targetUserId}`).emit('salon:signal', payload);
-
-      // 2. Direct socket relay backup via salon roster
-      const salonMap = salonParticipants.get(salonId);
-      if (salonMap) {
-        const targetP = salonMap.get(targetUserId);
-        if (targetP && targetP.socketId && targetP.socketId !== socket.id) {
-          io.to(targetP.socketId).emit('salon:signal', payload);
+      // Deliver signal precisely once to the target user channel
+      const targetRoom = io.sockets.adapter.rooms.get(`user:${targetUserId}`);
+      if (targetRoom && targetRoom.size > 0) {
+        io.to(`user:${targetUserId}`).emit('salon:signal', payload);
+      } else {
+        // Direct socket relay fallback if target user is not in user room
+        const salonMap = salonParticipants.get(salonId);
+        if (salonMap) {
+          const targetP = salonMap.get(targetUserId);
+          if (targetP && targetP.socketId && targetP.socketId !== socket.id) {
+            io.to(targetP.socketId).emit('salon:signal', payload);
+          }
         }
       }
     });

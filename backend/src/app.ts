@@ -121,6 +121,58 @@ async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
+  // Dynamic WebRTC ICE/STUN/TURN Configuration Endpoint for crystal-clear WAN / Cross-Country connectivity
+  fastify.get('/api/rtc-config', async () => {
+    return {
+      iceServers: [
+        // 1. Google High-Availability Global STUN Cluster
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+
+        // 2. Cloudflare, Twilio, and Mozilla Global STUN
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'stun:stun.services.mozilla.com' },
+
+        // 3. WafaTalk Dedicated VPS Coturn STUN & TURN (Production IONOS VPS 31.70.139.221)
+        { urls: 'stun:api.wafatalk.com:3478' },
+        { urls: 'stun:31.70.139.221:3478' },
+        {
+          urls: [
+            'turn:api.wafatalk.com:3478?transport=udp',
+            'turn:api.wafatalk.com:3478?transport=tcp',
+            'turn:31.70.139.221:3478?transport=udp',
+            'turn:31.70.139.221:3478?transport=tcp',
+          ],
+          username: 'wafatalk',
+          credential: 'WafaTalkGlobalTurn2026!',
+        },
+        {
+          urls: 'turns:api.wafatalk.com:5349?transport=tcp',
+          username: 'wafatalk',
+          credential: 'WafaTalkGlobalTurn2026!',
+        },
+
+        // 4. Global Fallback OpenRelay via TLS & TCP (Bypasses restrictive enterprise firewalls)
+        {
+          urls: [
+            'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
+            'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
+          ],
+          username: 'openrelayproject',
+          credential: 'openrelayprojectsecret',
+        },
+      ],
+      iceCandidatePoolSize: 10,
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+    };
+  });
+
   await fastify.register(authRoutes, { prefix: '/api/auth' });
   await fastify.register(salonsRoutes, { prefix: '/api/salons' });
   await fastify.register(usersRoutes, { prefix: '/api/users' });

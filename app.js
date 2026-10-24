@@ -19,6 +19,21 @@ document.addEventListener('DOMContentLoaded', () => {
     userPoints: 450,
   };
 
+  // Group Salon Real-time Media & Mesh State (Top-level declarations to avoid TDZ)
+  let currentSalonRoster = new Map(); // userId -> { userId, username, displayName, avatarUrl, country, role, isMuted, isSpeaking, isCameraOn }
+  let salonPeerConnections = new Map(); // userId -> RTCPeerConnection
+  let salonPendingCandidates = new Map(); // userId -> candidate[]
+  let salonRemoteAudioElements = new Map(); // userId -> HTMLAudioElement
+  let salonRemoteStreams = new Map(); // userId -> MediaStream
+  let salonLocalStream = null; // MediaStream (audio + optional video)
+  let salonLocalAudioTrack = null;
+  let salonLocalVideoTrack = null;
+  let salonAudioContext = null;
+  let salonAudioAnalyser = null;
+  let salonVoiceDetectorTimer = null;
+  let isSalonCamActive = false;
+  let salonTypingDebounceTimer = null;
+
   // Backend API Base Configuration (Local Dev auto-switch & Production IONOS VPS)
   const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
     ? 'http://127.0.0.1:4000/api'
@@ -31,37 +46,102 @@ document.addEventListener('DOMContentLoaded', () => {
   // WebRTC Global Configuration (Multi-STUN & Global TURN Relays for WAN / Cross-Country connectivity)
   const RTC_CONFIG = {
     iceServers: [
-      // High-availability global STUN servers
+      // 1. Google High-Availability Global STUN Cluster (UDP 19302)
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
+
+      // 2. Cloudflare, Twilio, & Mozilla Anycast STUN
       { urls: 'stun:stun.cloudflare.com:3478' },
       { urls: 'stun:global.stun.twilio.com:3478' },
       { urls: 'stun:stun.services.mozilla.com' },
-      { urls: 'stun:stun.relay.metered.ca:80' },
 
-      // Global TURN Relays (OpenRelay / Metered - Traverses Symmetric NATs & Firewalls across countries)
+      // 3. WafaTalk Dedicated VPS Coturn STUN & TURN Relays (Production VPS 31.70.139.221)
+      { urls: 'stun:api.wafatalk.com:3478' },
+      { urls: 'stun:31.70.139.221:3478' },
       {
-        urls: 'turn:global.relay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
+        urls: [
+          'turn:api.wafatalk.com:3478?transport=udp',
+          'turn:api.wafatalk.com:3478?transport=tcp',
+          'turn:31.70.139.221:3478?transport=udp',
+          'turn:31.70.139.221:3478?transport=tcp',
+        ],
+        username: 'wafatalk',
+        credential: 'WafaTalkGlobalTurn2026!',
       },
       {
-        urls: 'turn:global.relay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
+        urls: 'turns:api.wafatalk.com:5349?transport=tcp',
+        username: 'wafatalk',
+        credential: 'WafaTalkGlobalTurn2026!',
       },
+
+      // 4. Global Fallback Relays (Metered Static Auth via TLS & TCP on 443 - Traverses Strict Firewalls)
       {
-        urls: 'turn:global.relay.metered.ca:443?transport=tcp',
+        urls: [
+          'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
+          'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
+        ],
         username: 'openrelayproject',
-        credential: 'openrelayproject',
+        credential: 'openrelayprojectsecret',
       },
     ],
     iceCandidatePoolSize: 10,
     iceTransportPolicy: 'all',
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
   };
+
+  // Asynchronously fetch fresh dynamic RTC configuration from server if available
+  fetch(`${API_BASE_URL}/rtc-config`)
+    .then(res => res.ok ? res.json() : null)
+    .then(dynamicConfig => {
+      if (dynamicConfig && Array.isArray(dynamicConfig.iceServers)) {
+        RTC_CONFIG.iceServers = dynamicConfig.iceServers;
+        if (dynamicConfig.iceCandidatePoolSize) RTC_CONFIG.iceCandidatePoolSize = dynamicConfig.iceCandidatePoolSize;
+        if (dynamicConfig.bundlePolicy) RTC_CONFIG.bundlePolicy = dynamicConfig.bundlePolicy;
+        if (dynamicConfig.rtcpMuxPolicy) RTC_CONFIG.rtcpMuxPolicy = dynamicConfig.rtcpMuxPolicy;
+        console.log('📡 Dynamic WebRTC STUN/TURN configuration synchronized from WafaTalk backend.');
+      }
+    })
+    .catch(() => {
+      // Fallback to embedded high-availability RTC_CONFIG
+    });
+
+  // Discord-Grade Opus Audio Optimizer: Inband Forward Error Correction (FEC), 64kbps, stereo
+  function enhanceSdpForDiscordQuality(sdp) {
+    if (!sdp || typeof sdp !== 'string') return sdp;
+    let modified = sdp;
+    if (modified.includes('opus/48000')) {
+      modified = modified.replace(
+        /a=fmtp:(\d+)\s+([^\r\n]+)/g,
+        (match, pt, params) => {
+          if (params.includes('minptime') || params.includes('useinbandfec')) {
+            return `a=fmtp:${pt} minptime=10;useinbandfec=1;maxaveragebitrate=64000;stereo=1;sprop-stereo=1`;
+          }
+          return match;
+        }
+      );
+      if (!modified.includes('useinbandfec=1')) {
+        modified = modified.replace(
+          /(a=rtpmap:(\d+)\s+opus\/48000\/2[\r\n]+)/g,
+          '$1a=fmtp:$2 minptime=10;useinbandfec=1;maxaveragebitrate=64000;stereo=1;sprop-stereo=1\r\n'
+        );
+      }
+    }
+    return modified;
+  }
+
+  // Global browser autoplay audio unlocker: un-blocks audio playback on user touch/click
+  const unlockAudioOnGesture = () => {
+    salonRemoteAudioElements.forEach(el => {
+      if (el && el.paused) el.play().catch(() => {});
+    });
+    if (remoteAudio && remoteAudio.paused) remoteAudio.play().catch(() => {});
+  };
+  document.addEventListener('click', unlockAudioOnGesture, { passive: true });
+  document.addEventListener('touchstart', unlockAudioOnGesture, { passive: true });
 
   // Mock Salons Data
   const salonsData = [
@@ -3057,9 +3137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // I. WebRTC Mesh Peer Connection Setup
-  // CRITICAL: Only the INITIATOR adds transceivers. The ANSWERER must NOT call addTransceiver()
-  // before setRemoteDescription, or it creates duplicate/mismatched transceivers causing one-way calls.
+  // I. WebRTC Mesh Peer Connection Setup (Discord-Grade Multi-User Calling)
   function createSalonPeerConnection(targetUserId, isInitiator = false) {
     let pc = salonPeerConnections.get(targetUserId);
     if (pc && pc.connectionState !== 'closed' && pc.connectionState !== 'failed') {
@@ -3070,26 +3148,27 @@ document.addEventListener('DOMContentLoaded', () => {
     salonPeerConnections.set(targetUserId, pc);
     pc._pendingCandidates = [];
 
-    // ── INITIATOR ONLY: add transceivers to define the media plan in the offer ──
+    // Ensure candidate queue exists for targetUserId
+    if (!salonPendingCandidates.has(targetUserId)) {
+      salonPendingCandidates.set(targetUserId, []);
+    }
+
+    // ── INITIATOR ONLY: Add bidirectional audio & video transceivers to define the media plan ──
     if (isInitiator) {
       const audioTrack = salonLocalAudioTrack || null;
       const videoTrack = (isSalonCamActive && salonLocalVideoTrack) ? salonLocalVideoTrack : null;
 
-      // Pass the track directly to addTransceiver — this is the most reliable method
+      // Always negotiate sendrecv so that when camera/mic is toggled, media flows instantly without renegotiation
       const audioTransceiver = pc.addTransceiver(audioTrack || 'audio', { direction: 'sendrecv' });
       const videoTransceiver = pc.addTransceiver(videoTrack || 'video', { direction: 'sendrecv' });
 
-      // If track is null (mic not granted yet), sender.track is already null — fine
-      // If we passed 'audio'/'video' string and have a track, assign it now
       if (audioTrack && !audioTransceiver.sender.track) {
-        audioTransceiver.sender.replaceTrack(audioTrack).catch(() => { });
+        audioTransceiver.sender.replaceTrack(audioTrack).catch(() => {});
       }
       if (videoTrack && !videoTransceiver.sender.track) {
-        videoTransceiver.sender.replaceTrack(videoTrack).catch(() => { });
+        videoTransceiver.sender.replaceTrack(videoTrack).catch(() => {});
       }
     }
-    // ── ANSWERER: does NOT add transceivers here. Tracks are added in handleSalonIncomingSignal
-    // after setRemoteDescription(), where existing transceivers from the offer are already present. ──
 
     pc.ontrack = (event) => {
       const track = event.track;
@@ -3100,27 +3179,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!audioEl) {
           audioEl = document.createElement('audio');
           audioEl.autoplay = true;
+          audioEl.playsInline = true;
+          audioEl.setAttribute('playsinline', '');
+          audioEl.muted = state.isAudioMuted;
           document.body.appendChild(audioEl);
           salonRemoteAudioElements.set(targetUserId, audioEl);
         }
         audioEl.srcObject = new MediaStream([track]);
-        audioEl.play().catch(e => console.warn('Audio play blocked:', e));
-
+        const playPromise = audioEl.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((e) => {
+            console.warn(`Autoplay audio policy blocked for ${targetUserId}, waiting for user gesture:`, e);
+          });
+        }
       } else if (track.kind === 'video') {
         const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
         salonRemoteStreams.set(targetUserId, stream);
 
-        // Retry until the DOM card exists (renderVoiceStage may not have run yet)
         const attachVideo = () => {
           const lEl = document.getElementById(`videoLoading_${targetUserId}`);
           const vidEl = document.getElementById(`videoEl_${targetUserId}`);
           if (vidEl) {
             if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
             vidEl.muted = true;
-            vidEl.play().catch(() => { });
+            vidEl.playsInline = true;
+            vidEl.setAttribute('playsinline', '');
+            vidEl.play().catch(() => {});
             if (lEl) lEl.style.display = 'none';
           } else {
-            // DOM card not yet rendered — poll every 200ms for up to 5s
             let attempts = 0;
             const poll = setInterval(() => {
               const el = document.getElementById(`videoEl_${targetUserId}`);
@@ -3128,13 +3214,14 @@ document.addEventListener('DOMContentLoaded', () => {
               if (el) {
                 if (el.srcObject !== stream) el.srcObject = stream;
                 el.muted = true;
-                el.play().catch(() => { });
+                el.playsInline = true;
+                el.play().catch(() => {});
                 if (ll) ll.style.display = 'none';
                 clearInterval(poll);
-              } else if (++attempts > 25) {
-                clearInterval(poll); // stop after 5s
+              } else if (++attempts > 30) {
+                clearInterval(poll);
               }
-            }, 200);
+            }, 150);
           }
         };
 
@@ -3148,26 +3235,34 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('salon:signal', {
           salonId: state.currentRoom.id,
           targetUserId,
-          signal: { type: 'candidate', candidate: event.candidate },
+          signal: { type: 'candidate', candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate },
         });
       }
     };
 
     pc.oniceconnectionstatechange = () => {
       console.log(`🧊 ICE [${targetUserId}]:`, pc.iceConnectionState);
-      if (pc.iceConnectionState === 'failed') {
-        console.warn(`ICE failed with ${targetUserId} — triggering restartIce()`);
-        if (typeof pc.restartIce === 'function') pc.restartIce();
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        console.warn(`ICE ${pc.iceConnectionState} with ${targetUserId} — triggering ICE restart`);
+        if (isInitiator) {
+          restartSalonIce(targetUserId, pc);
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
       console.log(`🔗 PeerConn [${targetUserId}]:`, pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        console.log(`✅ Salon WebRTC connected with ${targetUserId}!`);
+      }
     };
 
     if (isInitiator) {
-      pc.createOffer()
-        .then(offer => pc.setLocalDescription(offer))
+      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+        .then(offer => {
+          const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+          return pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+        })
         .then(() => {
           if (socket && socket.connected && state.currentRoom) {
             socket.emit('salon:signal', {
@@ -3183,47 +3278,87 @@ document.addEventListener('DOMContentLoaded', () => {
     return pc;
   }
 
+  // Real ICE restart function for salons
+  async function restartSalonIce(targetUserId, pc) {
+    if (!pc || !socket || !socket.connected || !state.currentRoom) return;
+    try {
+      if (typeof pc.restartIce === 'function') pc.restartIce();
+      const offer = await pc.createOffer({ iceRestart: true });
+      const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+      await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+      socket.emit('salon:signal', {
+        salonId: state.currentRoom.id,
+        targetUserId,
+        signal: { type: 'offer', sdp: pc.localDescription.sdp, isIceRestart: true },
+      });
+    } catch (e) {
+      console.warn('restartSalonIce failed:', e);
+    }
+  }
+
+  // Drain pending candidates for a salon peer connection
+  async function drainSalonPendingCandidates(targetUserId, pc) {
+    if (!pc || !pc.remoteDescription) return;
+    const queued = salonPendingCandidates.get(targetUserId) || [];
+    if (pc._pendingCandidates && pc._pendingCandidates.length) {
+      queued.push(...pc._pendingCandidates);
+      pc._pendingCandidates = [];
+    }
+    salonPendingCandidates.set(targetUserId, []);
+
+    for (const cand of queued) {
+      try {
+        if (cand && (cand.candidate !== undefined || cand.sdpMid !== undefined)) {
+          await pc.addIceCandidate(new RTCIceCandidate(cand));
+        }
+      } catch (e) {
+        console.warn(`Error adding queued candidate from ${targetUserId}:`, e);
+      }
+    }
+  }
+
   // J. Handle Incoming WebRTC Signal for Salon
   async function handleSalonIncomingSignal(senderId, senderUser, signal) {
     if (!signal || !senderId) return;
 
     if (signal.type === 'offer') {
-      const pc = createSalonPeerConnection(senderId, false); // false = answerer, no addTransceiver called
+      const pc = createSalonPeerConnection(senderId, false);
       try {
+        if (pc.signalingState === 'have-remote-offer') {
+          console.warn(`Already in have-remote-offer for ${senderId}, ignoring duplicate offer`);
+          return;
+        }
+
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
 
-        // CRITICAL: Answerer injects local tracks into the transceivers that were created by
-        // setRemoteDescription from the offer. This is the correct way — do NOT call addTransceiver.
+        // Configure transceivers: Answerer sets direction to sendrecv for both audio and video
         const transceivers = pc.getTransceivers();
         for (const transceiver of transceivers) {
-          if (transceiver.direction === 'recvonly' || transceiver.direction === 'sendrecv') {
-            const kind = transceiver.receiver.track.kind;
-            if (kind === 'audio' && salonLocalAudioTrack) {
-              transceiver.direction = 'sendrecv';
-              transceiver.sender.replaceTrack(salonLocalAudioTrack).catch(() => { });
-            } else if (kind === 'video' && isSalonCamActive && salonLocalVideoTrack) {
-              transceiver.direction = 'sendrecv';
-              transceiver.sender.replaceTrack(salonLocalVideoTrack).catch(() => { });
+          const kind = transceiver.receiver?.track?.kind;
+          if (kind === 'audio') {
+            transceiver.direction = 'sendrecv';
+            if (salonLocalAudioTrack) {
+              transceiver.sender.replaceTrack(salonLocalAudioTrack).catch(() => {});
+            }
+          } else if (kind === 'video') {
+            transceiver.direction = 'sendrecv';
+            if (isSalonCamActive && salonLocalVideoTrack) {
+              transceiver.sender.replaceTrack(salonLocalVideoTrack).catch(() => {});
             }
           }
         }
 
-        // Drain any buffered candidates
-        if (pc._pendingCandidates && pc._pendingCandidates.length) {
-          for (const cand of pc._pendingCandidates) {
-            try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
-          }
-          pc._pendingCandidates = [];
-        }
+        await drainSalonPendingCandidates(senderId, pc);
 
         const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
+        const enhancedSdp = enhanceSdpForDiscordQuality(answer.sdp);
+        await pc.setLocalDescription(new RTCSessionDescription({ type: 'answer', sdp: enhancedSdp }));
 
         if (socket && socket.connected && state.currentRoom) {
           socket.emit('salon:signal', {
             salonId: state.currentRoom.id,
             targetUserId: senderId,
-            signal: { type: 'answer', sdp: answer.sdp },
+            signal: { type: 'answer', sdp: pc.localDescription.sdp },
           });
         }
       } catch (err) {
@@ -3234,29 +3369,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pc && pc.signalingState !== 'stable') {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
-          if (pc._pendingCandidates && pc._pendingCandidates.length) {
-            for (const cand of pc._pendingCandidates) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) { }
-            }
-            pc._pendingCandidates = [];
-          }
+          await drainSalonPendingCandidates(senderId, pc);
         } catch (err) {
           console.warn('Error setting salon answer:', err);
         }
       }
-    } else if (signal.type === 'candidate' && signal.candidate) {
+    } else if (signal.candidate || signal.type === 'candidate') {
+      const candidateData = signal.candidate || signal;
+      if (!candidateData || (!candidateData.candidate && candidateData.candidate !== '')) return; // ignore null end-of-candidates
+
       const pc = salonPeerConnections.get(senderId);
-      if (pc) {
+      if (pc && pc.remoteDescription && pc.remoteDescription.type) {
         try {
-          if (pc.remoteDescription) {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-          } else {
-            if (!pc._pendingCandidates) pc._pendingCandidates = [];
-            pc._pendingCandidates.push(signal.candidate);
-          }
+          await pc.addIceCandidate(new RTCIceCandidate(candidateData));
         } catch (err) {
           console.warn('Error adding salon candidate:', err);
         }
+      } else {
+        if (!salonPendingCandidates.has(senderId)) {
+          salonPendingCandidates.set(senderId, []);
+        }
+        salonPendingCandidates.get(senderId).push(candidateData);
       }
     }
   }
@@ -3341,15 +3474,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Instantly replace track on all active peer connection video senders
       salonPeerConnections.forEach(async (pc) => {
         try {
-          // Find the video sender: works for both initiator (sender has kind) and answerer (use transceivers)
-          const videoTransceiver = pc.getTransceivers().find(t => t.receiver && t.receiver.track && t.receiver.track.kind === 'video');
-          const videoSender = videoTransceiver ? videoTransceiver.sender : pc.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (videoSender) {
-            await videoSender.replaceTrack(salonLocalVideoTrack);
+          const videoTransceiver = pc.getTransceivers().find(t => t.receiver?.track?.kind === 'video');
+          if (videoTransceiver) {
+            videoTransceiver.direction = 'sendrecv';
+            await videoTransceiver.sender.replaceTrack(salonLocalVideoTrack);
           } else {
-            // No transceiver yet (answerer just joined): inject directly
-            const nullVideoSender = pc.getSenders().find(s => !s.track);
-            if (nullVideoSender) await nullVideoSender.replaceTrack(salonLocalVideoTrack);
+            const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (videoSender) {
+              await videoSender.replaceTrack(salonLocalVideoTrack);
+            } else {
+              const nullVideoSender = pc.getSenders().find(s => !s.track);
+              if (nullVideoSender) await nullVideoSender.replaceTrack(salonLocalVideoTrack);
+            }
           }
         } catch (e) {
           console.warn('Error replacing video track:', e);
@@ -5139,19 +5275,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let companionSpeechTimer = null;
   let companionCanvasAnim = null;
 
-  // Group Salon Real-time Media & Mesh State
-  let currentSalonRoster = new Map(); // userId -> { userId, username, displayName, avatarUrl, country, role, isMuted, isSpeaking, isCameraOn }
-  let salonPeerConnections = new Map(); // userId -> RTCPeerConnection
-  let salonRemoteAudioElements = new Map(); // userId -> HTMLAudioElement
-  let salonRemoteStreams = new Map(); // userId -> MediaStream
-  let salonLocalStream = null; // MediaStream (audio + optional video)
-  let salonLocalAudioTrack = null;
-  let salonLocalVideoTrack = null;
-  let salonAudioContext = null;
-  let salonAudioAnalyser = null;
-  let salonVoiceDetectorTimer = null;
-  let isSalonCamActive = false;
-  let salonTypingDebounceTimer = null;
+  // (Salon Real-time Media & Mesh State declared at top-level)
 
   // =========================================================================
   // SOCKET.IO CLIENT INITIALIZATION & ROUTING
@@ -6452,13 +6576,14 @@ document.addEventListener('DOMContentLoaded', () => {
         offerToReceiveAudio: true,
         offerToReceiveVideo: currentCallSession?.type === 'video',
       });
-      await peerConnection.setLocalDescription(offer);
+      const enhancedSdp = enhanceSdpForDiscordQuality(offer.sdp);
+      await peerConnection.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhancedSdp }));
 
       if (socket && currentCallSession) {
         socket.emit('webrtc:signal', {
           callId: currentCallSession.callId,
           targetUserId: currentCallSession.peer.id,
-          signal: { type: 'offer', sdp: offer.sdp },
+          signal: { type: 'offer', sdp: peerConnection.localDescription.sdp },
         });
       }
       startCallTimer();
@@ -6469,10 +6594,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // F. Create and Configure RTCPeerConnection with ICE buffering
   function createPeerConnection() {
-    if (peerConnection) {
+    if (peerConnection && peerConnection.connectionState !== 'closed') {
       try { peerConnection.close(); } catch (e) { }
     }
-    pendingIceCandidates = [];
 
     try {
       peerConnection = new RTCPeerConnection(RTC_CONFIG);
@@ -6490,7 +6614,10 @@ document.addEventListener('DOMContentLoaded', () => {
           socket.emit('webrtc:signal', {
             callId: currentCallSession.callId,
             targetUserId: currentCallSession.peer.id,
-            signal: { candidate: event.candidate },
+            signal: {
+              type: 'candidate',
+              candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
+            },
           });
         }
       };
@@ -6510,35 +6637,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Attach to dedicated audio element for guaranteed sound
-        if (remoteAudio && remoteAudio.srcObject !== remoteMediaStream) {
+        if (remoteAudio) {
           remoteAudio.srcObject = remoteMediaStream;
-          remoteAudio.play().catch(e => console.warn('remoteAudio autoplay policy:', e));
+          remoteAudio.muted = false;
+          remoteAudio.autoplay = true;
+          remoteAudio.playsInline = true;
+          remoteAudio.setAttribute('playsinline', '');
+          const p = remoteAudio.play();
+          if (p !== undefined) p.catch(e => console.warn('remoteAudio autoplay policy:', e));
         }
 
         // Attach to video elements (Main screen and floating PiP window)
-        if (remoteVideo && remoteVideo.srcObject !== remoteMediaStream) {
+        if (remoteVideo) {
           remoteVideo.srcObject = remoteMediaStream;
-          remoteVideo.play().catch(e => console.warn('remoteVideo autoplay policy:', e));
+          remoteVideo.playsInline = true;
+          remoteVideo.setAttribute('playsinline', '');
+          const vp = remoteVideo.play();
+          if (vp !== undefined) vp.catch(() => {});
         }
-        if (floatingRemoteVideo && floatingRemoteVideo.srcObject !== remoteMediaStream) {
+        if (floatingRemoteVideo) {
           floatingRemoteVideo.srcObject = remoteMediaStream;
-          floatingRemoteVideo.play().catch(e => console.warn('floatingRemoteVideo autoplay policy:', e));
+          floatingRemoteVideo.playsInline = true;
+          floatingRemoteVideo.setAttribute('playsinline', '');
+          const fvp = floatingRemoteVideo.play();
+          if (fvp !== undefined) fvp.catch(() => {});
         }
         floatingRemotePlaceholder?.classList.add('hidden');
 
         startAudioVisualizer(remoteMediaStream, 'peer');
       };
 
+      peerConnection.oniceconnectionstatechange = () => {
+        console.log('🧊 1-on-1 ICE State:', peerConnection.iceConnectionState);
+        if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
+          if (currentCallSession?.isCaller && typeof peerConnection.restartIce === 'function') {
+            console.warn('ICE failed — restarting ICE with TURN relays...');
+            peerConnection.restartIce();
+            peerConnection.createOffer({ iceRestart: true })
+              .then(offer => {
+                const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+                return peerConnection.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+              })
+              .then(() => {
+                if (socket && currentCallSession) {
+                  socket.emit('webrtc:signal', {
+                    callId: currentCallSession.callId,
+                    targetUserId: currentCallSession.peer.id,
+                    signal: { type: 'offer', sdp: peerConnection.localDescription.sdp, isIceRestart: true },
+                  });
+                }
+              })
+              .catch(e => console.warn('ICE restart error:', e));
+          }
+        }
+      };
+
       peerConnection.onconnectionstatechange = () => {
         console.log('📶 WebRTC Connection State:', peerConnection.connectionState);
         if (peerConnection.connectionState === 'connected') {
-          showToast('🔒 Appel direct P2P chiffré connecté !', 'teal');
-        } else if (peerConnection.connectionState === 'failed') {
-          console.warn('WebRTC connection failed, falling back to simulated companion stream');
-          if (currentCallSession && !currentCallSession.isCompanion) {
-            currentCallSession.isCompanion = true;
-            startInteractiveCompanionExperience(currentCallSession.peer);
-          }
+          showToast('🔒 Appel direct P2P HD chiffré connecté !', 'teal');
         }
       };
     } catch (err) {
@@ -6556,28 +6713,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (signal.type === 'offer') {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        if (peerConnection.signalingState === 'have-remote-offer') {
+          console.warn('Already in have-remote-offer, ignoring duplicate offer');
+          return;
+        }
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
         await drainPendingCandidates();
 
         const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+        const enhancedSdp = enhanceSdpForDiscordQuality(answer.sdp);
+        await peerConnection.setLocalDescription(new RTCSessionDescription({ type: 'answer', sdp: enhancedSdp }));
 
         const targetId = senderId || currentCallSession?.peer?.id;
         if (socket && currentCallSession && targetId) {
           socket.emit('webrtc:signal', {
             callId: currentCallSession.callId,
             targetUserId: targetId,
-            signal: { type: 'answer', sdp: answer.sdp },
+            signal: { type: 'answer', sdp: peerConnection.localDescription.sdp },
           });
         }
       } else if (signal.type === 'answer') {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
-        await drainPendingCandidates();
-      } else if (signal.candidate) {
+        if (peerConnection.signalingState !== 'stable') {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+          await drainPendingCandidates();
+        }
+      } else if (signal.candidate || signal.type === 'candidate') {
+        const candData = signal.candidate || signal;
+        if (!candData || (!candData.candidate && candData.candidate !== '')) return;
+
         if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candData));
+          } catch (e) {
+            console.warn('Error adding ICE candidate:', e);
+          }
         } else {
-          pendingIceCandidates.push(signal.candidate);
+          pendingIceCandidates.push(candData);
         }
       }
     } catch (err) {
@@ -6590,7 +6762,9 @@ document.addEventListener('DOMContentLoaded', () => {
     while (pendingIceCandidates.length > 0) {
       const cand = pendingIceCandidates.shift();
       try {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+        if (cand && (cand.candidate !== undefined || cand.sdpMid !== undefined)) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+        }
       } catch (e) {
         console.warn('Error draining candidate:', e);
       }
