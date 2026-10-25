@@ -13,12 +13,13 @@ export async function messagesRoutes(fastify: FastifyInstance) {
     try {
       const { salonId } = request.params;
       const { limit, beforeId } = request.query as any;
+      const parsedLimit = limit ? parseInt(limit) : 50;
       const messages = await MessagesService.getSalonMessages(
         salonId,
-        limit ? parseInt(limit) : 50,
+        parsedLimit,
         beforeId
       );
-      return reply.send({ success: true, messages });
+      return reply.send({ success: true, messages, hasMore: messages.length === parsedLimit });
     } catch (error: any) {
       return reply.code(400).send({ success: false, message: error.message });
     }

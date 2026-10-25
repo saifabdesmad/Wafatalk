@@ -77,7 +77,7 @@ export async function conversationsRoutes(fastify: FastifyInstance) {
       const beforeId = request.query.beforeId;
 
       const messages = await ConversationsService.getConversationMessages(id, user.id, limit, beforeId);
-      return reply.code(200).send({ success: true, messages });
+      return reply.code(200).send({ success: true, messages, hasMore: messages.length === limit });
     } catch (error: any) {
       return reply.code(400).send({ success: false, message: error.message });
     }

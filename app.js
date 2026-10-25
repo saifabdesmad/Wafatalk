@@ -34,6 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let isSalonCamActive = false;
   let salonTypingDebounceTimer = null;
 
+  // Chat History & Bidirectional Scrolling State (Salons & DMs)
+  let salonOldestMessageId = null;
+  let salonHasMoreMessages = true;
+  let salonIsLoadingOlder = false;
+  let salonUnreadScrolledCount = 0;
+
+  let dmOldestMessageId = null;
+  let dmHasMoreMessages = true;
+  let dmIsLoadingOlder = false;
+  let dmUnreadScrolledCount = 0;
+
   // Backend API Base Configuration (Local Dev auto-switch & Production IONOS VPS)
   const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
     ? 'http://127.0.0.1:4000/api'
@@ -345,6 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnLeaveRoom = document.getElementById('btnLeaveRoom');
   const voiceStageGrid = document.getElementById('voiceStageGrid');
   const chatMessagesScroll = document.getElementById('chatMessagesScroll');
+  const salonScrollBottomBtn = document.getElementById('salonScrollBottomBtn');
+  const salonScrollUnreadBadge = document.getElementById('salonScrollUnreadBadge');
   const chatForm = document.getElementById('chatForm');
   const chatInputText = document.getElementById('chatInputText');
   const chatParticipantsCount = document.getElementById('chatParticipantsCount');
@@ -3561,44 +3574,14 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(state.isAudioMuted ? 'Son du salon coupé' : 'Son du salon rétabli', state.isAudioMuted ? 'coral' : 'teal');
   });
 
-  // N. Real-Time Salon Chat System
-  async function initSalonChat(salon) {
-    if (!chatMessagesScroll) return;
-    chatMessagesScroll.innerHTML = `
-      <div class="chat-msg">
-        <img src="assets/wafatalk-icon.png" class="chat-msg-avatar" alt="WafaTalk Bot">
-        <div class="chat-msg-body">
-          <div class="chat-msg-author">
-            <strong>WafaBot</strong>
-            <span class="chat-msg-time">À l'instant</span>
-          </div>
-          <p class="chat-msg-text">Bienvenue dans <strong>${escapeHtml(salon.name)}</strong> ! Vous pouvez maintenant parler, activer votre caméra et discuter avec tous les membres du salon en direct 🚀</p>
-        </div>
-      </div>
-    `;
-
-    // Fetch existing messages from backend API
-    try {
-      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages`);
-      if (res.ok) {
-        const msgs = await res.json();
-        if (Array.isArray(msgs)) {
-          msgs.forEach((m) => appendSalonChatMessage(m));
-        }
-      }
-    } catch (e) { }
-
-    chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
-  }
-
-  // Append a Salon Chat Message Bubble
-  function appendSalonChatMessage(message) {
-    if (!chatMessagesScroll) return;
+  // N. Real-Time Salon Chat System (Discord-Grade Scrolling & Infinite History)
+  function createSalonMessageElement(message) {
     const myId = state.currentUser?.id;
     const isFromMe = (message.user?.id && message.user.id === myId) || (message.userId && message.userId === myId);
 
     const msgEl = document.createElement('div');
     msgEl.className = `chat-msg ${isFromMe ? 'self' : ''}`;
+    if (message.id) msgEl.dataset.msgId = message.id;
     const authorName = isFromMe ? 'Vous' : (message.user?.displayName || message.user?.username || 'Membre');
     const avatar = message.user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
     const timeStr = message.time || (message.createdAt ? new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'À l\'instant');
@@ -3613,9 +3596,153 @@ document.addEventListener('DOMContentLoaded', () => {
         <p class="chat-msg-text">${escapeHtml(message.content)}</p>
       </div>
     `;
+    return msgEl;
+  }
 
-    chatMessagesScroll.appendChild(msgEl);
+  async function initSalonChat(salon) {
+    if (!chatMessagesScroll) return;
+
+    salonOldestMessageId = null;
+    salonHasMoreMessages = true;
+    salonIsLoadingOlder = false;
+    salonUnreadScrolledCount = 0;
+    salonScrollBottomBtn?.classList.add('hidden');
+    if (salonScrollUnreadBadge) {
+      salonScrollUnreadBadge.textContent = '0';
+      salonScrollUnreadBadge.classList.add('hidden');
+    }
+
+    chatMessagesScroll.innerHTML = `
+      <div class="chat-history-start hidden" id="salonHistoryStart">
+        <span>✨ Début de l'historique de <strong>${escapeHtml(salon.name)}</strong></span>
+      </div>
+      <div class="chat-history-loader hidden" id="salonHistoryLoader">
+        <span class="chat-loader-spinner"></span>
+        <span>Chargement des messages précédents...</span>
+      </div>
+      <div class="chat-msg">
+        <img src="assets/wafatalk-icon.png" class="chat-msg-avatar" alt="WafaTalk Bot">
+        <div class="chat-msg-body">
+          <div class="chat-msg-author">
+            <strong>WafaBot</strong>
+            <span class="chat-msg-time">À l'instant</span>
+          </div>
+          <p class="chat-msg-text">Bienvenue dans <strong>${escapeHtml(salon.name)}</strong> ! Vous pouvez maintenant parler, activer votre caméra et discuter avec tous les membres du salon en direct 🚀</p>
+        </div>
+      </div>
+    `;
+
+    // Fetch existing recent messages from backend API
+    try {
+      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages?limit=50`);
+      if (res.ok) {
+        const data = await res.json();
+        const msgs = Array.isArray(data) ? data : (data.messages || []);
+        salonHasMoreMessages = Boolean(data.hasMore ?? (msgs.length === 50));
+
+        if (msgs.length > 0) {
+          salonOldestMessageId = msgs[0].id;
+          msgs.forEach((m) => appendSalonChatMessage(m, false));
+        }
+
+        if (!salonHasMoreMessages) {
+          document.getElementById('salonHistoryStart')?.classList.remove('hidden');
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load salon messages:', e);
+    }
+
     chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+  }
+
+  // Fetch older messages when user scrolls to the top of salon chat
+  async function loadOlderSalonMessages() {
+    if (!state.currentRoom || !salonHasMoreMessages || salonIsLoadingOlder || !salonOldestMessageId) return;
+    salonIsLoadingOlder = true;
+
+    const loader = document.getElementById('salonHistoryLoader');
+    loader?.classList.remove('hidden');
+
+    const prevScrollHeight = chatMessagesScroll.scrollHeight;
+    const prevScrollTop = chatMessagesScroll.scrollTop;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/messages?beforeId=${salonOldestMessageId}&limit=50`);
+      if (res.ok) {
+        const data = await res.json();
+        const olderMsgs = Array.isArray(data) ? data : (data.messages || []);
+        salonHasMoreMessages = Boolean(data.hasMore ?? (olderMsgs.length === 50));
+
+        if (olderMsgs.length > 0) {
+          salonOldestMessageId = olderMsgs[0].id;
+
+          const fragment = document.createDocumentFragment();
+          olderMsgs.forEach((m) => {
+            if (!m.id || !chatMessagesScroll.querySelector(`.chat-msg[data-msg-id="${m.id}"]`)) {
+              fragment.appendChild(createSalonMessageElement(m));
+            }
+          });
+
+          const anchor = loader || chatMessagesScroll.firstChild;
+          if (anchor && anchor.nextSibling) {
+            chatMessagesScroll.insertBefore(fragment, anchor.nextSibling);
+          } else {
+            chatMessagesScroll.prepend(fragment);
+          }
+
+          // Anchor scroll position seamlessly so reading view is rock solid
+          const newScrollHeight = chatMessagesScroll.scrollHeight;
+          chatMessagesScroll.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+        } else {
+          salonHasMoreMessages = false;
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading older salon messages:', e);
+    } finally {
+      loader?.classList.add('hidden');
+      if (!salonHasMoreMessages) {
+        document.getElementById('salonHistoryStart')?.classList.remove('hidden');
+      }
+      salonIsLoadingOlder = false;
+    }
+  }
+
+  // Append a Salon Chat Message Bubble
+  function appendSalonChatMessage(message, shouldAutoScroll = true) {
+    if (!chatMessagesScroll) return;
+
+    if (message.id && chatMessagesScroll.querySelector(`.chat-msg[data-msg-id="${message.id}"]`)) {
+      return;
+    }
+
+    const myId = state.currentUser?.id;
+    const isFromMe = (message.user?.id && message.user.id === myId) || (message.userId && message.userId === myId);
+
+    const msgEl = createSalonMessageElement(message);
+    chatMessagesScroll.appendChild(msgEl);
+
+    if (!salonOldestMessageId && message.id) {
+      salonOldestMessageId = message.id;
+    }
+
+    const isNearBottom = (chatMessagesScroll.scrollHeight - chatMessagesScroll.scrollTop - chatMessagesScroll.clientHeight) < 140;
+
+    if (shouldAutoScroll && (isFromMe || isNearBottom)) {
+      chatMessagesScroll.scrollTo({ top: chatMessagesScroll.scrollHeight, behavior: 'smooth' });
+      salonScrollBottomBtn?.classList.add('hidden');
+      salonUnreadScrolledCount = 0;
+      if (salonScrollUnreadBadge) salonScrollUnreadBadge.classList.add('hidden');
+    } else if (!isFromMe) {
+      // User is reading older messages above! Keep position and update unread indicator
+      salonUnreadScrolledCount++;
+      salonScrollBottomBtn?.classList.remove('hidden');
+      if (salonScrollUnreadBadge) {
+        salonScrollUnreadBadge.textContent = salonUnreadScrolledCount;
+        salonScrollUnreadBadge.classList.remove('hidden');
+      }
+    }
 
     if (!isFromMe) {
       playTone(580, 'sine', 0.08);
@@ -3625,6 +3752,31 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
+
+  // Scroll listener for Salon Chat
+  chatMessagesScroll?.addEventListener('scroll', () => {
+    // If user scrolled near top, load older history
+    if (chatMessagesScroll.scrollTop <= 60 && salonHasMoreMessages && !salonIsLoadingOlder) {
+      loadOlderSalonMessages();
+    }
+
+    // Toggle floating scroll-to-bottom button
+    const distFromBottom = chatMessagesScroll.scrollHeight - chatMessagesScroll.scrollTop - chatMessagesScroll.clientHeight;
+    if (distFromBottom < 90) {
+      salonScrollBottomBtn?.classList.add('hidden');
+      salonUnreadScrolledCount = 0;
+      if (salonScrollUnreadBadge) salonScrollUnreadBadge.classList.add('hidden');
+    } else if (distFromBottom > 160) {
+      salonScrollBottomBtn?.classList.remove('hidden');
+    }
+  });
+
+  salonScrollBottomBtn?.addEventListener('click', () => {
+    chatMessagesScroll.scrollTo({ top: chatMessagesScroll.scrollHeight, behavior: 'smooth' });
+    salonScrollBottomBtn.classList.add('hidden');
+    salonUnreadScrolledCount = 0;
+    if (salonScrollUnreadBadge) salonScrollUnreadBadge.classList.add('hidden');
+  });
 
   // Handle Salon Chat Send
   chatForm?.addEventListener('submit', (e) => {
@@ -5173,6 +5325,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const dmFriendFlag = document.getElementById('dmFriendFlag');
   const dmFriendStatusText = document.getElementById('dmFriendStatusText');
   const dmMessagesScroll = document.getElementById('dmMessagesScroll');
+  const dmScrollBottomBtn = document.getElementById('dmScrollBottomBtn');
+  const dmScrollUnreadBadge = document.getElementById('dmScrollUnreadBadge');
   const dmTypingIndicator = document.getElementById('dmTypingIndicator');
   const dmTypingText = document.getElementById('dmTypingText');
   const dmMessageForm = document.getElementById('dmMessageForm');
@@ -5690,8 +5844,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadConversationMessages(conversationId) {
     try {
+      dmOldestMessageId = null;
+      dmHasMoreMessages = true;
+      dmIsLoadingOlder = false;
+      dmUnreadScrolledCount = 0;
+      dmScrollBottomBtn?.classList.add('hidden');
+      if (dmScrollUnreadBadge) {
+        dmScrollUnreadBadge.textContent = '0';
+        dmScrollUnreadBadge.classList.add('hidden');
+      }
+
       const token = getAuthToken();
-      const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`, {
+      const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages?limit=50`, {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
@@ -5699,7 +5863,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        renderDirectMessages(data.messages || []);
+        const msgs = data.messages || [];
+        dmHasMoreMessages = Boolean(data.hasMore ?? (msgs.length === 50));
+        if (msgs.length > 0) {
+          dmOldestMessageId = msgs[0].id;
+        }
+
+        renderDirectMessages(msgs);
+
+        if (!dmHasMoreMessages && msgs.length > 0) {
+          document.getElementById('dmHistoryStart')?.classList.remove('hidden');
+        }
+
         // Mark as read
         fetch(`${API_BASE_URL}/conversations/${conversationId}/read`, {
           method: 'POST',
@@ -5725,9 +5900,77 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    dmMessagesScroll.innerHTML = '';
-    messages.forEach(m => appendDirectMessageBubble(m, false));
+    dmMessagesScroll.innerHTML = `
+      <div class="chat-history-start ${dmHasMoreMessages ? 'hidden' : ''}" id="dmHistoryStart">
+        <span>🔒 Début de votre salon privé confidentiel</span>
+      </div>
+      <div class="chat-history-loader hidden" id="dmHistoryLoader">
+        <span class="chat-loader-spinner"></span>
+        <span>Chargement des messages précédents...</span>
+      </div>
+    `;
+
+    messages.forEach((m) => appendDirectMessageBubble(m, false));
     scrollDmToBottom();
+  }
+
+  // Fetch older direct messages when user scrolls up to top
+  async function loadOlderConversationMessages() {
+    if (!currentConversation || !dmHasMoreMessages || dmIsLoadingOlder || !dmOldestMessageId) return;
+    dmIsLoadingOlder = true;
+
+    const loader = document.getElementById('dmHistoryLoader');
+    loader?.classList.remove('hidden');
+
+    const prevScrollHeight = dmMessagesScroll.scrollHeight;
+    const prevScrollTop = dmMessagesScroll.scrollTop;
+
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/conversations/${currentConversation.id}/messages?beforeId=${dmOldestMessageId}&limit=50`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const olderMsgs = data.messages || [];
+        dmHasMoreMessages = Boolean(data.hasMore ?? (olderMsgs.length === 50));
+
+        if (olderMsgs.length > 0) {
+          dmOldestMessageId = olderMsgs[0].id;
+
+          const fragment = document.createDocumentFragment();
+          olderMsgs.forEach((m) => {
+            if (!m.id || !dmMessagesScroll.querySelector(`.dm-bubble[data-msg-id="${m.id}"]`)) {
+              fragment.appendChild(createDirectMessageBubbleElement(m));
+            }
+          });
+
+          const anchor = loader || dmMessagesScroll.firstChild;
+          if (anchor && anchor.nextSibling) {
+            dmMessagesScroll.insertBefore(fragment, anchor.nextSibling);
+          } else {
+            dmMessagesScroll.prepend(fragment);
+          }
+
+          // Anchor scroll position seamlessly so reading view is rock solid
+          const newScrollHeight = dmMessagesScroll.scrollHeight;
+          dmMessagesScroll.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+        } else {
+          dmHasMoreMessages = false;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load older conversation messages:', err);
+    } finally {
+      loader?.classList.add('hidden');
+      if (!dmHasMoreMessages) {
+        document.getElementById('dmHistoryStart')?.classList.remove('hidden');
+      }
+      dmIsLoadingOlder = false;
+    }
   }
 
   // ── Helper: Format file size
@@ -5800,18 +6043,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function appendDirectMessageBubble(message, shouldScroll = true) {
-    if (!dmMessagesScroll) return;
-
-    // Deduplicate by message ID
-    if (message.id && dmMessagesScroll.querySelector(`.dm-bubble[data-msg-id="${message.id}"]`)) {
-      return;
-    }
-
-    // Remove empty placeholder if present
-    const emptyState = dmMessagesScroll.querySelector('.dm-empty-state');
-    if (emptyState) emptyState.remove();
-
+  function createDirectMessageBubbleElement(message) {
     const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
     const bubble = document.createElement('div');
     if (message.id) bubble.dataset.msgId = message.id;
@@ -6052,14 +6284,76 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
+    return bubble;
+  }
+
+  function appendDirectMessageBubble(message, shouldScroll = true) {
+    if (!dmMessagesScroll) return;
+
+    // Deduplicate by message ID
+    if (message.id && dmMessagesScroll.querySelector(`.dm-bubble[data-msg-id="${message.id}"]`)) {
+      return;
+    }
+
+    // Remove empty placeholder if present
+    const emptyState = dmMessagesScroll.querySelector('.dm-empty-state');
+    if (emptyState) emptyState.remove();
+
+    const bubble = createDirectMessageBubbleElement(message);
     dmMessagesScroll.appendChild(bubble);
-    if (shouldScroll) scrollDmToBottom();
+
+    if (!dmOldestMessageId && message.id) {
+      dmOldestMessageId = message.id;
+    }
+
+    const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
+    const isNearBottom = (dmMessagesScroll.scrollHeight - dmMessagesScroll.scrollTop - dmMessagesScroll.clientHeight) < 140;
+
+    if (shouldScroll && (isFromMe || isNearBottom)) {
+      scrollDmToBottom();
+      dmScrollBottomBtn?.classList.add('hidden');
+      dmUnreadScrolledCount = 0;
+      if (dmScrollUnreadBadge) dmScrollUnreadBadge.classList.add('hidden');
+    } else if (!isFromMe) {
+      // User is reading older messages above! Keep position and update unread indicator
+      dmUnreadScrolledCount++;
+      dmScrollBottomBtn?.classList.remove('hidden');
+      if (dmScrollUnreadBadge) {
+        dmScrollUnreadBadge.textContent = dmUnreadScrolledCount;
+        dmScrollUnreadBadge.classList.remove('hidden');
+      }
+    }
   }
 
   function scrollDmToBottom() {
     if (!dmMessagesScroll) return;
-    dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
+    dmMessagesScroll.scrollTo({ top: dmMessagesScroll.scrollHeight, behavior: 'smooth' });
   }
+
+  // Scroll listener for DM Chat
+  dmMessagesScroll?.addEventListener('scroll', () => {
+    // If user scrolled near top, load older history
+    if (dmMessagesScroll.scrollTop <= 60 && dmHasMoreMessages && !dmIsLoadingOlder) {
+      loadOlderConversationMessages();
+    }
+
+    // Toggle floating scroll-to-bottom button
+    const distFromBottom = dmMessagesScroll.scrollHeight - dmMessagesScroll.scrollTop - dmMessagesScroll.clientHeight;
+    if (distFromBottom < 90) {
+      dmScrollBottomBtn?.classList.add('hidden');
+      dmUnreadScrolledCount = 0;
+      if (dmScrollUnreadBadge) dmScrollUnreadBadge.classList.add('hidden');
+    } else if (distFromBottom > 160) {
+      dmScrollBottomBtn?.classList.remove('hidden');
+    }
+  });
+
+  dmScrollBottomBtn?.addEventListener('click', () => {
+    scrollDmToBottom();
+    dmScrollBottomBtn.classList.add('hidden');
+    dmUnreadScrolledCount = 0;
+    if (dmScrollUnreadBadge) dmScrollUnreadBadge.classList.add('hidden');
+  });
 
   // Handle DM message submission (text or file)
   dmMessageForm?.addEventListener('submit', async (e) => {

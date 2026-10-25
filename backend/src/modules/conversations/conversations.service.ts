@@ -149,7 +149,7 @@ export class ConversationsService {
     const messages = await prisma.directMessage.findMany({
       where,
       take: limit,
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         sender: {
           select: {
@@ -161,6 +161,8 @@ export class ConversationsService {
         },
       },
     });
+
+    messages.reverse();
 
     return messages.map((m) => {
       const viewedBy = m.viewedBy ? m.viewedBy.split(',').filter(Boolean) : [];

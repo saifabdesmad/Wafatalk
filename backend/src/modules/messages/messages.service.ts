@@ -14,7 +14,7 @@ export class MessagesService {
     const messages = await prisma.message.findMany({
       where,
       take: limit,
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {
@@ -26,6 +26,8 @@ export class MessagesService {
         },
       },
     });
+
+    messages.reverse();
 
     return messages.map((m) => ({
       id: m.id,
