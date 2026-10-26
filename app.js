@@ -427,6 +427,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAdminActionCutCam = document.getElementById('btnAdminActionCutCam');
   const btnAdminActionBanUser = document.getElementById('btnAdminActionBanUser');
   const btnAdminActionBanIp = document.getElementById('btnAdminActionBanIp');
+  const btnOpenSalonBansModal = document.getElementById('btnOpenSalonBansModal');
+  const btnAdminViewBansList = document.getElementById('btnAdminViewBansList');
+  const salonBansModal = document.getElementById('salonBansModal');
+  const btnCloseSalonBansModal = document.getElementById('btnCloseSalonBansModal');
+  const salonBansLoading = document.getElementById('salonBansLoading');
+  const salonBansEmpty = document.getElementById('salonBansEmpty');
+  const salonBansList = document.getElementById('salonBansList');
 
   // Toast Container
   const toastContainer = document.getElementById('toastContainer');
@@ -2480,6 +2487,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mobileChatUnreadDot')?.classList.add('hidden');
 
     liveSalonModal.classList.remove('hidden');
+    if (btnOpenSalonBansModal) {
+      if (isOwner || isSuper) {
+        btnOpenSalonBansModal.classList.remove('hidden');
+      } else {
+        btnOpenSalonBansModal.classList.add('hidden');
+      }
+    }
     playTone(440, 'sine', 0.15);
     showToast(`Connexion au salon "${salon.name}"...`, 'teal');
 
@@ -2544,6 +2558,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSalonRoster.clear();
 
     liveSalonModal.classList.add('hidden');
+    salonBansModal?.classList.add('hidden');
+    btnOpenSalonBansModal?.classList.add('hidden');
     state.currentRoom = null;
     showToast('Vous avez quitté le salon.', 'coral');
   }
@@ -4295,6 +4311,145 @@ document.addEventListener('DOMContentLoaded', () => {
   btnAdminActionBanIp?.addEventListener('click', () => {
     executeSalonModeration('ban_ip', 'Votre adresse IP a été bannie définitivement de ce salon.');
   });
+
+  // =========================================================================
+  // SALON BANS & UNBAN CONTROLLER
+  // =========================================================================
+  async function loadSalonBans() {
+    if (!state.currentRoom || !salonBansModal) return;
+    salonBansLoading?.classList.remove('hidden');
+    salonBansEmpty?.classList.add('hidden');
+    salonBansList?.classList.add('hidden');
+    if (salonBansList) salonBansList.innerHTML = '';
+
+    const token = getAuthToken();
+    if (!token) {
+      salonBansLoading?.classList.add('hidden');
+      salonBansEmpty?.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/bans`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      salonBansLoading?.classList.add('hidden');
+
+      if (!data.success || !data.bans || data.bans.length === 0) {
+        salonBansEmpty?.classList.remove('hidden');
+        return;
+      }
+
+      salonBansList.innerHTML = '';
+      data.bans.forEach(ban => {
+        const item = document.createElement('div');
+        item.className = 'salon-ban-item';
+        item.id = `ban-row-${ban.id}`;
+
+        const isIp = ban.banType === 'IP';
+        const displayName = ban.username || (isIp ? `IP : ${ban.ipAddress}` : 'Utilisateur');
+        const banDateStr = new Date(ban.createdAt).toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        item.innerHTML = `
+          <div class="ban-item-user">
+            <div class="ban-item-icon">${isIp ? '🌐' : '🚫'}</div>
+            <div class="ban-item-meta">
+              <div class="ban-item-name">
+                <span>${escapeHtml(displayName)}</span>
+                <span class="ban-item-badge ${isIp ? 'badge-ip' : 'badge-user'}">${isIp ? 'Ban IP' : 'Ban Compte'}</span>
+              </div>
+              <span class="ban-item-date">Banni le ${banDateStr}</span>
+              <span class="ban-item-reason">${escapeHtml(ban.reason || 'Banni par l\'administrateur')}</span>
+            </div>
+          </div>
+          <button type="button" class="btn-unban" data-id="${ban.id}" data-name="${escapeHtml(displayName)}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+            <span>Débannir</span>
+          </button>
+        `;
+
+        const unbanBtn = item.querySelector('.btn-unban');
+        unbanBtn?.addEventListener('click', () => executeUnban(ban.id, displayName, item));
+
+        salonBansList.appendChild(item);
+      });
+
+      salonBansList.classList.remove('hidden');
+    } catch (err) {
+      console.error('Error loading bans:', err);
+      salonBansLoading?.classList.add('hidden');
+      showToast('Impossible de charger la liste des bannis.', 'coral');
+    }
+  }
+
+  async function executeUnban(banId, displayName, rowElement) {
+    if (!state.currentRoom) return;
+    const token = getAuthToken();
+    if (!token) return;
+
+    const unbanBtn = rowElement?.querySelector('.btn-unban');
+    if (unbanBtn) {
+      unbanBtn.disabled = true;
+      unbanBtn.innerHTML = '<span>Débannissement...</span>';
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/bans/${banId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`🔓 ${displayName} a été débanni avec succès !`, 'teal');
+        rowElement?.remove();
+        if (salonBansList && salonBansList.children.length === 0) {
+          salonBansEmpty?.classList.remove('hidden');
+          salonBansList?.classList.add('hidden');
+        }
+      } else {
+        showToast(data.message || 'Erreur lors du débannissement.', 'coral');
+        if (unbanBtn) {
+          unbanBtn.disabled = false;
+          unbanBtn.innerHTML = '<span>Débannir</span>';
+        }
+      }
+    } catch (err) {
+      console.error('Unban error:', err);
+      showToast('Erreur réseau lors du débannissement.', 'coral');
+      if (unbanBtn) {
+        unbanBtn.disabled = false;
+        unbanBtn.innerHTML = '<span>Débannir</span>';
+      }
+    }
+  }
+
+  function openSalonBansModal() {
+    salonBansModal?.classList.remove('hidden');
+    loadSalonBans();
+  }
+
+  function closeSalonBansModal() {
+    salonBansModal?.classList.add('hidden');
+  }
+
+  btnOpenSalonBansModal?.addEventListener('click', openSalonBansModal);
+  btnCloseSalonBansModal?.addEventListener('click', closeSalonBansModal);
+
+  btnAdminViewBansList?.addEventListener('click', () => {
+    closeSalonAdminModal();
+    openSalonBansModal();
+  });
+
 
 
   // =========================================================================

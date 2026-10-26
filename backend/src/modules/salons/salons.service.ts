@@ -448,8 +448,22 @@ export class SalonsService {
 
   static async getBans(salonId: string, adminUserId: string) {
     const salon = await prisma.salon.findUnique({ where: { id: salonId } });
-    if (!salon || salon.ownerId !== adminUserId) {
-      throw new Error('Non autorisé.');
+    if (!salon) throw new Error('Salon introuvable.');
+
+    const requesterMember = await prisma.salonMember.findUnique({
+      where: { salonId_userId: { salonId, userId: adminUserId } },
+    });
+    const requesterUser = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { role: true },
+    });
+
+    const isOwner = salon.ownerId === adminUserId || requesterMember?.role === 'OWNER';
+    const isSuperAdmin = requesterUser?.role === 'SUPERADMIN' || requesterUser?.role === 'ADMIN';
+    const isSalonAdmin = requesterMember?.role === 'ADMIN';
+
+    if (!isOwner && !isSuperAdmin && !isSalonAdmin) {
+      throw new Error('Action refusée : Seuls le propriétaire et les administrateurs ont les droits de gestion.');
     }
 
     return prisma.salonBan.findMany({
@@ -460,14 +474,35 @@ export class SalonsService {
 
   static async unban(salonId: string, adminUserId: string, banId: string) {
     const salon = await prisma.salon.findUnique({ where: { id: salonId } });
-    if (!salon || salon.ownerId !== adminUserId) {
-      throw new Error('Non autorisé.');
+    if (!salon) throw new Error('Salon introuvable.');
+
+    const requesterMember = await prisma.salonMember.findUnique({
+      where: { salonId_userId: { salonId, userId: adminUserId } },
+    });
+    const requesterUser = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { role: true },
+    });
+
+    const isOwner = salon.ownerId === adminUserId || requesterMember?.role === 'OWNER';
+    const isSuperAdmin = requesterUser?.role === 'SUPERADMIN' || requesterUser?.role === 'ADMIN';
+    const isSalonAdmin = requesterMember?.role === 'ADMIN';
+
+    if (!isOwner && !isSuperAdmin && !isSalonAdmin) {
+      throw new Error('Action refusée : Seuls le propriétaire et les administrateurs ont les droits de gestion.');
+    }
+
+    const ban = await prisma.salonBan.findUnique({
+      where: { id: banId },
+    });
+    if (!ban || ban.salonId !== salonId) {
+      throw new Error('Bannissement introuvable dans ce salon.');
     }
 
     await prisma.salonBan.delete({
       where: { id: banId },
     });
 
-    return { success: true, message: 'Bannissement levé avec succès.' };
+    return { success: true, message: 'Bannissement levé avec succès.', unbanned: ban };
   }
 }
