@@ -3000,6 +3000,12 @@ document.addEventListener('DOMContentLoaded', () => {
         c.remove();
       }
     });
+
+    // Update participant count in header dynamically
+    if (chatParticipantsCount) {
+      const count = currentSalonRoster.size;
+      chatParticipantsCount.textContent = `${count} participant${count > 1 ? 's' : ''}`;
+    }
   }
 
   // Voice stage admin trigger click delegation
@@ -3047,37 +3053,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // If only current user is in room, append companion demo participants so room is lively
-    if (currentSalonRoster.size === 1) {
-      currentSalonRoster.set('demo-sarah', {
-        userId: 'demo-sarah',
-        displayName: 'Sarah B.',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-        role: 'Admin',
-        badgeType: 'ADMIN',
-        country: 'FR',
-        isMuted: false,
-        isSpeaking: true,
-        isCameraOn: false,
-      });
-      currentSalonRoster.set('demo-youssef', {
-        userId: 'demo-youssef',
-        displayName: 'Youssef K.',
-        avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100',
-        role: 'Participant',
-        badgeType: 'USER',
-        country: 'MA',
-        isMuted: false,
-        isSpeaking: false,
-        isCameraOn: false,
-      });
-    }
-
     renderVoiceStage();
 
     // Initiator rule: The newly joining member initiates connection to all existing members
     participants.forEach((p) => {
-      if (p.userId !== myId && !p.userId.startsWith('demo-')) {
+      if (p.userId !== myId) {
         createSalonPeerConnection(p.userId, true);
       }
     });
@@ -3086,9 +3066,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // F. Handle New User Joined Salon
   function handleSalonUserJoined(participant) {
     if (!participant || !participant.userId) return;
-    // Remove demo placeholders once another real person joins
-    currentSalonRoster.delete('demo-sarah');
-    currentSalonRoster.delete('demo-youssef');
 
     currentSalonRoster.set(participant.userId, participant);
     renderVoiceStage();
