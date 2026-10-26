@@ -315,7 +315,7 @@ export class SalonsService {
     salonId: string,
     adminUserId: string,
     targetUserId: string,
-    action: 'mute' | 'unmute' | 'cut_camera' | 'ban_user' | 'ban_ip' | 'promote_admin' | 'revoke_admin',
+    action: 'mute' | 'unmute' | 'cut_camera' | 'kick' | 'ban_user' | 'ban_ip' | 'promote_admin' | 'revoke_admin',
     reason?: string,
     targetIp?: string
   ) {
@@ -398,6 +398,14 @@ export class SalonsService {
 
     if (action === 'cut_camera') {
       return { success: true, action: 'cut_camera', targetUser };
+    }
+
+    if (action === 'kick') {
+      // Remove from salon members for the current session without banning
+      await prisma.salonMember.deleteMany({
+        where: { salonId, userId: targetUserId },
+      });
+      return { success: true, action: 'kick', targetUser };
     }
 
     if (action === 'ban_user') {

@@ -425,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminRoleToggleDesc = document.getElementById('adminRoleToggleDesc');
   const btnAdminActionMute = document.getElementById('btnAdminActionMute');
   const btnAdminActionCutCam = document.getElementById('btnAdminActionCutCam');
+  const btnAdminActionKick = document.getElementById('btnAdminActionKick');
   const btnAdminActionBanUser = document.getElementById('btnAdminActionBanUser');
   const btnAdminActionBanIp = document.getElementById('btnAdminActionBanIp');
   const btnOpenSalonBansModal = document.getElementById('btnOpenSalonBansModal');
@@ -4280,6 +4281,10 @@ document.addEventListener('DOMContentLoaded', () => {
         target.isCameraOn = false;
         renderVoiceStage();
       }
+    } else if (action === 'kick') {
+      showToast(`👢 Participant expulsé du salon : ${targetName}`, 'coral');
+      currentSalonRoster.delete(targetUserId);
+      renderVoiceStage();
     } else if (action === 'ban_user') {
       showToast(`Utilisateur banni définitivement : ${targetName}`, 'coral');
       currentSalonRoster.delete(targetUserId);
@@ -4302,6 +4307,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnAdminActionCutCam?.addEventListener('click', () => {
     executeSalonModeration('cut_camera', 'Votre caméra a été désactivée par l\'administrateur du salon.');
+  });
+
+  btnAdminActionKick?.addEventListener('click', () => {
+    executeSalonModeration('kick', 'Vous avez été expulsé de ce salon par l\'administrateur.');
   });
 
   btnAdminActionBanUser?.addEventListener('click', () => {
@@ -5851,6 +5860,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderVoiceStage();
       }
       showToast(reason || '⚠️ Votre caméra a été désactivée par l\'administrateur du salon.', 'coral');
+    });
+
+    // Salon Moderation: Kicked out (Expulsé)
+    socket.on('salon:kicked', ({ salonId, reason }) => {
+      if (state.currentRoom && state.currentRoom.id === salonId) {
+        closeLiveSalon();
+        playTone(300, 'sawtooth', 0.4);
+        showToast(`👢 ${reason || 'Vous avez été expulsé de ce salon par l\'administrateur.'}`, 'coral');
+      }
     });
 
     // Salon Moderation: Banned (User or IP)

@@ -397,6 +397,41 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
             createdAt: new Date(),
             user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },
           });
+        } else if (action === 'kick') {
+          const kickMsg = reason || 'Vous avez été expulsé de ce salon par l\'administrateur.';
+
+          if (targetP) {
+            io.to(targetP.socketId).emit('salon:kicked', {
+              salonId,
+              reason: kickMsg,
+            });
+
+            const targetSocket = io.sockets.sockets.get(targetP.socketId);
+            if (targetSocket) {
+              targetSocket.leave(room);
+            }
+
+            if (salonMap) {
+              salonMap.delete(targetUserId);
+            }
+
+            io.to(room).emit('salon:user_left', {
+              salonId,
+              userId: targetUserId,
+              displayName: targetP.displayName,
+              timestamp: new Date(),
+            });
+          }
+
+          io.to(room).emit('chat:message', {
+            id: `sys-${Date.now()}`,
+            salonId,
+            userId: 'system',
+            content: `👢 ${targetName} a été expulsé du salon par l'administrateur.`,
+            type: 'SYSTEM',
+            createdAt: new Date(),
+            user: { displayName: 'Modération WafaTalk', avatarUrl: 'assets/wafatalk-icon.png' },
+          });
         } else if (action === 'promote_admin' || action === 'revoke_admin') {
           const isPromote = action === 'promote_admin';
           const newRole = isPromote ? 'Admin' : 'Participant';

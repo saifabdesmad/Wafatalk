@@ -6365,6 +6365,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #f87171;
 }
 
+.btn-admin-option.btn-admin-warning {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.07);
+}
+
+.btn-admin-option.btn-admin-warning:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+}
+
+.btn-admin-option.btn-admin-warning .admin-opt-info strong {
+  color: #fbbf24;
+}
+
 .btn-admin-option.btn-admin-role-toggle {
   border-color: rgba(16, 185, 129, 0.4);
   background: rgba(16, 185, 129, 0.08);

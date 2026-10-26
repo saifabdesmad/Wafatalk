@@ -19,7 +19,7 @@ export const joinSalonSchema = z.object({
 });
 
 export const salonAdminActionSchema = z.object({
-  action: z.enum(['mute', 'unmute', 'cut_camera', 'ban_user', 'ban_ip', 'promote_admin', 'revoke_admin']),
+  action: z.enum(['mute', 'unmute', 'cut_camera', 'kick', 'ban_user', 'ban_ip', 'promote_admin', 'revoke_admin']),
   targetUserId: z.string(),
   reason: z.string().optional(),
 });
