@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dynamicConfig.iceCandidatePoolSize) RTC_CONFIG.iceCandidatePoolSize = dynamicConfig.iceCandidatePoolSize;
         if (dynamicConfig.bundlePolicy) RTC_CONFIG.bundlePolicy = dynamicConfig.bundlePolicy;
         if (dynamicConfig.rtcpMuxPolicy) RTC_CONFIG.rtcpMuxPolicy = dynamicConfig.rtcpMuxPolicy;
-        console.log('📡 Dynamic WebRTC STUN/TURN configuration synchronized from WafaTalk backend.');
+        console.log(' Dynamic WebRTC STUN/TURN configuration synchronized from WafaTalk backend.');
       }
     })
     .catch(() => {
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const salonsData = [
     {
       id: 'salon-1',
-      name: 'Chill & Discussion du Soir ☕',
+      name: 'Chill & Discussion du Soir',
       topic: 'On refait le monde dans la bienveillance. Ambiance tamisée & thé à la menthe.',
       category: 'chill',
       isLive: true,
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       id: 'salon-2',
-      name: 'Gaming Squads & Tournois 🎮',
+      name: 'Gaming Squads & Tournois',
       topic: 'Valorant, EA FC & Rocket League. Venez trouver vos coéquipiers pour monter en rang !',
       category: 'gaming',
       isLive: true,
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       id: 'salon-3',
-      name: 'Vocal Musique & Jam Session 🎵',
+      name: 'Vocal Musique & Jam Session',
       topic: 'Écoute d\'albums, partage de playlists lo-fi et impro guitare en direct.',
       category: 'music',
       isLive: true,
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       id: 'salon-4',
-      name: 'Débats Tech & IA Antigravity 🤖',
+      name: 'Débats Tech & Société',
       topic: 'Tendances du web, agents autonomes et projets de création numérique.',
       category: 'vocal',
       isLive: true,
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       id: 'salon-5',
-      name: 'Le Cercle Privé des VIP 🔒',
+      name: 'Le Cercle Privé des VIP',
       topic: 'Salon exclusif pour organiser les sorties du week-end et échanger en toute discrétion.',
       category: 'private',
       isLive: false,
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       id: 'salon-6',
-      name: 'Pause Café & Rires 😂',
+      name: 'Pause Café & Échanges',
       topic: 'Anecdotes légères, mèmes et bonne humeur garantie avant le weekend !',
       category: 'chill',
       isLive: true,
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleTheme() {
     const nextTheme = state.theme === 'light' ? 'dark' : 'light';
     applyTheme(nextTheme);
-    showToast(`Thème basculé en mode ${nextTheme === 'dark' ? 'Sombre 🌙' : 'Clair ☀️'}`, 'amber');
+    showToast(`Thème basculé en mode ${nextTheme === 'dark' ? 'Sombre' : 'Clair'}`, 'amber');
   }
 
   applyTheme(state.theme);
@@ -735,9 +735,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Country Flag Image Tag Generator
   function getFlagImgTag(countryCode, alt = '') {
-    if (!countryCode) return '<span class="default-globe">🌍</span>';
+    if (!countryCode) return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>';
     const code = countryCode.trim().toLowerCase();
-    return `<img src="https://flagcdn.com/w40/${code}.png" class="country-flag-img" alt="${alt || countryCode}" loading="lazy" onerror="this.outerHTML='🌍'">`;
+    return `<img src="https://flagcdn.com/w40/${code}.png" class="country-flag-img" alt="${alt || countryCode}" loading="lazy" onerror="this.outerHTML=''">`;
   }
 
   // Graphical Country Picker Controller
@@ -769,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let html = '';
     // If no search filter, show popular section first
     if (!cleanFilter) {
-      html += `<div class="country-group-label">🌟 Pays Fréquents</div>`;
+      html += `<div class="country-group-label">Pays Fréquents</div>`;
       COUNTRIES.filter(c => c.popular).forEach(c => {
         const isSel = c.code === activeCountryCode ? 'selected' : '';
         html += `
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
       });
-      html += `<div class="country-group-label" style="margin-top: 6px;">🌐 Tous les Pays</div>`;
+      html += `<div class="country-group-label" style="margin-top: 6px;">Tous les Pays</div>`;
     }
 
     matches.forEach(c => {
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function resetCountryPicker() {
     activeCountryCode = '';
     if (regCountryInput) regCountryInput.value = '';
-    if (selectedFlagWrap) selectedFlagWrap.innerHTML = '<span class="default-globe">🌍</span>';
+    if (selectedFlagWrap) selectedFlagWrap.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>';
     if (selectedCountryName) selectedCountryName.textContent = 'Choisir un pays...';
     closeCountryDropdown();
   }
@@ -908,11 +908,11 @@ document.addEventListener('DOMContentLoaded', () => {
       regUsernameInput.classList.remove('has-valid');
       if (regUsernameStatus) {
         regUsernameStatus.className = 'username-status-badge invalid';
-        regUsernameStatus.textContent = '✕';
+        regUsernameStatus.textContent = '';
       }
       if (regUsernameHint) {
         regUsernameHint.className = 'username-rule-hint invalid';
-        regUsernameHint.innerHTML = '<span>✕</span><span>Seuls les lettres (A-Z, a-z), chiffres (0-9), tirets (-) et underscores (_) sont autorisés.</span>';
+        regUsernameHint.innerHTML = '<span></span><span>Seuls les lettres (A-Z, a-z), chiffres (0-9), tirets (-) et underscores (_) sont autorisés.</span>';
       }
       return;
     }
@@ -940,7 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (regUsernameHint) {
         regUsernameHint.className = 'username-rule-hint invalid';
-        regUsernameHint.innerHTML = '<span>✕</span><span>Le pseudo ne peut pas dépasser 30 caractères.</span>';
+        regUsernameHint.innerHTML = '<span></span><span>Le pseudo ne peut pas dépasser 30 caractères.</span>';
       }
       return;
     }
@@ -950,11 +950,11 @@ document.addEventListener('DOMContentLoaded', () => {
     regUsernameInput.classList.add('has-valid');
     if (regUsernameStatus) {
       regUsernameStatus.className = 'username-status-badge valid';
-      regUsernameStatus.textContent = '✓';
+      regUsernameStatus.textContent = '';
     }
     if (regUsernameHint) {
       regUsernameHint.className = 'username-rule-hint valid';
-      regUsernameHint.innerHTML = `<span>✓</span><span>Pseudo valide et conforme (${val.length}/30).</span>`;
+      regUsernameHint.innerHTML = `<span></span><span>Pseudo valide et conforme (${val.length}/30).</span>`;
     }
   }
 
@@ -975,10 +975,10 @@ document.addEventListener('DOMContentLoaded', () => {
     passwordMatchHint.classList.remove('hidden');
     if (pwd === confirmPwd) {
       passwordMatchHint.className = 'password-match-hint match';
-      passwordMatchHint.innerHTML = '<span>✓</span><span>Les mots de passe correspondent parfaitement.</span>';
+      passwordMatchHint.innerHTML = '<span></span><span>Les mots de passe correspondent parfaitement.</span>';
     } else {
       passwordMatchHint.className = 'password-match-hint mismatch';
-      passwordMatchHint.innerHTML = '<span>✕</span><span>Les mots de passe ne correspondent pas.</span>';
+      passwordMatchHint.innerHTML = '<span></span><span>Les mots de passe ne correspondent pas.</span>';
     }
   }
 
@@ -1000,7 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
       regTermsCheckbox.checked = true;
     }
     termsModal?.classList.add('hidden');
-    showToast('Charte communautaire & CGU acceptées ! ✅', 'teal');
+    showToast('Charte communautaire & CGU acceptées.', 'teal');
   });
 
   termsModal?.addEventListener('click', (e) => {
@@ -1056,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!otpTimer) return;
     const mins = Math.floor(otpExpirySeconds / 60);
     const secs = otpExpirySeconds % 60;
-    otpTimer.textContent = `⏱️ Expire dans ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    otpTimer.textContent = `Expire dans ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
   function startResendCooldown() {
@@ -1087,7 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showOtpError(message) {
     if (otpStatusHint) {
       otpStatusHint.className = 'otp-status-hint error';
-      otpStatusHint.innerHTML = `<span>✕</span><span>${message}</span>`;
+      otpStatusHint.innerHTML = `<span></span><span>${message}</span>`;
     }
     otpDigitInputs.forEach(i => i.classList.add('error'));
     shakeElement(emailVerificationModal.querySelector('.modal-container'));
@@ -1181,7 +1181,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast('Nouveau code de vérification envoyé par e-mail ! 📩', 'teal');
+        showToast('Nouveau code de vérification envoyé par e-mail.', 'teal');
         startResendCooldown();
       } else {
         showToast(data.message || 'Erreur lors du renvoi du code', 'coral');
@@ -1231,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setAuthSession(data.token, data.user);
         authenticateUser(data.user, true);
-        showToast(`Compte vérifié et activé ! Bienvenue ${data.user.displayName || pendingRegistrationData.username} 🎈`, 'success');
+        showToast(`Compte vérifié et activé ! Bienvenue ${data.user.displayName || pendingRegistrationData.username} `, 'success');
         playTone(520, 'sine', 0.25);
         return;
       } else {
@@ -1290,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (playFx) {
       launchParticles(window.innerWidth / 2, window.innerHeight / 2, 'confetti');
       playTone(520, 'sine', 0.2);
-      showToast(`Bienvenue sur WafaTalk, ${displayName} ! ✨`, 'success');
+      showToast(`Bienvenue sur WafaTalk, ${displayName} !`, 'success');
     }
 
     // Smooth Screen Transition
@@ -1597,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', () => {
           termsAccepted: true,
         };
         openEmailVerificationModal(email);
-        showToast(`Code de vérification envoyé à ${email} 📩 Consultez votre boîte de réception.`, 'teal');
+        showToast(`Code de vérification envoyé à ${email}  Consultez votre boîte de réception.`, 'teal');
         return;
       } else if (res.status === 400) {
         showToast(data.message || 'Erreur lors de l\'envoi du code', 'coral');
@@ -1650,7 +1650,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (passwordMatchHint) passwordMatchHint.className = 'password-match-hint hidden';
       if (strengthFill) strengthFill.style.width = '0%';
       authenticateUser(newUser, true);
-      showToast(`Compte créé avec succès ! Bienvenue ${username} 🎈`, 'success');
+      showToast(`Compte créé avec succès ! Bienvenue ${username} `, 'success');
     } finally {
       btnSubmit.disabled = false;
       spinner.classList.add('hidden');
@@ -1774,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(data.message || `Code de vérification envoyé à ${email} 📩`, 'teal');
+        showToast(data.message || `Code de vérification envoyé à ${email} `, 'teal');
         playTone(520, 'sine', 0.15);
 
         // Transition to Step 2
@@ -1807,7 +1807,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       btnSubmitForgotRequest.disabled = false;
       forgotRequestSpinner?.classList.add('hidden');
-      btnText.textContent = 'Envoyer mon code sécurisé 📩';
+      btnText.textContent = 'Envoyer mon code sécurisé ';
     }
   });
 
@@ -1824,7 +1824,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`Un nouveau code a été envoyé à ${activeRecoveryEmail} 📩`, 'teal');
+        showToast(`Un nouveau code a été envoyé à ${activeRecoveryEmail} `, 'teal');
       } else {
         showToast(data.message || 'Erreur lors du renvoi.', 'coral');
       }
@@ -1878,7 +1878,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setAuthSession(data.token, data.user);
         closeForgotPasswordModal();
         authenticateUser(data.user, true);
-        showToast('🎉 Mot de passe mis à jour avec succès ! Vous êtes connecté.', 'success');
+        showToast(' Mot de passe mis à jour avec succès ! Vous êtes connecté.', 'success');
         return;
       } else {
         showToast(data.message || 'Code invalide ou expiré.', 'coral');
@@ -1903,7 +1903,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setAuthSession(fallbackToken, fallbackUser);
         closeForgotPasswordModal();
         authenticateUser(fallbackUser, true);
-        showToast('🎉 Mot de passe mis à jour avec succès ! Vous êtes connecté.', 'success');
+        showToast(' Mot de passe mis à jour avec succès ! Vous êtes connecté.', 'success');
         return;
       } else {
         showToast('Code de sécurité incorrect. Veuillez vérifier vos e-mails.', 'coral');
@@ -1911,7 +1911,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       btnSubmitForgotReset.disabled = false;
       forgotResetSpinner?.classList.add('hidden');
-      btnText.textContent = 'Valider & Me connecter 🚀';
+      btnText.textContent = 'Valider & Me connecter ';
     }
   });
 
@@ -1991,7 +1991,7 @@ document.addEventListener('DOMContentLoaded', () => {
           formCustomSocial?.reset();
           setAuthSession(data.token, data.user);
           authenticateUser(data.user, true);
-          showToast(`Connecté avec succès via ${provider} ! ✨`, 'success');
+          showToast(`Connecté avec succès via ${provider} ! `, 'success');
           return;
         }
       }
@@ -2022,7 +2022,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formCustomSocial?.reset();
       setAuthSession(`local_social_${user.id}`, user);
       authenticateUser(user, true);
-      showToast(`Connecté avec succès via ${provider} ! ✨`, 'success');
+      showToast(`Connecté avec succès via ${provider} ! `, 'success');
     } finally {
       if (btnConfirm) btnConfirm.disabled = false;
       if (spinner) spinner.classList.add('hidden');
@@ -2155,7 +2155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filtered.length === 0) {
       salonsGrid.innerHTML = `
         <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-medium);">
-          <div style="font-size: 2.5rem; margin-bottom: 12px;">🔍</div>
+          <div style="font-size: 2.5rem; margin-bottom: 12px;"></div>
           <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">Aucun salon trouvé</h4>
           <p style="color: var(--text-muted); font-size: 0.9rem;">Essayez un autre mot-clé ou créez votre propre salon maintenant !</p>
         </div>
@@ -2175,7 +2175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="live-dot pulse"></span>
             <span>${salon.isLive ? 'EN DIRECT' : 'SALON RÉSERVÉ'}</span>
           </span>
-          ${salon.isPrivate ? '<span class="salon-card-badge" style="background: rgba(242, 91, 62, 0.35); border-color: rgba(242, 91, 62, 0.6); color: #fff;">🔒 PRIVÉ</span>' : ''}
+          ${salon.isPrivate ? '<span class="salon-card-badge" style="background: rgba(242, 91, 62, 0.35); border-color: rgba(242, 91, 62, 0.6); color: #fff;"> PRIVÉ</span>' : ''}
           <span class="salon-card-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
             <span>${salon.participantsCount}</span>
@@ -2352,7 +2352,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <button type="button" class="friend-action-btn" title="Envoyer un message ou appeler">
-          💬
+          
         </button>
       `;
 
@@ -2407,7 +2407,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 2. If salon has known local accessCode, strictly reject wrong code
       const givenCode = (accessCode || salon.accessCode || '').trim().toLowerCase();
       if (salon.accessCode && givenCode && givenCode !== salon.accessCode.trim().toLowerCase()) {
-        showToast('❌ Code d\'accès incorrect pour ce salon privé.', 'coral');
+        showToast(' Code d\'accès incorrect pour ce salon privé.', 'coral');
         playTone(220, 'sawtooth', 0.25);
         openPrivateSalonPrompt(salon);
         return;
@@ -2436,7 +2436,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('liveSalonTitle').textContent = salon.name;
     document.getElementById('liveSalonTopic').textContent = salon.topic || salon.description || 'Partagez un moment convivial.';
-    document.getElementById('modalRoomCategory').textContent = `${(salon.category || 'vocal').toUpperCase()} • ${salon.isPrivate ? '🔒 PRIVÉ' : '🌐 PUBLIC'} • HD AUDIO & VIDEO`;
+    document.getElementById('modalRoomCategory').textContent = `${(salon.category || 'vocal').toUpperCase()} • ${salon.isPrivate ? ' PRIVÉ' : ' PUBLIC'} • HD AUDIO & VIDEO`;
 
     // Clear previous roster & peer connections
     currentSalonRoster.clear();
@@ -2775,7 +2775,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         type: 'user',
         label: 'Membre',
-        icon: '👤',
+        icon: '',
         badgeClass: 'badge-user',
         cardClass: 'role-user',
         ringColor: '#09090b',
@@ -2811,7 +2811,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         type: 'owner',
         label: 'Propriétaire',
-        icon: '👑',
+        icon: '',
         badgeClass: 'badge-owner',
         cardClass: 'role-owner',
         ringColor: '#ef4444',
@@ -2821,7 +2821,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         type: 'superadmin',
         label: 'SuperAdmin',
-        icon: '⚡',
+        icon: '',
         badgeClass: 'badge-superadmin',
         cardClass: 'role-superadmin',
         ringColor: '#3b82f6',
@@ -2831,7 +2831,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         type: 'admin',
         label: 'Admin',
-        icon: '🛡️',
+        icon: '️',
         badgeClass: 'badge-admin',
         cardClass: 'role-admin',
         ringColor: '#10b981',
@@ -2840,7 +2840,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       type: 'user',
       label: 'Membre',
-      icon: '👤',
+      icon: '',
       badgeClass: 'badge-user',
       cardClass: 'role-user',
       ringColor: '#09090b',
@@ -2899,8 +2899,8 @@ document.addEventListener('DOMContentLoaded', () => {
           card.innerHTML = `
             <div class="stage-live-badge"><span class="badge-dot pulse"></span> CAMÉRA</div>
             <span class="stage-video-role-badge ${roleInfo.badgeClass}">${roleInfo.icon} ${roleInfo.label}</span>
-            ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
-            ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">🛡️</button>` : ''}
+            ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
+            ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">️</button>` : ''}
             <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
@@ -2953,8 +2953,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <span class="stage-avatar-ring-badge ${roleInfo.badgeClass}" title="${roleInfo.label}">${roleInfo.icon}</span>
             </div>
-            ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé">🔇</span>' : ''}
-            ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">🛡️</button>` : ''}
+            ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
+            ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">️</button>` : ''}
             <div style="display: flex; align-items: center; gap: 5px;">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
               <span>${flagImg}</span>
@@ -2990,7 +2990,7 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerBtn.className = 'stage-admin-trigger';
         triggerBtn.dataset.userId = userId;
         triggerBtn.title = 'Gérer ce participant';
-        triggerBtn.innerHTML = '🛡️';
+        triggerBtn.innerHTML = '️';
         card.appendChild(triggerBtn);
       } else if (!canAdminModerate && triggerBtn) {
         triggerBtn.remove();
@@ -3002,7 +3002,7 @@ document.addEventListener('DOMContentLoaded', () => {
         muteBadge = document.createElement('span');
         muteBadge.className = 'stage-mute-badge';
         muteBadge.title = 'Micro coupé';
-        muteBadge.textContent = '🔇';
+        muteBadge.textContent = '';
         card.appendChild(muteBadge);
       } else if (!p.isMuted && muteBadge) {
         muteBadge.remove();
@@ -3087,7 +3087,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSalonRoster.set(participant.userId, participant);
     renderVoiceStage();
 
-    showToast(`${participant.displayName} a rejoint le salon ! 👋`, 'teal');
+    showToast(`${participant.displayName} a rejoint le salon ! `, 'teal');
     playTone(520, 'sine', 0.12);
 
     // Existing members prepare receiver peer connection without initiating (avoids glare)
@@ -3136,7 +3136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const badge = document.createElement('span');
         badge.className = 'stage-mute-badge';
         badge.title = 'Micro coupé';
-        badge.textContent = '🔇';
+        badge.textContent = '';
         card.appendChild(badge);
       } else if (!p.isMuted && muteBadge) {
         muteBadge.remove();
@@ -3179,7 +3179,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pc.ontrack = (event) => {
       const track = event.track;
-      console.log(`📡 [${isInitiator ? 'INIT' : 'ANSW'}] Track from ${targetUserId}:`, track.kind, track.id);
+      console.log(` [${isInitiator ? 'INIT' : 'ANSW'}] Track from ${targetUserId}:`, track.kind, track.id);
 
       if (track.kind === 'audio') {
         let audioEl = salonRemoteAudioElements.get(targetUserId);
@@ -3248,7 +3248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log(`🧊 ICE [${targetUserId}]:`, pc.iceConnectionState);
+      console.log(` ICE [${targetUserId}]:`, pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn(`ICE ${pc.iceConnectionState} with ${targetUserId} — triggering ICE restart`);
         if (isInitiator) {
@@ -3258,9 +3258,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     pc.onconnectionstatechange = () => {
-      console.log(`🔗 PeerConn [${targetUserId}]:`, pc.connectionState);
+      console.log(` PeerConn [${targetUserId}]:`, pc.connectionState);
       if (pc.connectionState === 'connected') {
-        console.log(`✅ Salon WebRTC connected with ${targetUserId}!`);
+        console.log(` Salon WebRTC connected with ${targetUserId}!`);
       }
     };
 
@@ -3430,14 +3430,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const badge = document.createElement('span');
         badge.className = 'stage-mute-badge';
         badge.title = 'Micro coupé';
-        badge.textContent = '🔇';
+        badge.textContent = '';
         selfCard.appendChild(badge);
       } else if (!state.isMicMuted && muteBadge) {
         muteBadge.remove();
       }
     }
 
-    showToast(state.isMicMuted ? 'Microphone désactivé 🔇' : 'Microphone activé 🎙️', state.isMicMuted ? 'coral' : 'success');
+    showToast(state.isMicMuted ? 'Microphone désactivé ' : 'Microphone activé ', state.isMicMuted ? 'coral' : 'success');
   });
 
   // L. Toggle Video Camera (Instant replaceTrack & hardware lock resilient)
@@ -3509,7 +3509,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       renderVoiceStage();
-      showToast('Caméra activée 🎥', 'success');
+      showToast('Caméra activée ', 'success');
     } else {
       isSalonCamActive = false;
       if (simulatedCamAnimInterval) {
@@ -3608,7 +3608,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     chatMessagesScroll.innerHTML = `
       <div class="chat-history-start hidden" id="salonHistoryStart">
-        <span>✨ Début de l'historique de <strong>${escapeHtml(salon.name)}</strong></span>
+        <span> Début de l'historique de <strong>${escapeHtml(salon.name)}</strong></span>
       </div>
       <div class="chat-history-loader hidden" id="salonHistoryLoader">
         <span class="chat-loader-spinner"></span>
@@ -3621,7 +3621,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <strong>WafaBot</strong>
             <span class="chat-msg-time">À l'instant</span>
           </div>
-          <p class="chat-msg-text">Bienvenue dans <strong>${escapeHtml(salon.name)}</strong> ! Vous pouvez maintenant parler, activer votre caméra et discuter avec tous les membres du salon en direct 🚀</p>
+          <p class="chat-msg-text">Bienvenue dans <strong>${escapeHtml(salon.name)}</strong> ! Vous pouvez maintenant parler, activer votre caméra et discuter avec tous les membres du salon en direct </p>
         </div>
       </div>
     `;
@@ -3856,19 +3856,19 @@ document.addEventListener('DOMContentLoaded', () => {
       launchParticles(window.innerWidth / 2, window.innerHeight / 2, giftType);
       playGiftChime();
 
-      showToast(`✨ Cadeau envoyé : ${giftName} ! Vos amis adorent ! 🎁`, 'amber');
+      showToast(` Cadeau envoyé : ${giftName} ! Vos amis adorent ! `, 'amber');
 
       // If inside live salon, append celebration announcement
       if (state.currentRoom && !liveSalonModal.classList.contains('hidden')) {
         const giftMsg = document.createElement('div');
         giftMsg.className = 'chat-msg';
         giftMsg.innerHTML = `
-          <div style="font-size: 1.6rem;">🎁</div>
+          <div style="font-size: 1.6rem;"></div>
           <div class="chat-msg-body" style="background: linear-gradient(135deg, var(--amber-primary), var(--coral-primary)); color: #fff;">
             <div class="chat-msg-author">
               <strong>Célébration WafaTalk !</strong>
             </div>
-            <p class="chat-msg-text"><strong>Vous</strong> avez offert un <strong>${giftName}</strong> à tout le salon ! 🎉</p>
+            <p class="chat-msg-text"><strong>Vous</strong> avez offert un <strong>${giftName}</strong> à tout le salon ! </p>
           </div>
         `;
         chatMessagesScroll.appendChild(giftMsg);
@@ -3998,7 +3998,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tilePublicSalon?.classList.add('active');
     tilePrivateSalon?.classList.remove('active');
 
-    showToast(`Le salon "${name}" a été créé avec succès ! 👑 Vous êtes l'administrateur.`, 'teal');
+    showToast(`Le salon "${name}" a été créé avec succès !  Vous êtes l'administrateur.`, 'teal');
     openLiveSalon(createdSalon);
   });
 
@@ -4026,13 +4026,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const originalBtnText = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span>Vérification... ⏳</span>';
+      submitBtn.innerHTML = '<span>Vérification en cours...</span>';
     }
 
     try {
       // 1. If salon has known local access code, check it first
       if (salon.accessCode && salon.accessCode.trim().toLowerCase() !== code.toLowerCase()) {
-        showToast('❌ Code d\'accès incorrect !', 'coral');
+        showToast(' Code d\'accès incorrect !', 'coral');
         playTone(220, 'sawtooth', 0.25);
         if (privateAccessCodeInput) {
           privateAccessCodeInput.value = '';
@@ -4054,7 +4054,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const data = await res.json();
         if (!data.success || !data.allowed) {
-          showToast(`❌ ${data.message || 'Code d\'accès incorrect.'}`, 'coral');
+          showToast(` ${data.message || 'Code d\'accès incorrect.'}`, 'coral');
           playTone(220, 'sawtooth', 0.25);
           if (privateAccessCodeInput) {
             privateAccessCodeInput.value = '';
@@ -4065,7 +4065,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (netErr) {
         // Fallback for offline demo salon
         if (salon.accessCode && salon.accessCode.trim().toLowerCase() !== code.toLowerCase()) {
-          showToast('❌ Code d\'accès incorrect !', 'coral');
+          showToast(' Code d\'accès incorrect !', 'coral');
           return;
         }
       }
@@ -4073,7 +4073,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 3. Success: save verified code and grant entrance
       salon.accessCode = code;
       closePrivateAccessModal();
-      showToast('✅ Code validé ! Bienvenue dans le salon.', 'teal');
+      showToast(' Code validé ! Bienvenue dans le salon.', 'teal');
       openLiveSalon(salon, code);
     } finally {
       if (submitBtn) {
@@ -4091,7 +4091,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const salon = state.currentRoom;
     if (shareSalonName) shareSalonName.textContent = salon.name;
     if (shareSalonBadge) {
-      shareSalonBadge.textContent = salon.isPrivate ? '🔒 Salon Privé' : '🌐 Salon Public';
+      shareSalonBadge.textContent = salon.isPrivate ? ' Salon Privé' : ' Salon Public';
       shareSalonBadge.style.background = salon.isPrivate ? 'rgba(242, 91, 62, 0.18)' : 'rgba(22, 163, 155, 0.18)';
       shareSalonBadge.style.color = salon.isPrivate ? 'var(--coral-light)' : 'var(--teal-light)';
       shareSalonBadge.style.borderColor = salon.isPrivate ? 'rgba(242, 91, 62, 0.3)' : 'rgba(22, 163, 155, 0.3)';
@@ -4128,7 +4128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const code = shareSalonCode?.textContent?.trim();
     if (code && code !== '----') {
       navigator.clipboard?.writeText(code).then(() => {
-        showToast(`Code d'accès "${code}" copié ! 📋`, 'teal');
+        showToast(`Code d'accès "${code}" copié ! `, 'teal');
       }).catch(() => {
         showToast(`Code d'accès : ${code}`, 'teal');
       });
@@ -4139,12 +4139,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const link = shareInviteLinkInput?.value;
     if (link) {
       navigator.clipboard?.writeText(link).then(() => {
-        showToast('Lien d\'invitation copié dans le presse-papiers ! 🔗', 'teal');
+        showToast('Lien d\'invitation copié dans le presse-papiers ! ', 'teal');
       }).catch(() => {
         if (shareInviteLinkInput) {
           shareInviteLinkInput.select();
           document.execCommand('copy');
-          showToast('Lien d\'invitation copié ! 🔗', 'teal');
+          showToast('Lien d\'invitation copié ! ', 'teal');
         }
       });
     }
@@ -4153,8 +4153,8 @@ document.addEventListener('DOMContentLoaded', () => {
   btnShareWhatsApp?.addEventListener('click', () => {
     const salon = state.currentRoom;
     const link = shareInviteLinkInput?.value || window.location.href;
-    const codeText = salon?.accessCode ? `\n🔑 Code d'accès : *${salon.accessCode}*` : '';
-    const text = `Rejoins-moi dans le salon "${salon?.name || 'WafaTalk'}" sur WafaTalk ! 🎙️✨\nLien direct : ${link}${codeText}`;
+    const codeText = salon?.accessCode ? `\n Code d'accès : *${salon.accessCode}*` : '';
+    const text = `Rejoins-moi dans le salon "${salon?.name || 'WafaTalk'}" sur WafaTalk ! \nLien direct : ${link}${codeText}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   });
 
@@ -4168,7 +4168,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnShareInstagram?.addEventListener('click', () => {
     const link = shareInviteLinkInput?.value || window.location.href;
     navigator.clipboard?.writeText(link).catch(() => {});
-    showToast('Lien copié ! Collez-le dans vos stories ou messages Instagram 📸', 'teal');
+    showToast('Lien copié ! Collez-le dans vos stories ou messages Instagram ', 'teal');
     window.open(`https://www.instagram.com/direct/inbox/`, '_blank');
   });
 
@@ -4198,12 +4198,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAdminActionToggleAdmin.style.display = 'flex';
         const isTargetAdmin = targetRoleInfo.type === 'admin';
         if (isTargetAdmin) {
-          if (adminRoleToggleIcon) adminRoleToggleIcon.textContent = '⚪';
+          if (adminRoleToggleIcon) adminRoleToggleIcon.textContent = '';
           if (adminRoleToggleTitle) adminRoleToggleTitle.textContent = 'Retirer le statut Admin';
           if (adminRoleToggleDesc) adminRoleToggleDesc.textContent = 'Rétrograder en utilisateur normal (Cercle Noir)';
           btnAdminActionToggleAdmin.dataset.nextAction = 'revoke_admin';
         } else {
-          if (adminRoleToggleIcon) adminRoleToggleIcon.textContent = '🟢';
+          if (adminRoleToggleIcon) adminRoleToggleIcon.textContent = '';
           if (adminRoleToggleTitle) adminRoleToggleTitle.textContent = 'Nommer Administrateur';
           if (adminRoleToggleDesc) adminRoleToggleDesc.textContent = 'Accorder les droits de gestion sur ce salon (Cercle Vert)';
           btnAdminActionToggleAdmin.dataset.nextAction = 'promote_admin';
@@ -4256,14 +4256,14 @@ document.addEventListener('DOMContentLoaded', () => {
     closeSalonAdminModal();
 
     if (action === 'promote_admin') {
-      showToast(`🟢 ${targetName} est maintenant Administrateur du salon !`, 'teal');
+      showToast(` ${targetName} est maintenant Administrateur du salon !`, 'teal');
       if (target) {
         target.role = 'Admin';
         target.badgeType = 'ADMIN';
         renderVoiceStage();
       }
     } else if (action === 'revoke_admin') {
-      showToast(`⚪ Statut Administrateur retiré à ${targetName}.`, 'coral');
+      showToast(` Statut Administrateur retiré à ${targetName}.`, 'coral');
       if (target) {
         target.role = 'Participant';
         target.badgeType = 'USER';
@@ -4282,7 +4282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderVoiceStage();
       }
     } else if (action === 'kick') {
-      showToast(`👢 Participant expulsé du salon : ${targetName}`, 'coral');
+      showToast(` Participant expulsé du salon : ${targetName}`, 'coral');
       currentSalonRoster.delete(targetUserId);
       renderVoiceStage();
     } else if (action === 'ban_user') {
@@ -4369,7 +4369,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         item.innerHTML = `
           <div class="ban-item-user">
-            <div class="ban-item-icon">${isIp ? '🌐' : '🚫'}</div>
+            <div class="ban-item-icon">${isIp ? '' : ''}</div>
             <div class="ban-item-meta">
               <div class="ban-item-name">
                 <span>${escapeHtml(displayName)}</span>
@@ -4419,7 +4419,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`🔓 ${displayName} a été débanni avec succès !`, 'teal');
+        showToast(` ${displayName} a été débanni avec succès !`, 'teal');
         rowElement?.remove();
         if (salonBansList && salonBansList.children.length === 0) {
           salonBansEmpty?.classList.remove('hidden');
@@ -4543,7 +4543,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (match) profileCountrySelect.value = match.value;
     }
     if (profilePointsChip) {
-      profilePointsChip.textContent = `🪙 ${state.userPoints || 150} WafaPoints`;
+      profilePointsChip.textContent = ` ${state.userPoints || 150} WafaPoints`;
     }
 
     // Set Presence Visuals
@@ -4762,7 +4762,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      showToast('Profil et statut mis à jour avec succès ! ✨', 'success');
+      showToast('Profil et statut mis à jour avec succès ! ', 'success');
       playTone(520, 'sine', 0.2);
       closeProfileStatusModal();
     } catch (err) {
@@ -4776,7 +4776,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const navUserAvatar = document.getElementById('navUserAvatar');
       if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
 
-      showToast('Profil mis à jour en local avec succès ! ✨', 'teal');
+      showToast('Profil mis à jour en local avec succès ! ', 'teal');
       closeProfileStatusModal();
     } finally {
       btnSaveProfileModal.disabled = false;
@@ -4970,7 +4970,7 @@ document.addEventListener('DOMContentLoaded', () => {
       isTestingMic = true;
       if (micTestDot) micTestDot.classList.add('active');
       if (btnTestMicText) btnTestMicText.textContent = 'Arrêter le test';
-      if (micTestHint) micTestHint.textContent = '🎙️ Micro actif ! Parlez pour vérifier le niveau sonore en direct.';
+      if (micTestHint) micTestHint.textContent = ' Micro actif ! Parlez pour vérifier le niveau sonore en direct.';
 
       const dataArray = new Uint8Array(micTestAnalyser.frequencyBinCount);
 
@@ -5078,7 +5078,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       setTimeout(() => actx.close(), 1200);
-      showToast('🔊 Son de test joué avec succès !', 'teal');
+      showToast(' Son de test joué avec succès !', 'teal');
     } catch (e) {
       console.warn('Speaker chime error:', e);
     }
@@ -5092,13 +5092,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!uid) return;
     navigator.clipboard.writeText(uid).then(() => {
       const origText = btnCopyUserId.innerHTML;
-      btnCopyUserId.innerHTML = `<span>Copié ! ✓</span>`;
+      btnCopyUserId.innerHTML = `<span>Copié ! </span>`;
       btnCopyUserId.style.color = 'var(--brand-teal)';
       setTimeout(() => {
         btnCopyUserId.innerHTML = origText;
         btnCopyUserId.style.color = '';
       }, 2000);
-      showToast('Identifiant utilisateur copié dans le presse-papier ! 📋', 'teal');
+      showToast('Identifiant utilisateur copié dans le presse-papier ! ', 'teal');
     }).catch(() => {
       showToast('Impossible de copier l\'identifiant.', 'coral');
     });
@@ -5117,12 +5117,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newPass === confirmPass) {
       if (settingsPasswordHint) {
         settingsPasswordHint.className = 'password-match-hint match';
-        settingsPasswordHint.textContent = '✓ Les mots de passe correspondent parfaitement.';
+        settingsPasswordHint.textContent = ' Les mots de passe correspondent parfaitement.';
       }
     } else {
       if (settingsPasswordHint) {
         settingsPasswordHint.className = 'password-match-hint mismatch';
-        settingsPasswordHint.textContent = '✕ Les deux mots de passe ne correspondent pas.';
+        settingsPasswordHint.textContent = ' Les deux mots de passe ne correspondent pas.';
       }
     }
   }
@@ -5167,9 +5167,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok && data.success) {
           if (passwordUpdateFeedback) {
             passwordUpdateFeedback.className = 'modal-feedback-alert success';
-            passwordUpdateFeedback.textContent = '🎉 Mot de passe mis à jour avec succès !';
+            passwordUpdateFeedback.textContent = ' Mot de passe mis à jour avec succès !';
           }
-          showToast('Mot de passe mis à jour avec succès ! 🔒', 'success');
+          showToast('Mot de passe mis à jour avec succès.', 'success');
           formSettingsPassword.reset();
           if (settingsPasswordHint) settingsPasswordHint.className = 'password-match-hint hidden';
           playTone(520, 'sine', 0.25);
@@ -5180,9 +5180,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Offline / demo fallback
         if (passwordUpdateFeedback) {
           passwordUpdateFeedback.className = 'modal-feedback-alert success';
-          passwordUpdateFeedback.textContent = '🎉 Mot de passe mis à jour avec succès (mode session) !';
+          passwordUpdateFeedback.textContent = ' Mot de passe mis à jour avec succès (mode session) !';
         }
-        showToast('Mot de passe mis à jour avec succès ! 🔒', 'success');
+        showToast('Mot de passe mis à jour avec succès.', 'success');
         formSettingsPassword.reset();
       }
     } catch (err) {
@@ -5213,13 +5213,13 @@ document.addEventListener('DOMContentLoaded', () => {
   themeCardLight?.addEventListener('click', () => {
     applyTheme('light');
     updateThemeCardsUI('light');
-    showToast('☀️ Thème Lumineux activé !', 'teal');
+    showToast(' Thème Lumineux activé !', 'teal');
   });
 
   themeCardDark?.addEventListener('click', () => {
     applyTheme('dark');
     updateThemeCardsUI('dark');
-    showToast('🌙 Thème Sombre activé !', 'amber');
+    showToast(' Thème Sombre activé !', 'amber');
   });
 
   // Audio & Settings Preferences Storage
@@ -5431,7 +5431,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (p.isHeart) {
         ctx.font = `${p.size * 2}px sans-serif`;
-        ctx.fillText('💖', 0, 0);
+        ctx.fillText('', 0, 0);
       } else {
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
@@ -5589,7 +5589,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('connect', () => {
-      console.log('⚡ Socket connected to WafaTalk Gateway:', socket.id);
+      console.log(' Socket connected to WafaTalk Gateway:', socket.id);
       if (state.currentUser?.id) {
         activeOnlineUserIds.add(state.currentUser.id);
       }
@@ -5634,7 +5634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle direct message notification when modal is closed
     socket.on('dm:notification', ({ conversationId, message }) => {
       if (!currentConversation || currentConversation.id !== conversationId) {
-        showToast(`💬 Nouveau message de ${message.sender?.displayName || 'un ami'} : "${message.content.slice(0, 30)}..."`, 'teal');
+        showToast(` Nouveau message de ${message.sender?.displayName || 'un ami'} : "${message.content.slice(0, 30)}..."`, 'teal');
         playTone(550, 'sine', 0.15);
       }
     });
@@ -5659,7 +5659,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // WebRTC: Outgoing Call is Ringing at Recipient
     socket.on('call:ringing', ({ callId }) => {
       if (currentCallSession) currentCallSession.callId = callId;
-      showToast('📞 Sonnerie chez votre correspondant...', 'teal');
+      showToast(' Sonnerie chez votre correspondant...', 'teal');
     });
 
     // WebRTC: Recipient Accepted Call
@@ -5732,7 +5732,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update badge to "Vu" for the sender
         const badge = bubble.querySelector('.dm-oneview-badge');
         if (badge) {
-          badge.outerHTML = '<span class="dm-oneview-seen-label">👁 Vu</span>';
+          badge.outerHTML = '<span class="dm-oneview-seen-label"> Vu</span>';
         }
       }
     });
@@ -5742,7 +5742,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentConversation && currentConversation.id === conversationId) {
         showToast('Cette discussion a atteint sa limite de 24h et a été effacée.', 'coral');
         if (dmMessagesScroll) {
-          dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">⏳</span><p>Cette conversation de 24h est arrivée à expiration et a été supprimée.</p></div>';
+          dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><p>Cette conversation de 24h est arrivée à expiration et a été supprimée.</p></div>';
         }
       }
     });
@@ -5763,7 +5763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('disconnect', () => {
-      console.log('🔌 Socket disconnected from WafaTalk Gateway');
+      console.log(' Socket disconnected from WafaTalk Gateway');
       activeOnlineUserIds.clear();
       if (currentDmFriend) {
         updateDmFriendStatusUI(false);
@@ -5827,7 +5827,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnToggleMic?.querySelector('.mic-off-icon')?.classList.remove('hidden');
       if (btnToggleMic) btnToggleMic.querySelector('.ctrl-label').textContent = 'Micro coupé';
       updateParticipantSpeakingUI(state.currentUser?.id, false);
-      showToast(reason || '⚠️ Votre micro a été coupé par l\'administrateur du salon.', 'coral');
+      showToast(reason || '️ Votre micro a été coupé par l\'administrateur du salon.', 'coral');
     });
 
     // Salon Moderation: Force Cut Camera by Admin
@@ -5859,7 +5859,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         renderVoiceStage();
       }
-      showToast(reason || '⚠️ Votre caméra a été désactivée par l\'administrateur du salon.', 'coral');
+      showToast(reason || '️ Votre caméra a été désactivée par l\'administrateur du salon.', 'coral');
     });
 
     // Salon Moderation: Kicked out (Expulsé)
@@ -5867,7 +5867,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.currentRoom && state.currentRoom.id === salonId) {
         closeLiveSalon();
         playTone(300, 'sawtooth', 0.4);
-        showToast(`👢 ${reason || 'Vous avez été expulsé de ce salon par l\'administrateur.'}`, 'coral');
+        showToast(` ${reason || 'Vous avez été expulsé de ce salon par l\'administrateur.'}`, 'coral');
       }
     });
 
@@ -5876,7 +5876,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.currentRoom && state.currentRoom.id === salonId) {
         closeLiveSalon();
         playTone(220, 'sawtooth', 0.5);
-        showToast(`🚫 ${reason || 'Vous avez été banni de ce salon par l\'administrateur.'}`, 'coral');
+        showToast(` ${reason || 'Vous avez été banni de ce salon par l\'administrateur.'}`, 'coral');
       }
     });
 
@@ -5884,7 +5884,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('salon:join_error', ({ salonId, error, message }) => {
       closeLiveSalon();
       playTone(220, 'sawtooth', 0.3);
-      showToast(`❌ ${message || 'Impossible de rejoindre ce salon.'}`, 'coral');
+      showToast(` ${message || 'Impossible de rejoindre ce salon.'}`, 'coral');
       if (error === 'INVALID_CODE' || error === 'PRIVATE_CODE_REQUIRED') {
         const targetSalon = salonsData.find(s => s.id === salonId) || { id: salonId, name: 'Salon Privé', isPrivate: true };
         openPrivateSalonPrompt(targetSalon);
@@ -5893,12 +5893,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Salon Admin Action Success Notification
     socket.on('salon:admin_action_success', ({ action, message }) => {
-      showToast(`✅ ${message || 'Action d\'administration exécutée.'}`, 'teal');
+      showToast(` ${message || 'Action d\'administration exécutée.'}`, 'teal');
     });
 
     // Salon Admin Action Error Notification
     socket.on('salon:admin_action_error', ({ message }) => {
-      showToast(`❌ ${message || 'Erreur lors de l\'action d\'administration.'}`, 'coral');
+      showToast(` ${message || 'Erreur lors de l\'action d\'administration.'}`, 'coral');
     });
 
     // Salon Role Update Broadcast (Promote / Revoke Admin)
@@ -5944,7 +5944,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDmFriendStatusUI(isOnline);
 
     directChatModal.classList.remove('hidden');
-    dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">⏳</span><p>Chargement du salon privé...</p></div>';
+    dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><p>Chargement du salon privé...</p></div>';
 
     // 2. Fetch or Create Conversation via Backend API
     try {
@@ -5976,7 +5976,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Fallback local conversation:', err);
       // Offline fallback
       currentConversation = { id: `local-conv-${friend.id}` };
-      dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon">💬</span><p>Début de votre discussion privée sécurisée. Dites bonjour ! 👋</p></div>';
+      dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"></span><p>Début de votre discussion privée sécurisée. Dites bonjour ! </p></div>';
     }
 
     dmTextInput?.focus();
@@ -6042,9 +6042,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!messages || messages.length === 0) {
       dmMessagesScroll.innerHTML = `
         <div class="dm-empty-state">
-          <span class="dm-empty-icon">💬</span>
+          <span class="dm-empty-icon"></span>
           <strong>Salon Privé Ouvert</strong>
-          <p>Les messages et appels sont strictement confidentiels et protégés par WafaTalk. Dites bonjour ! 👋</p>
+          <p>Les messages et appels sont strictement confidentiels et protégés par WafaTalk. Dites bonjour ! </p>
         </div>
       `;
       return;
@@ -6052,7 +6052,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dmMessagesScroll.innerHTML = `
       <div class="chat-history-start ${dmHasMoreMessages ? 'hidden' : ''}" id="dmHistoryStart">
-        <span>🔒 Début de votre salon privé confidentiel</span>
+        <span> Début de votre salon privé confidentiel</span>
       </div>
       <div class="chat-history-loader hidden" id="dmHistoryLoader">
         <span class="chat-loader-spinner"></span>
@@ -6134,17 +6134,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function getFileIcon(mimeType, name) {
     if (!mimeType && name) {
       const ext = name.split('.').pop()?.toLowerCase();
-      const map = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', zip: '🗜️', txt: '📃', mp3: '🎵', ogg: '🎵', wav: '🎵' };
-      return map[ext] || '📎';
+      const map = { pdf: '', doc: '', docx: '', xls: '', xlsx: '', zip: '️', txt: '', mp3: '', ogg: '', wav: '' };
+      return map[ext] || '';
     }
-    if (mimeType?.startsWith('image/')) return '🖼️';
-    if (mimeType?.startsWith('video/')) return '🎬';
-    if (mimeType?.startsWith('audio/')) return '🎵';
-    if (mimeType?.includes('pdf')) return '📄';
-    if (mimeType?.includes('word')) return '📝';
-    if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return '📊';
-    if (mimeType?.includes('zip')) return '🗜️';
-    return '📎';
+    if (mimeType?.startsWith('image/')) return '️';
+    if (mimeType?.startsWith('video/')) return '';
+    if (mimeType?.startsWith('audio/')) return '';
+    if (mimeType?.includes('pdf')) return '';
+    if (mimeType?.includes('word')) return '';
+    if (mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return '';
+    if (mimeType?.includes('zip')) return '️';
+    return '';
   }
 
   // ── Open media lightbox
@@ -6164,7 +6164,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'dm-lightbox-close';
-    closeBtn.innerHTML = '✕';
+    closeBtn.innerHTML = '';
     closeBtn.addEventListener('click', closeLightbox);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
     function esc(e) {
@@ -6216,7 +6216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (alreadyViewed) {
           const exp = document.createElement('div');
           exp.className = 'dm-oneview-expired-card';
-          exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Photo (vue unique expirée)</span>`;
+          exp.innerHTML = `<span class="dm-oneview-icon"></span> <span>Photo (vue unique expirée)</span>`;
           bubble.appendChild(exp);
         } else {
           const wrap = document.createElement('div');
@@ -6228,7 +6228,7 @@ document.addEventListener('DOMContentLoaded', () => {
           img.alt = 'Photo';
           const cover = document.createElement('div');
           cover.className = 'dm-oneview-cover';
-          cover.innerHTML = `<span class="dm-oneview-cover-icon">👁</span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vue unique · disparaît après ouverture</span>`;
+          cover.innerHTML = `<span class="dm-oneview-cover-icon"></span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vue unique · disparaît après ouverture</span>`;
           wrap.appendChild(img);
           wrap.appendChild(cover);
 
@@ -6247,7 +6247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openDmLightbox(message.mediaUrl, 'IMAGE', () => {
               const exp = document.createElement('div');
               exp.className = 'dm-oneview-expired-card';
-              exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Photo (vue unique expirée)</span>`;
+              exp.innerHTML = `<span class="dm-oneview-icon"></span> <span>Photo (vue unique expirée)</span>`;
               wrap.replaceWith(exp);
             });
           });
@@ -6279,8 +6279,8 @@ document.addEventListener('DOMContentLoaded', () => {
           bubble.appendChild(cap);
         }
         bubble.insertAdjacentHTML('beforeend', alreadyViewed
-          ? '<span class="dm-oneview-seen-label">👁 Vu</span>'
-          : '<span class="dm-oneview-badge">👁 Vue unique</span>');
+          ? '<span class="dm-oneview-seen-label"> Vu</span>'
+          : '<span class="dm-oneview-badge"> Vue unique</span>');
 
       } else {
         // Permanent image
@@ -6301,7 +6301,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const meta = document.createElement('div');
       meta.className = 'dm-bubble-meta';
-      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem">✓</span>' : ''}`;
+      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem"></span>' : ''}`;
       bubble.appendChild(meta);
 
     } else if (msgType === 'VIDEO' && (message.mediaUrl || alreadyViewed)) {
@@ -6311,7 +6311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (alreadyViewed) {
           const exp = document.createElement('div');
           exp.className = 'dm-oneview-expired-card';
-          exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Vidéo (vue unique expirée)</span>`;
+          exp.innerHTML = `<span class="dm-oneview-icon"></span> <span>Vidéo (vue unique expirée)</span>`;
           bubble.appendChild(exp);
         } else {
           const wrap = document.createElement('div');
@@ -6328,7 +6328,7 @@ document.addEventListener('DOMContentLoaded', () => {
           videoWrap.innerHTML += '<div class="dm-media-video-play-btn">▶</div>';
           const cover = document.createElement('div');
           cover.className = 'dm-oneview-cover';
-          cover.innerHTML = `<span class="dm-oneview-cover-icon">👁</span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vidéo · vue unique</span>`;
+          cover.innerHTML = `<span class="dm-oneview-cover-icon"></span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vidéo · vue unique</span>`;
           wrap.appendChild(videoWrap);
           wrap.appendChild(cover);
 
@@ -6347,7 +6347,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openDmLightbox(message.mediaUrl, 'VIDEO', () => {
               const exp = document.createElement('div');
               exp.className = 'dm-oneview-expired-card';
-              exp.innerHTML = `<span class="dm-oneview-icon">👁</span> <span>Vidéo (vue unique expirée)</span>`;
+              exp.innerHTML = `<span class="dm-oneview-icon"></span> <span>Vidéo (vue unique expirée)</span>`;
               wrap.replaceWith(exp);
             });
           });
@@ -6368,8 +6368,8 @@ document.addEventListener('DOMContentLoaded', () => {
           bubble.appendChild(videoWrap);
         }
         bubble.insertAdjacentHTML('beforeend', alreadyViewed
-          ? '<span class="dm-oneview-seen-label">👁 Vu</span>'
-          : '<span class="dm-oneview-badge">👁 Vue unique</span>');
+          ? '<span class="dm-oneview-seen-label"> Vu</span>'
+          : '<span class="dm-oneview-badge"> Vue unique</span>');
 
       } else {
         if (message.mediaUrl) {
@@ -6392,7 +6392,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const meta = document.createElement('div');
       meta.className = 'dm-bubble-meta';
-      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem">✓</span>' : ''}`;
+      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem"></span>' : ''}`;
       bubble.appendChild(meta);
 
     } else if (msgType === 'FILE' && message.mediaUrl) {
@@ -6419,7 +6419,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const meta = document.createElement('div');
       meta.className = 'dm-bubble-meta';
-      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem">✓</span>' : ''}`;
+      meta.innerHTML = `<span>${message.time || 'À l\'instant'}</span>${isFromMe ? '<span style="font-size:0.75rem"></span>' : ''}`;
       bubble.appendChild(meta);
 
     } else {
@@ -6429,7 +6429,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="dm-bubble-text">${escapeHtml(message.content || '')}</div>
         <div class="dm-bubble-meta">
           <span>${message.time || 'À l\'instant'}</span>
-          ${isFromMe ? '<span style="font-size: 0.75rem;">✓</span>' : ''}
+          ${isFromMe ? '<span style="font-size: 0.75rem;"></span>' : ''}
         </div>
       `;
     }
@@ -6741,7 +6741,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Emoji trigger for DMs
   btnDmEmoji?.addEventListener('click', () => {
-    const emojis = ['🎈', '☕', '❤️', '🔥', '✨', '👋', '🌟', '🎧'];
+    const emojis = ['', '', '️', '', '', '', '', ''];
     const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
     if (dmTextInput) {
       dmTextInput.value += ` ${randomEmoji}`;
@@ -6971,7 +6971,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (incomingCallerName) incomingCallerName.textContent = currentCallSession.peer.name;
     if (incomingCallTypeText) incomingCallTypeText.textContent = type === 'video' ? 'Appel vidéo entrant...' : 'Appel vocal entrant...';
     if (incomingCallTypeBadge) {
-      incomingCallTypeBadge.querySelector('.badge-icon').textContent = type === 'video' ? '📹' : '📞';
+      incomingCallTypeBadge.querySelector('.badge-icon').textContent = type === 'video' ? '' : '';
     }
 
     incomingCallModal?.classList.remove('hidden');
@@ -7068,7 +7068,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Handle incoming remote media tracks (Audio & Video)
       peerConnection.ontrack = (event) => {
-        console.log('📡 Flux distant reçu:', event.track.kind);
+        console.log(' Flux distant reçu:', event.track.kind);
         if (event.streams && event.streams[0]) {
           remoteMediaStream = event.streams[0];
         } else {
@@ -7112,7 +7112,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       peerConnection.oniceconnectionstatechange = () => {
-        console.log('🧊 1-on-1 ICE State:', peerConnection.iceConnectionState);
+        console.log(' 1-on-1 ICE State:', peerConnection.iceConnectionState);
         if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
           if (currentCallSession?.isCaller && typeof peerConnection.restartIce === 'function') {
             console.warn('ICE failed — restarting ICE with TURN relays...');
@@ -7137,9 +7137,9 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       peerConnection.onconnectionstatechange = () => {
-        console.log('📶 WebRTC Connection State:', peerConnection.connectionState);
+        console.log(' WebRTC Connection State:', peerConnection.connectionState);
         if (peerConnection.connectionState === 'connected') {
-          showToast('🔒 Appel direct P2P HD chiffré connecté !', 'teal');
+          showToast(' Appel direct P2P HD chiffré connecté !', 'teal');
         }
       };
     } catch (err) {
@@ -7385,7 +7385,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Live HD Status Badge
       ctx.font = 'bold 20px Outfit, sans-serif';
       ctx.fillStyle = '#10b981';
-      ctx.fillText('🟢 FLUX VIDÉO HD EN DIRECT • 60 FPS • CHIFFRÉ P2P', 640, 525);
+      ctx.fillText(' FLUX VIDÉO HD EN DIRECT • 60 FPS • CHIFFRÉ P2P', 640, 525);
 
       companionCanvasAnim = requestAnimationFrame(render);
     };
@@ -7684,7 +7684,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (floatingLocalVideo) floatingLocalVideo.srcObject = displayStream;
         isScreenSharing = true;
         btnCallShareScreen.classList.add('active');
-        showToast('Partage d\'écran démarré 🖥️', 'teal');
+        showToast('Partage d\'écran démarré ️', 'teal');
 
         screenTrack.onended = () => {
           if (localMediaStream && peerConnection) {
