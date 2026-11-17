@@ -1,0 +1,2575 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d837d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>WafaTalk — Salons de Chat & Hangout entre Amis</title>
+  <meta name="description" content="WafaTalk est l'application moderne de discussion entre amis organisée en salons vocaux et textuels. Connectez-vous et partagez des moments uniques.">
+  <link rel="icon" type="image/png" href="assets/wafatalk-icon.png">
+
+  <!-- Google Fonts: Plus Jakarta Sans (UI) & Outfit (Titres & Brand) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css?v=20261017b">
+</head>
+<body>
+
+  <!-- Background Animated Ambient Mesh & Geometric Pattern -->
+  <div class="ambient-background" aria-hidden="true">
+    <div class="ambient-shape shape-teal"></div>
+    <div class="ambient-shape shape-coral"></div>
+    <div class="ambient-shape shape-amber"></div>
+    <div class="geometric-pattern-overlay"></div>
+  </div>
+
+  <!-- Particle Canvas for Gifts & Celebrations -->
+  <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true"></canvas>
+
+  <!-- ============================================================ -->
+  <!-- SCREEN 1 : AUTHENTICATION / LOGIN PAGE                       -->
+  <!-- ============================================================ -->
+  <main id="authScreen" class="screen auth-screen" style="display: none; opacity: 0;">
+    <div class="auth-wrapper">
+      
+            <!-- Left Side: Brand Showcase & Realistic Application Preview -->
+      <section class="auth-showcase">
+        
+        <!-- Brand Header & Identity -->
+        <div class="showcase-header">
+          <div class="logo-display-container">
+            <img src="assets/wafatalk-logo.png" alt="WafaTalk Logo" class="brand-logo-large">
+          </div>
+          
+          <div class="showcase-badge-pill">
+            <span class="badge-dot-live"></span>
+            <span class="badge-text">Salons vocaux &amp; messagerie en temps r&eacute;el</span>
+          </div>
+
+          <h1 class="showcase-title">
+            La voix et le direct, <span class="highlight-teal">pens&eacute;s pour vos cercles</span>.
+          </h1>
+          <p class="showcase-subtitle">
+            Rejoignez des salons th&eacute;matiques, &eacute;changez spontan&eacute;ment en haute fid&eacute;lit&eacute; et retrouvez vos proches dans un espace fluide, priv&eacute; et s&eacute;curis&eacute;.
+          </p>
+        </div>
+
+        <!-- Realistic Product UI Preview Window -->
+        <div class="product-preview-window">
+          
+          <!-- Window Titlebar -->
+          <div class="preview-titlebar">
+            <div class="window-controls" aria-hidden="true">
+              <span class="win-dot close"></span>
+              <span class="win-dot min"></span>
+              <span class="win-dot expand"></span>
+            </div>
+            <div class="preview-room-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+              <span>Salon G&eacute;n&eacute;ral</span>
+              <span class="preview-badge-status">Audio HD</span>
+            </div>
+            <div class="preview-online-count">
+              <span class="online-indicator-dot"></span>
+              <span>8 en ligne</span>
+            </div>
+          </div>
+
+          <!-- Window Content: Voice Stage & Live Discussion -->
+          <div class="preview-body">
+            
+            <!-- Voice Stage: Clean Vector Participants -->
+            <div class="preview-voice-stage">
+              
+              <!-- Speaker 1 (Active) -->
+              <div class="stage-user speaking">
+                <div class="user-avatar-circle avatar-teal">
+                  <span>AM</span>
+                  <span class="user-mic-indicator on" title="Micro actif">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+                  </span>
+                </div>
+                <span class="user-label">Amine</span>
+              </div>
+
+              <!-- Speaker 2 -->
+              <div class="stage-user">
+                <div class="user-avatar-circle avatar-amber">
+                  <span>SM</span>
+                  <span class="user-mic-indicator" title="Micro muet">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2"></path></svg>
+                  </span>
+                </div>
+                <span class="user-label">Sami</span>
+              </div>
+
+              <!-- Listener 3 -->
+              <div class="stage-user">
+                <div class="user-avatar-circle avatar-coral">
+                  <span>LN</span>
+                  <span class="user-mic-indicator" title="Micro muet">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2"></path></svg>
+                  </span>
+                </div>
+                <span class="user-label">Lina</span>
+              </div>
+
+              <!-- More users pill -->
+              <div class="stage-user">
+                <div class="user-avatar-circle avatar-more">
+                  <span>+5</span>
+                </div>
+                <span class="user-label">&Eacute;coute</span>
+              </div>
+
+            </div>
+
+            <!-- Equalizer bar component (Preserves JS queries) -->
+            <div class="preview-spectrum-bar">
+              <span class="spectrum-label">Flux Audio WebRTC</span>
+              <div class="audio-wave-bars" aria-hidden="true">
+                <span class="bar b1"></span>
+                <span class="bar b2"></span>
+                <span class="bar b3"></span>
+                <span class="bar b4"></span>
+                <span class="bar b5"></span>
+                <span class="bar b6"></span>
+                <span class="bar b7"></span>
+              </div>
+            </div>
+
+            <!-- Realistic Chat Conversation Stream -->
+            <div class="preview-chat-stream">
+              <div class="preview-msg">
+                <div class="msg-avatar teal">AM</div>
+                <div class="msg-bubble">
+                  <div class="msg-meta">
+                    <span class="msg-author">Amine</span>
+                    <span class="msg-time">14:32</span>
+                  </div>
+                  <p class="msg-text">Bienvenue dans le salon ! La voix WebRTC est active.</p>
+                </div>
+              </div>
+
+              <div class="preview-msg">
+                <div class="msg-avatar coral">LN</div>
+                <div class="msg-bubble">
+                  <div class="msg-meta">
+                    <span class="msg-author">Lina</span>
+                    <span class="msg-time">14:33</span>
+                  </div>
+                  <p class="msg-text">Qualit&eacute; impeccable, le d&eacute;bit est super fluide.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- 3 Architecture Trust Points -->
+        <div class="preview-pillars">
+          <div class="pillar-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+            <span>Audio WebRTC HD</span>
+          </div>
+          <div class="pillar-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Salons Priv&eacute;s Mod&eacute;r&eacute;s</span>
+          </div>
+          <div class="pillar-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <span>Acc&egrave;s Web &amp; Mobile</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Side: Interactive Auth Form Card -->
+      <section class="auth-card-container">
+        <div class="auth-card glass-panel">
+          
+          <!-- Card Header & Navigation Controls -->
+          <div class="auth-card-header">
+            <div class="mobile-logo-wrap">
+              <img src="assets/wafatalk-logo.png" alt="WafaTalk Logo" class="mobile-logo">
+            </div>
+
+            <!-- Theme Switcher Button -->
+            <button type="button" class="theme-toggle-btn icon-btn" id="themeToggleBtn" title="Changer le thème" aria-label="Changer le thème">
+              <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+          </div>
+
+          <!-- Auth Mode Segmented Tab Switch -->
+          <div class="segmented-control" role="tablist">
+            <button type="button" class="segment-tab active" id="tabLogin" role="tab" aria-selected="true">
+              <span>Se Connecter</span>
+            </button>
+            <button type="button" class="segment-tab" id="tabRegister" role="tab" aria-selected="false">
+              <span>Créer un Compte</span>
+            </button>
+            <div class="segment-indicator" id="segmentIndicator"></div>
+          </div>
+
+          <!-- LOGIN FORM -->
+          <form id="formLogin" class="auth-form active">
+            <div class="form-title-group">
+              <h2 class="form-title">Bon retour parmi nous !</h2>
+              <p class="form-desc">Entrez vos identifiants pour rejoindre vos salons préférés.</p>
+            </div>
+
+            <!-- Email / Pseudo Field -->
+            <div class="input-group">
+              <label for="loginEmail">Adresse e-mail ou pseudo</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </span>
+                <input type="text" id="loginEmail" placeholder="votre.email@exemple.com ou pseudo" required autocomplete="username">
+              </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="input-group">
+              <div class="label-with-action">
+                <label for="loginPassword">Mot de passe</label>
+                <a href="#" class="forgot-link" id="linkForgotPassword">Mot de passe oublié ?</a>
+              </div>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input type="password" id="loginPassword" placeholder="••••••••••••" required autocomplete="current-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Remember Me checkbox -->
+            <div class="form-extra-row">
+              <label class="custom-checkbox">
+                <input type="checkbox" id="loginRemember" checked>
+                <span class="checkmark"></span>
+                <span class="checkbox-label">Rester connecté sur cet appareil</span>
+              </label>
+            </div>
+
+            <!-- Primary Action Button -->
+            <button type="submit" class="btn btn-primary btn-block " id="btnLoginSubmit">
+              <span class="btn-text">Se connecter à WafaTalk</span>
+              <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              <div class="btn-spinner hidden" id="loginSpinner"></div>
+            </button>
+          </form>
+
+          <!-- REGISTER FORM -->
+          <form id="formRegister" class="auth-form hidden">
+            <div class="form-title-group">
+              <h2 class="form-title">Rejoignez l'univers WafaTalk</h2>
+              <p class="form-desc">Créez votre profil en quelques secondes et retrouvez vos proches.</p>
+            </div>
+
+            <!-- Anti-Bot Honeypot Field (invisible to real users) -->
+            <input type="text" id="regHoneypot" name="company_website_url" style="display:none !important; position:absolute; left:-9999px; opacity:0; pointer-events:none;" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <!-- Username Field -->
+            <div class="input-group">
+              <div class="label-with-action">
+                <label for="regUsername">Pseudo WafaTalk</label>
+                <span class="field-subtext">Lettres, chiffres, "-" et "_"</span>
+              </div>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </span>
+                <input type="text" id="regUsername" placeholder="Ex: Rayan_94 ou Rayan-94" required autocomplete="nickname" maxlength="30" spellcheck="false">
+                <span id="regUsernameStatus" class="username-status-badge hidden"></span>
+              </div>
+              <div id="regUsernameHint" class="username-rule-hint hidden"></div>
+            </div>
+
+            <!-- Email Field -->
+            <div class="input-group">
+              <label for="regEmail">Adresse e-mail</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                </span>
+                <input type="email" id="regEmail" placeholder="rayan@exemple.com" required autocomplete="email">
+              </div>
+            </div>
+
+            <!-- Date of Birth Field -->
+            <div class="input-group">
+              <label for="regBirthDate">Date de naissance</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </span>
+                <input type="date" id="regBirthDate" required max="2013-12-31" min="1920-01-01">
+              </div>
+            </div>
+
+            <!-- Country Field with Real Visual Flags & Search -->
+            <div class="input-group country-picker-group">
+              <label for="countryPickerTrigger">Pays de résidence</label>
+              <div class="country-picker-wrap" id="countryPickerWrap">
+                <button type="button" class="country-picker-trigger" id="countryPickerTrigger" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="selected-flag-wrap" id="selectedFlagWrap">
+                    <span class="default-globe">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    </span>
+                  </span>
+                  <span class="selected-country-name" id="selectedCountryName">Choisir un pays...</span>
+                  <svg class="picker-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <!-- Hidden actual input for form submission & validation -->
+                <input type="hidden" id="regCountry" name="country" required value="">
+
+                <!-- Dropdown Popover Menu with Real Flag Images -->
+                <div class="country-dropdown-menu hidden" id="countryDropdownMenu" role="listbox">
+                  <div class="country-search-header">
+                    <svg class="search-mini-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" class="country-search-input" id="countrySearchInput" placeholder="Rechercher un pays..." autocomplete="off">
+                    <button type="button" class="country-search-clear hidden" id="btnClearCountrySearch" aria-label="Effacer"></button>
+                  </div>
+
+                  <div class="country-options-scroll" id="countryOptionsScroll">
+                    <!-- Rendered dynamically with real SVG/PNG flags from FlagCDN -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="input-group">
+              <label for="regPassword">Mot de passe</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input type="password" id="regPassword" placeholder="Au moins 8 caractères" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <div class="password-strength-bar">
+                <div class="strength-fill" id="strengthFill"></div>
+              </div>
+            </div>
+
+            <!-- Confirm Password Field -->
+            <div class="input-group">
+              <label for="regPasswordConfirm">Confirmer le mot de passe</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </span>
+                <input type="password" id="regPasswordConfirm" placeholder="Retapez votre mot de passe" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <div id="passwordMatchHint" class="password-match-hint hidden"></div>
+            </div>
+
+            <!-- Terms acceptance (UNCHECKED by default) -->
+            <div class="form-extra-row">
+              <label class="custom-checkbox terms-checkbox-row">
+                <input type="checkbox" id="regTerms" required>
+                <span class="checkmark"></span>
+                <span class="checkbox-label">
+                  J'accepte la <a href="terms.html" class="terms-inline-link" id="btnOpenTermsModal">charte & les CGU</a> ainsi que la <a href="privacy.html" target="_blank" class="terms-inline-link">politique de confidentialité</a>
+                </span>
+              </label>
+            </div>
+
+            <!-- Register Button -->
+            <button type="submit" class="btn btn-primary btn-block " id="btnRegSubmit">
+              <span class="btn-text">Créer mon compte</span>
+              <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              <div class="btn-spinner hidden" id="regSpinner"></div>
+            </button>
+          </form>
+
+          <!-- Divider -->
+          <div class="auth-divider">
+            <span>ou continuer avec</span>
+          </div>
+
+          <!-- Social Buttons -->
+          <div class="social-login-grid">
+            <button type="button" class="btn-social" title="Continuer avec Google" id="btnGoogleAuth">
+              <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.3 14.7c-.2-.7-.4-1.5-.4-2.7 0-1.1.2-2 .4-2.7L1.6 6.4C.6 8.3 0 10.1 0 12s.6 3.7 1.6 5.6l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.8-2.5 1.2-4.3 1.2-3.1 0-5.8-2.3-6.7-5.3L1.6 16C3.5 19.8 7.4 23 12 23z"/></svg>
+              <span>Google</span>
+            </button>
+            <button type="button" class="btn-social" title="Continuer avec Apple" id="btnAppleAuth">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.92-2.88-.9.04-1.99.6-2.63 1.35-.58.65-1.09 1.73-0.96 2.76 1 .08 2.05-.48 2.67-1.23z"/></svg>
+              <span>Apple</span>
+            </button>
+            <button type="button" class="btn-social" title="Continuer avec Discord" id="btnDiscordAuth">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+              <span>Discord</span>
+            </button>
+          </div>
+          <!-- Professional Legal Footer -->
+          <div class="auth-legal-footer">
+            <a href="terms.html" class="auth-legal-link">Conditions d'utilisation</a>
+            <span class="legal-sep">&middot;</span>
+            <a href="privacy.html" class="auth-legal-link">Politique de confidentialit&eacute;</a>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+
+  <!-- ============================================================ -->
+  <!-- SCREEN 2 : LANDING PAGE & SALONS HUB (POST-LOGIN)             -->
+  <!-- ============================================================ -->
+  <div id="hubScreen" class="screen hub-screen active" style="opacity: 1;">
+    
+    <!-- Top Navigation Header -->
+    <header class="hub-navbar glass-nav">
+      <div class="nav-container">
+        
+        <!-- Left: Brand Logo & Tag -->
+        <div class="nav-brand-group">
+          <a href="#" class="brand-link" id="brandLogoHome">
+            <img src="assets/wafatalk-logo.png" alt="WafaTalk Logo" class="nav-logo">
+          </a>
+          <span class="brand-version-tag">v1.0</span>
+        </div>
+
+        <!-- Center: Instant Search with Ctrl+K shortcut -->
+        <div class="nav-search-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="salonSearchInput" placeholder="Rechercher un salon, un ami, un sujet..." aria-label="Rechercher">
+          <kbd class="search-kbd">Ctrl K</kbd>
+        </div>
+
+        <!-- Right: Actions, Notifications & Profile -->
+        <div class="nav-user-actions">
+          
+          <!-- Theme Switch in Hub -->
+          <button type="button" class="theme-toggle-btn icon-btn" id="hubThemeToggleBtn" title="Changer le thème" aria-label="Changer le thème">
+            <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+
+          <!-- Create Salon Primary Button -->
+          <button type="button" class="btn btn-primary btn-sm btn-create-salon" id="btnOpenCreateSalon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Créer un Salon</span>
+          </button>
+
+          <!-- Gift Box Launcher -->
+          <button type="button" class="icon-btn gift-launcher-btn" id="btnOpenGiftShop" title="Boîte à Cadeaux Wafa" aria-label="Cadeaux">
+            
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+          </button>
+
+          <!-- Notifications Dropdown Trigger -->
+          <div class="dropdown-wrap">
+            <button type="button" class="icon-btn" id="btnNotifications" title="Notifications" aria-label="Notifications">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span class="notif-badge">3</span>
+            </button>
+            <div class="dropdown-menu notif-dropdown hidden" id="notifDropdown">
+              <div class="notif-header">
+                <strong>Notifications</strong>
+                <span class="text-muted">3 nouvelles</span>
+              </div>
+              <div class="notif-list">
+                <div class="notif-item unread">
+                  <div class="notif-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></div>
+                  <div class="notif-content">
+                    <p><strong>Lina</strong> vous a envoyé un <em>Cœur d'Or</em> !</p>
+                    <span class="notif-time">Il y a 5 min</span>
+                  </div>
+                </div>
+                <div class="notif-item unread">
+                  <div class="notif-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></div>
+                  <div class="notif-content">
+                    <p>Le salon <strong>Gaming Night</strong> est en live avec 8 amis.</p>
+                    <span class="notif-time">Il y a 12 min</span>
+                  </div>
+                </div>
+                <div class="notif-item">
+                  <div class="notif-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg></div>
+                  <div class="notif-content">
+                    <p><strong>Youssef</strong> vient de se connecter.</p>
+                    <span class="notif-time">Il y a 35 min</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Profile Menu -->
+          <div class="dropdown-wrap">
+            <button type="button" class="user-profile-trigger" id="btnUserMenu" aria-label="Menu profil">
+              <div class="avatar-wrap">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Avatar utilisateur" class="user-nav-avatar" id="navUserAvatar">
+                <span class="user-status-dot online"></span>
+              </div>
+              <div class="user-info-text">
+                <div class="user-name-row">
+                  <span class="user-name" id="navUserName">Alexandre</span>
+                  <span id="navUserCountryFlag" class="user-country-flag" title="Pays"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
+                </div>
+                <span class="user-tag">Membre</span>
+              </div>
+              <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="dropdown-menu profile-dropdown hidden" id="profileDropdown">
+              <div class="profile-dropdown-header">
+                <div class="profile-name-row">
+                  <p class="profile-full-name" id="menuFullName">Alexandre Moreau</p>
+                  <span id="menuCountryFlag" class="user-country-flag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
+                </div>
+                <p class="profile-email-text" id="menuEmail">alexandre@wafatalk.com</p>
+                <div class="profile-country-pill" id="menuCountryWrap">
+                  <span class="country-pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
+                  <span id="menuCountryName">France</span>
+                </div>
+              </div>
+              <div class="profile-dropdown-divider"></div>
+              <button type="button" class="dropdown-item" id="btnViewProfile">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Mon Profil & Statut</span>
+              </button>
+              <button type="button" class="dropdown-item" id="btnOpenSettings">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <span>Paramètres Audio & Compte</span>
+              </button>
+              <div class="profile-dropdown-divider"></div>
+              <button type="button" class="dropdown-item text-danger" id="btnLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Déconnexion</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Main Content Layout with Grid and Sidebar -->
+    <div class="hub-layout">
+      
+      <!-- Center Main Content -->
+      <main class="hub-main-content">
+        
+        <!-- Welcome Hero Banner -->
+        <section class="hub-hero-banner glass-card">
+          <div class="hero-left">
+            <div class="hero-tag">
+              <span class="live-dot pulse"></span>
+              <span>Communauté WafaTalk Active</span>
+            </div>
+            <h2 class="hero-title">
+              Heureux de vous revoir, <span class="highlight-coral" id="heroUserGreeting">Alexandre</span> !
+            </h2>
+            <p class="hero-text">
+              12 de vos amis sont actuellement en vocal. Rejoignez un salon ou créez votre propre espace de discussion.
+            </p>
+            <div class="hero-action-row">
+              <button type="button" class="btn btn-primary" id="btnQuickJoinTrending">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Rejoindre le salon tendance</span>
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnSendCommunityGift">
+                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>Envoyer un cadeau</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Activity Stats Widget -->
+          <div class="hero-stats-grid">
+            <div class="stat-pill">
+              <div class="stat-icon teal-bg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </div>
+              <div class="stat-meta">
+                <strong class="stat-number">1,420</strong>
+                <span class="stat-label">Membres en ligne</span>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <div class="stat-icon coral-bg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+              </div>
+              <div class="stat-meta">
+                <strong class="stat-number">84</strong>
+                <span class="stat-label">Salons vocaux HD</span>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <div class="stat-icon amber-bg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+              </div>
+              <div class="stat-meta">
+                <strong class="stat-number">3,892</strong>
+                <span class="stat-label">Cadeaux échangés</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Category Filters -->
+        <section class="salons-header-section">
+          <div class="section-title-wrap">
+            <h3 class="section-title">Explorer les Salons WafaTalk</h3>
+            <span class="badge-count" id="salonCountBadge">8 Salons disponibles</span>
+          </div>
+
+          <div class="category-pills-row" role="tablist">
+            <button type="button" class="category-pill active" data-category="all">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+              <span>Tous</span>
+            </button>
+            <button type="button" class="category-pill" data-category="vocal">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></span>
+              <span>Salons Vocaux</span>
+            </button>
+            <button type="button" class="category-pill" data-category="chill">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></span>
+              <span>Chill & Café</span>
+            </button>
+            <button type="button" class="category-pill" data-category="gaming">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="15" y1="11" x2="15.01" y2="11"></line><line x1="18" y1="13" x2="18.01" y2="13"></line></svg></span>
+              <span>Gaming & Squads</span>
+            </button>
+            <button type="button" class="category-pill" data-category="music">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span>
+              <span>Musique & Jam</span>
+            </button>
+            <button type="button" class="category-pill" data-category="private">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+              <span>Privés</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Dynamic Salons Cards Grid -->
+        <div class="salons-grid" id="salonsGrid">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+      </main>
+
+      <!-- Right Sidebar: Friends Online & Quick Chat -->
+      <aside class="hub-sidebar glass-panel">
+        
+        <div class="sidebar-header">
+          <div class="sidebar-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <h4>Amis Connectés</h4>
+          </div>
+          <span class="online-counter" id="onlineFriendsCount">0 en ligne</span>
+        </div>
+
+        <!-- Friends List -->
+        <div class="friends-list" id="friendsList">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <!-- Mini Gifting Card in Sidebar -->
+        <div class="sidebar-gift-card glass-card">
+          <div class="gift-card-inner">
+            <div class="gift-sparkle-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></div>
+            <div class="gift-card-text">
+              <strong>Boîte à Cadeaux Wafa</strong>
+              <p>Envoyez une surprise à un ami pour booster son niveau d'amitié !</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-coral-outline btn-sm btn-block" id="btnSidebarGiftTrigger">
+            Offrir un cadeau
+          </button>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar (Visible on mobile screens) -->
+    <nav class="mobile-bottom-nav" aria-label="Navigation Mobile">
+      <button type="button" class="mobile-nav-item active" id="mobNavSalons" aria-label="Salons">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <span>Salons</span>
+      </button>
+      <button type="button" class="mobile-nav-item" id="mobNavFriends" aria-label="Amis">
+        <div class="mob-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span class="mob-badge" id="mobFriendsBadge">0</span>
+        </div>
+        <span>Amis</span>
+      </button>
+      <button type="button" class="mobile-nav-item mobile-nav-action" id="mobNavCreate" aria-label="Créer un salon">
+        <div class="mob-create-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+        <span>Créer</span>
+      </button>
+      <button type="button" class="mobile-nav-item" id="mobNavGifts" aria-label="Cadeaux">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+        <span>Cadeaux</span>
+      </button>
+      <button type="button" class="mobile-nav-item" id="mobNavProfile" aria-label="Profil">
+        <div class="mob-avatar-wrap">
+          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60" id="mobNavUserAvatar" class="mob-user-avatar" alt="Profil">
+        </div>
+        <span>Profil</span>
+      </button>
+    </nav>
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- MODAL : LIVE SALON EXPERIENCE (VOICE + CHAT + GIFTS)         -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="liveSalonModal" role="dialog" aria-modal="true" aria-labelledby="liveSalonTitle">
+    <div class="modal-container salon-modal-container glass-panel">
+      
+      <!-- Live Salon Header -->
+      <div class="salon-modal-header">
+        <div class="salon-modal-info">
+          <div class="salon-tag-badge">
+            <span class="live-dot pulse"></span>
+            <span id="modalRoomCategory">SALON VOCAL</span>
+          </div>
+          <h2 class="salon-modal-title" id="liveSalonTitle">Chill & Discussion du Soir</h2>
+          <p class="salon-modal-topic" id="liveSalonTopic">Partagez votre humeur, écoutez les amis et profitez de l'ambiance.</p>
+        </div>
+
+        <div class="salon-modal-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnToggleSalonFullscreen" title="Basculer Plein écran">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            <span class="fullscreen-label">Plein écran</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnMinimizeSalon" title="Réduire en fenêtre volante (Picture-in-Picture)" aria-label="Réduire le salon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            <span>Réduire</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnOpenSalonShare" title="Inviter des amis / Partager le salon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            <span>Inviter</span>
+          </button>
+          <button type="button" class="btn btn-gift-special" id="btnModalGiftTrigger" title="Envoyer un cadeau dans le salon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            <span>Cadeaux</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm hidden" id="btnOpenSalonBansModal" title="Gérer les exclusions et débannir">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>Bannis</span>
+          </button>
+          <button type="button" class="icon-btn modal-close-btn" id="btnCloseSalonModal" aria-label="Quitter le salon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Salon Tab Switcher (Visible on mobile only) -->
+      <div class="mobile-salon-tabs" role="tablist">
+        <button type="button" class="mobile-salon-tab active" id="tabMobileStage" role="tab" aria-selected="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span>Scène Vocale & Vidéo</span>
+        </button>
+        <button type="button" class="mobile-salon-tab" id="tabMobileChat" role="tab" aria-selected="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Chat en direct</span>
+          <span class="mobile-chat-badge hidden" id="mobileChatUnreadDot"></span>
+        </button>
+      </div>
+
+      <!-- Live Salon Body: Split Audio Stage & Chat Stream -->
+      <div class="salon-modal-body">
+        
+        <!-- Left Stage: Voice Avatars & Equalizer -->
+        <div class="voice-stage-container">
+          <div class="voice-stage-grid" id="voiceStageGrid">
+            <!-- Populated dynamically via app.js -->
+          </div>
+
+          <!-- Floating Voice Controls Bar -->
+          <div class="voice-controls-bar glass-panel">
+            <button type="button" class="voice-ctrl-btn active" id="btnToggleMic" title="Microphone">
+              <svg class="mic-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+              <svg class="mic-off-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+              <span class="ctrl-label">Micro</span>
+            </button>
+
+            <button type="button" class="voice-ctrl-btn active" id="btnToggleAudio" title="Son / Écouteurs">
+              <svg class="audio-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+              <span class="ctrl-label">Audio HD</span>
+            </button>
+
+            <button type="button" class="voice-ctrl-btn" id="btnToggleSalonVideo" title="Activer / Couper la caméra">
+              <svg class="cam-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              <svg class="cam-off-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21l-3.56-2.54M23 7l-7 5 2.1 1.5M1 5h1M1 9v10a2 2 0 0 0 2 2h14"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              <span class="ctrl-label">Caméra</span>
+            </button>
+
+            <button type="button" class="voice-ctrl-btn" id="btnShareScreen" title="Partage d'écran">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              <span class="ctrl-label">Partage</span>
+            </button>
+
+            <button type="button" class="voice-ctrl-btn btn-leave-room" id="btnLeaveRoom">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>
+              <span class="ctrl-label">Quitter</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Side: Real-time Salon Chat Stream -->
+        <div class="salon-chat-panel">
+          <div class="chat-panel-header">
+            <h4>Discussion en Direct</h4>
+            <span class="chat-users-online" id="chatParticipantsCount">1 participant</span>
+          </div>
+
+          <div class="chat-messages-scroll" id="chatMessagesScroll">
+            <!-- Messages populated via app.js -->
+          </div>
+
+          <!-- Floating Scroll-to-Bottom Button with Unread Badge -->
+          <button type="button" class="chat-scroll-bottom-btn hidden" id="salonScrollBottomBtn" title="Faire défiler vers le bas" aria-label="Faire défiler vers le bas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span class="scroll-unread-badge hidden" id="salonScrollUnreadBadge">0</span>
+          </button>
+
+          <!-- Typing Indicator -->
+          <div class="salon-typing-indicator hidden" id="salonTypingIndicator">
+            <span class="typing-dots"><span></span><span></span><span></span></span>
+            <span id="salonTypingText">Un membre est en train d'écrire...</span>
+          </div>
+
+          <!-- Chat Input Row -->
+          <form id="chatForm" class="chat-input-bar">
+            <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">
+              
+            </button>
+            <input type="text" id="chatInputText" placeholder="Écrire un message bienveillant..." autocomplete="off" required>
+            <button type="submit" class="btn btn-primary btn-chat-send" title="Envoyer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- MODAL : GIFT SHOPPING / BOÎTE À CADEAUX WAFA                 -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="giftShopModal" role="dialog" aria-modal="true" aria-labelledby="giftShopTitle">
+    <div class="modal-container gift-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="gift-header-icon-wrap">
+          <span class="gift-head-emoji"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></span>
+        </div>
+        <div>
+          <h2 class="gift-modal-title" id="giftShopTitle">Boîte à Cadeaux WafaTalk</h2>
+          <p class="gift-modal-desc">Envoyez une attention spéciale et faites scintiller l'écran de vos amis !</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseGiftModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="gift-items-grid">
+        
+        <div class="gift-card-item" data-gift="heart" data-name="Cœur WafaTalk" data-points="50">
+          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
+          <strong class="gift-item-title">Cœur WafaTalk</strong>
+          <span class="gift-item-price">50 pts d'amitié</span>
+          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
+        </div>
+
+        <div class="gift-card-item" data-gift="coffee" data-name="Café Douceur" data-points="30">
+          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg></div>
+          <strong class="gift-item-title">Café Douceur</strong>
+          <span class="gift-item-price">30 pts d'amitié</span>
+          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
+        </div>
+
+        <div class="gift-card-item" data-gift="box" data-name="Coffret Magique" data-points="150">
+          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg></div>
+          <strong class="gift-item-title">Coffret Magique</strong>
+          <span class="gift-item-price">150 pts d'amitié</span>
+          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
+        </div>
+
+        <div class="gift-card-item" data-gift="crown" data-name="Couronne VIP" data-points="300">
+          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path></svg></div>
+          <strong class="gift-item-title">Couronne VIP</strong>
+          <span class="gift-item-price">300 pts d'amitié</span>
+          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
+        </div>
+
+        <div class="gift-card-item" data-gift="star" data-name="Étoile Scintillante" data-points="80">
+          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>
+          <strong class="gift-item-title">Étoile Scintillante</strong>
+          <span class="gift-item-price">80 pts d'amitié</span>
+          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
+        </div>
+
+        <div class="gift-card-item" data-gift="fireworks" data-name="Feu d'Artifice" data-points="500">
+          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg></div>
+          <strong class="gift-item-title">Feu d'Artifice</strong>
+          <span class="gift-item-price">500 pts d'amitié</span>
+          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- MODAL : CREATE SALON                                         -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="createSalonModal" role="dialog" aria-modal="true" aria-labelledby="createSalonTitle">
+    <div class="modal-container create-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div>
+          <h2 class="gift-modal-title" id="createSalonTitle">Créer un nouveau salon</h2>
+          <p class="gift-modal-desc">Configurez votre salon thématique et invitez vos amis.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseCreateModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="formCreateSalon" class="create-salon-form">
+        
+        <div class="input-group">
+          <label for="newSalonName">Nom du salon</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></span>
+            <input type="text" id="newSalonName" placeholder="Ex: Soirée Ciné & Débats" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="newSalonTopic">Description / Thématique</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+            <input type="text" id="newSalonTopic" placeholder="Ex: On débriefe les dernières séries du moment" required>
+          </div>
+        </div>
+
+        <!-- Salon Privacy Mode Selection -->
+        <div class="input-group">
+          <label>Visibilité du salon</label>
+          <div class="privacy-type-selector">
+            <label class="privacy-tile active" id="tilePublicSalon">
+              <input type="radio" name="salonPrivacyType" value="public" checked>
+              <div class="privacy-tile-content">
+                <span class="privacy-tile-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
+                <span class="privacy-tile-title">Salon Public</span>
+                <span class="privacy-tile-desc">Visible par tous, entrée directe</span>
+              </div>
+            </label>
+
+            <label class="privacy-tile" id="tilePrivateSalon">
+              <input type="radio" name="salonPrivacyType" value="private">
+              <div class="privacy-tile-content">
+                <span class="privacy-tile-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+                <span class="privacy-tile-title">Salon Privé</span>
+                <span class="privacy-tile-desc">Accès par code ou lien d'invitation</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Private Salon Options (Code d'accès PIN) -->
+        <div class="private-salon-config hidden" id="privateSalonConfigRow">
+          <div class="input-group">
+            <label for="newSalonAccessCode">Code secret du salon (PIN ou mot de passe)</label>
+            <div class="input-field-wrap">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9c-3.3 0-6 2.7-6 6s2.7 6 6 6 6-2.7 6-6l1.5-1.5"></path></svg></span>
+              <input type="text" id="newSalonAccessCode" placeholder="Ex: 5829 ou PASS2026" maxlength="20">
+              <button type="button" class="btn-gen-code" id="btnGenRandomCode" title="Générer un code aléatoire"> Générer</button>
+            </div>
+            <span class="input-hint">Vos invités devront saisir ce code ou cliquer sur votre lien d'invitation pour entrer.</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="newSalonCategory">Catégorie</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+            <select id="newSalonCategory" required>
+              <option value="vocal">Salon Vocal HD</option>
+              <option value="chill">Chill & Discussion</option>
+              <option value="gaming">Gaming & Squads</option>
+              <option value="music">Jam & Musique</option>
+              <option value="private">Privé & Sur Invitation</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-extra-row">
+          <label class="custom-checkbox">
+            <input type="checkbox" id="newSalonVoiceEnabled" checked>
+            <span class="checkmark"></span>
+            <span class="checkbox-label">Activer le canal vocal en direct</span>
+          </label>
+        </div>
+
+        <div class="modal-form-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelCreate">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitCreateSalon">
+            <span>Créer le salon</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : PRIVATE SALON ACCESS CODE PROMPT                     -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="privateSalonAccessModal" role="dialog" aria-modal="true" aria-labelledby="privateAccessTitle">
+    <div class="modal-container private-access-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(242, 91, 62, 0.15); color: #f25b3e; font-size: 1.4rem;">
+          
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="privateAccessTitle">Salon Privé</h2>
+          <p class="gift-modal-desc" id="privateAccessDesc">Ce salon est protégé. Saisissez le code d'accès pour entrer.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnClosePrivateAccessModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="formPrivateSalonAccess" style="padding: 16px 0 0;">
+        <input type="hidden" id="privateAccessSalonId">
+        <div class="input-group">
+          <label for="privateAccessCodeInput">Code d'accès du salon</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9c-3.3 0-6 2.7-6 6s2.7 6 6 6 6-2.7 6-6l1.5-1.5"></path></svg></span>
+            <input type="text" id="privateAccessCodeInput" placeholder="Ex: 5829" required autofocus style="font-weight: 700; letter-spacing: 2px;">
+          </div>
+          <span class="input-hint">Vous pouvez aussi demander un lien d'invitation direct à l'administrateur du salon.</span>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelPrivateAccess">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnConfirmPrivateAccess">
+            <span>Rejoindre le salon</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : SALON SHARE & INVITATION (WHATSAPP, MESSENGER, INSTA)-->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="salonShareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="modal-container share-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(22, 163, 155, 0.15); color: var(--teal-primary); font-size: 1.3rem;">
+          
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="shareModalTitle">Inviter des amis</h2>
+          <p class="gift-modal-desc">Partagez l'invitation sur vos applications préférées.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseShareModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="share-modal-body">
+        <!-- Salon Summary Card -->
+        <div class="share-salon-summary glass-card">
+          <div class="share-summary-info">
+            <h3 class="share-summary-name" id="shareSalonName">Nom du salon</h3>
+            <span class="share-summary-badge" id="shareSalonBadge">Salon Privé</span>
+          </div>
+          <div class="share-code-pill hidden" id="shareCodePill">
+            <span class="share-code-label">Code d'accès :</span>
+            <strong class="share-code-val" id="shareSalonCode">----</strong>
+            <button type="button" class="btn-copy-code" id="btnCopySalonCode" title="Copier le code">Copier</button>
+          </div>
+        </div>
+
+        <!-- Direct Invite Link -->
+        <div class="input-group" style="margin-top: 14px;">
+          <label>Lien d'invitation direct</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg></span>
+            <input type="text" id="shareInviteLinkInput" readonly style="font-size: 0.85rem; color: var(--text-secondary);">
+            <button type="button" class="btn-copy-code" id="btnCopyInviteLink" title="Copier le lien d'invitation">Copier le lien</button>
+          </div>
+        </div>
+
+        <!-- Social Share Buttons Row -->
+        <div class="social-share-buttons-grid">
+          <!-- WhatsApp -->
+          <button type="button" class="social-share-btn btn-share-whatsapp" id="btnShareWhatsApp">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 15 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.33C9.36 7.33 9.09 7.39 8.86 7.64C8.63 7.89 8 8.48 8 9.68C8 10.89 8.88 12.05 9 12.21C9.13 12.38 10.74 14.86 13.2 15.92C13.79 16.17 14.24 16.33 14.6 16.44C15.19 16.63 15.73 16.6 16.16 16.54C16.64 16.47 17.63 15.94 17.84 15.36C18.04 14.78 18.04 14.28 17.98 14.18C17.92 14.07 17.76 14.01 17.5 13.88C17.25 13.76 16 13.14 15.77 13.06C15.54 12.97 15.38 12.93 15.21 13.18C15.05 13.43 14.57 14.01 14.42 14.18C14.28 14.34 14.13 14.36 13.88 14.24C13.63 14.11 12.83 13.85 11.88 13C11.14 12.34 10.64 11.53 10.5 11.28C10.35 11.03 10.48 10.9 10.61 10.77C10.72 10.66 10.86 10.48 11 10.33C11.13 10.17 11.17 10.06 11.25 9.89C11.34 9.72 11.29 9.58 11.23 9.45C11.17 9.33 10.7 8.19 10.5 7.72C10.32 7.26 10.13 7.32 9.97 7.32C9.83 7.32 9.68 7.33 9.53 7.33Z"/></svg>
+            <span>WhatsApp</span>
+          </button>
+
+          <!-- Messenger -->
+          <button type="button" class="social-share-btn btn-share-messenger" id="btnShareMessenger">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.03 2 11C2 13.84 3.44 16.34 5.69 17.96V22L9.58 19.87C10.35 20.08 11.16 20.2 12 20.2C17.52 20.2 22 16.17 22 11.2C22 6.23 17.52 2 12 2M13.11 14.23L10.77 11.73L6.2 14.23L11.22 8.89L13.56 11.39L18.13 8.89L13.11 14.23Z"/></svg>
+            <span>Messenger</span>
+          </button>
+
+          <!-- Instagram -->
+          <button type="button" class="social-share-btn btn-share-instagram" id="btnShareInstagram">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            <span>Instagram</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : ADMIN SALON MODERATION & BAN CONFIRMATION            -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="salonAdminConfirmModal" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
+    <div class="modal-container admin-confirm-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-size: 1.4rem;">
+          
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="adminConfirmTitle">Gestion du participant</h2>
+          <p class="gift-modal-desc" id="adminConfirmTargetText">Participant : Alexandre</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseAdminConfirmModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="admin-confirm-body" style="padding: 16px 0;">
+        <input type="hidden" id="adminTargetUserId">
+
+        <p class="admin-confirm-prompt" id="adminConfirmPromptText">Que souhaitez-vous faire concernant ce participant ?</p>
+
+        <!-- Quick actions buttons -->
+        <div class="admin-actions-options-grid">
+          <!-- Promote / Revoke Admin -->
+          <button type="button" class="btn-admin-option btn-admin-role-toggle" id="btnAdminActionToggleAdmin">
+            <span class="admin-opt-icon" id="adminRoleToggleIcon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg></span>
+            <div class="admin-opt-info">
+              <strong id="adminRoleToggleTitle">Nommer Administrateur</strong>
+              <span id="adminRoleToggleDesc">Accorde les droits de gestion sur ce salon (Admin Vert)</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option" id="btnAdminActionMute">
+            <span class="admin-opt-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></span>
+            <div class="admin-opt-info">
+              <strong>Couper le micro</strong>
+              <span>Désactive le microphone du membre immédiatement</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option" id="btnAdminActionCutCam">
+            <span class="admin-opt-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg></span>
+            <div class="admin-opt-info">
+              <strong>Couper la caméra</strong>
+              <span>Désactive le flux vidéo du membre</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option btn-admin-warning" id="btnAdminActionKick">
+            <span class="admin-opt-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span>
+            <div class="admin-opt-info">
+              <strong>Expulser du salon (Kick)</strong>
+              <span>Éjecte le membre de la session actuelle sans le bannir</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option btn-admin-danger" id="btnAdminActionBanUser">
+            <span class="admin-opt-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg></span>
+            <div class="admin-opt-info">
+              <strong>Bannir le compte (Ban User)</strong>
+              <span>Ce nom d'utilisateur ne pourra plus jamais entrer</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-admin-option btn-admin-danger" id="btnAdminActionBanIp">
+            <span class="admin-opt-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg></span>
+            <div class="admin-opt-info">
+              <strong>Bannir l'adresse IP (Ban IP)</strong>
+              <span>Bloque définitivement son adresse IP sur ce salon</span>
+            </div>
+          </button>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 18px; display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="btn-admin-view-bans" id="btnAdminViewBansList">
+            Voir la liste des membres & IP bannis de ce salon
+          </button>
+          <div style="display: flex; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" id="btnCancelAdminAction">Annuler</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : SALON BANNED MEMBERS & UNBAN MANAGEMENT              -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="salonBansModal" role="dialog" aria-modal="true" aria-labelledby="salonBansTitle">
+    <div class="modal-container glass-panel" style="max-width: 540px; width: 92%;">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-size: 1.4rem;">
+          
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="salonBansTitle">Membres et IP bannis</h2>
+          <p class="gift-modal-desc">Gérez les exclusions de ce salon et débloquez les utilisateurs d'un simple clic.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseSalonBansModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="salon-bans-body" style="padding: 16px 0;">
+        <div id="salonBansLoading" class="bans-loading-state" style="text-align: center; padding: 28px; color: var(--text-muted);">
+          <div class="spinner" style="margin: 0 auto 10px auto;"></div>
+          <span>Chargement des bannissements...</span>
+        </div>
+
+        <div id="salonBansEmpty" class="bans-empty-state hidden" style="text-align: center; padding: 32px 16px;">
+          <div style="font-size: 2.6rem; margin-bottom: 8px;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
+          <h4 style="margin: 0 0 6px 0; color: var(--text-primary); font-weight: 600;">Aucune exclusion active</h4>
+          <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">Aucun compte ni adresse IP n'est actuellement banni de ce salon.</p>
+        </div>
+
+        <div id="salonBansList" class="salon-bans-list hidden" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px;">
+          <!-- Populated dynamically via app.js -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Social Auth Modal (Google / Gmail, Apple, Discord) -->
+  <div class="modal-overlay hidden" id="socialAuthModal" role="dialog" aria-modal="true" aria-labelledby="socialModalTitle">
+    <div class="modal-container social-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" id="socialModalIcon">
+          <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.3 14.7c-.2-.7-.4-1.5-.4-2.7 0-1.1.2-2 .4-2.7L1.6 6.4C.6 8.3 0 10.1 0 12s.6 3.7 1.6 5.6l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.8-2.5 1.2-4.3 1.2-3.1 0-5.8-2.3-6.7-5.3L1.6 16C3.5 19.8 7.4 23 12 23z"/></svg>
+        </div>
+        <div>
+          <h2 class="gift-modal-title" id="socialModalTitle">Connexion avec Google</h2>
+          <p class="gift-modal-desc" id="socialModalDesc">Accédez immédiatement à votre compte ou inscrivez-vous avec votre adresse Gmail.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseSocialModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="social-modal-body">
+        <!-- Quick Suggested Account -->
+        <div class="social-account-card" id="btnChooseDefaultGoogle">
+          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="social-account-avatar" id="socialAccountAvatar">
+          <div class="social-account-info">
+            <span class="social-account-name" id="socialAccountName">Alexandre Moreau</span>
+            <span class="social-account-email" id="socialAccountEmail">alexandre.moreau@gmail.com</span>
+          </div>
+          <span class="social-account-badge">1-Clic</span>
+        </div>
+
+        <div class="auth-divider" style="margin: 16px 0;">
+          <span id="socialDividerText">ou entrez une autre adresse Gmail</span>
+        </div>
+
+        <form id="formCustomSocial" class="custom-social-form">
+          <div class="input-group">
+            <label for="customSocialEmail" id="customSocialEmailLabel">Votre adresse Gmail</label>
+            <div class="input-field-wrap">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
+              <input type="email" id="customSocialEmail" placeholder="votre.adresse@gmail.com" required>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="customSocialName">Votre Nom / Pseudo</label>
+            <div class="input-field-wrap">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+              <input type="text" id="customSocialName" placeholder="Ex: Rayan B." required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block " id="btnConfirmSocialAuth">
+            <span class="btn-text">Continuer avec ce compte</span>
+            <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            <div class="btn-spinner hidden" id="socialSpinner"></div>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Forgot Password / Account Recovery Modal -->
+  <div class="modal-overlay hidden" id="forgotPasswordModal" role="dialog" aria-modal="true" aria-labelledby="forgotModalTitle">
+    <div class="modal-container forgot-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: var(--teal-soft-bg); color: var(--teal-primary);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="forgotModalTitle">Mot de passe oublié</h2>
+          <p class="gift-modal-desc" id="forgotModalDesc">Récupérez l'accès à votre compte en toute sécurité grâce à un code e-mail.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseForgotModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Step 1: Request Code by Email -->
+      <form id="formForgotRequestCode" class="forgot-step-form" style="padding-top: 14px;">
+        <div class="input-group">
+          <label for="forgotEmail">Adresse e-mail de votre compte</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </span>
+            <input type="email" id="forgotEmail" placeholder="votre.email@exemple.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="forgot-info-alert">
+          <span class="alert-icon" style="font-size: 1.1rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
+          <span>Un code de sécurité à 6 chiffres vous sera envoyé par e-mail pour confirmer votre identité.</span>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelForgotStep1">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitForgotRequest">
+            <span class="btn-text">Envoyer mon code sécurisé</span>
+            <span class="spinner hidden" id="forgotRequestSpinner"></span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Step 2: Enter OTP Code & Set New Password -->
+      <form id="formForgotVerifyReset" class="forgot-step-form hidden" style="padding-top: 14px;">
+        <div class="forgot-reminder-card">
+          <div class="reminder-header">
+            <span class="reminder-badge">Rappel de sécurité</span>
+            <span class="reminder-timer" id="forgotCodeExpiryNotice"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Valide 10 min</span>
+          </div>
+          <div class="reminder-body">
+            <strong>Créez votre nouveau mot de passe</strong>
+            <p>Saisissez le code reçu par e-mail et définissez votre nouveau mot de passe pour vous connecter instantanément.</p>
+          </div>
+        </div>
+
+        <!-- 6-digit Code Field -->
+        <div class="input-group">
+          <label for="forgotCode">Code de vérification reçu (6 chiffres)</label>
+          <div class="input-field-wrap">
+            <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="8" y1="12" x2="16" y2="12"></line></svg></span>
+            <input type="text" id="forgotCode" placeholder="Ex: 582914" maxlength="6" inputmode="numeric" required autocomplete="one-time-code" style="letter-spacing: 4px; font-weight: 800; font-size: 1.15rem;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+            <span style="font-size: 0.74rem; color: var(--text-muted);" id="forgotTargetEmail">Envoyé à ...</span>
+            <button type="button" id="btnResendForgotCode" style="background: none; border: none; color: var(--teal-primary); font-size: 0.75rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Renvoyer un code</button>
+          </div>
+        </div>
+
+        <!-- New Password Field -->
+        <div class="input-group" style="margin-top: 14px;">
+          <label for="forgotNewPassword">Nouveau mot de passe</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <input type="password" id="forgotNewPassword" placeholder="Minimum 6 caractères" minlength="6" required autocomplete="new-password">
+            <button type="button" class="password-toggle-btn icon-btn" id="btnToggleForgotPass1" title="Afficher/Masquer" aria-label="Afficher/Masquer">
+              <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm New Password Field -->
+        <div class="input-group">
+          <label for="forgotConfirmPassword">Confirmer le nouveau mot de passe</label>
+          <div class="input-field-wrap">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </span>
+            <input type="password" id="forgotConfirmPassword" placeholder="Retapez votre mot de passe" minlength="6" required autocomplete="new-password">
+            <button type="button" class="password-toggle-btn icon-btn" id="btnToggleForgotPass2" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer le mot de passe">
+              <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-form-actions" style="margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnBackToForgotStep1">Changer d'email</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitForgotReset">
+            <span class="btn-text">Valider & Me connecter</span>
+            <span class="spinner hidden" id="forgotResetSpinner"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- In-App Terms & Conditions Modal -->
+  <div class="modal-overlay hidden" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+    <div class="modal-container terms-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: var(--teal-soft-bg); color: var(--teal-primary); font-size: 1.3rem;">
+          
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="termsModalTitle">Charte Communautaire & CGU</h2>
+          <p class="gift-modal-desc">Veuillez prendre connaissance des règles fondamentales de WafaTalk.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseTermsModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="terms-modal-body">
+        <div class="terms-modal-scroll">
+          <div class="terms-callout">
+            <strong>Bienvenue sur WafaTalk !</strong> En rejoignant notre communauté, vous vous engagez à respecter les principes de bienveillance, de sécurité et d'authenticité.
+          </div>
+          
+          <h4 class="terms-heading">1. Âge légal & Date de Naissance (13 ans minimum)</h4>
+          <p>L'accès à WafaTalk est strictement réservé aux personnes âgées d'au moins 13 ans. Vous attestez sur l'honneur de la véracité de votre date de naissance et de votre pays de résidence.</p>
+
+          <h4 class="terms-heading">2. Respect mutuel & Salons Vocaux</h4>
+          <p>Tolérance zéro pour les insultes, harcèlement, propos discriminatoires ou diffamatoires. L'enregistrement de la voix d'autres membres sans leur consentement exprès est formellement interdit.</p>
+
+          <h4 class="terms-heading">3. WafaPoints & Cadeaux d'amitié</h4>
+          <p>Les WafaPoints et cadeaux sont virtuels, réservés à l'animation des salons et sans contrepartie monétaire réelle. Ils ne sont ni remboursables ni échangeables contre de l'argent réel.</p>
+
+          <h4 class="terms-heading">4. Protection des Données & Confidentialité</h4>
+          <p>Vos mots de passe sont chiffrés via bcrypt. Les flux vocaux en direct ne sont ni enregistrés ni exploités commercialement. Vos données sont protégées conformément au RGPD.</p>
+        </div>
+
+        <div class="terms-modal-actions">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="terms.html" target="_blank" class="btn btn-secondary btn-sm" id="btnOpenFullTermsPage">
+              <span>CGU complètes ↗</span>
+            </a>
+            <a href="privacy.html" target="_blank" class="btn btn-secondary btn-sm">
+              <span>Politique RGPD</span>
+            </a>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="btnAcceptTermsModal">
+            <span>J'ai compris et j'accepte</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Verification OTP Modal (Anti-Bot Protection) -->
+  <div class="modal-overlay hidden" id="emailVerificationModal" role="dialog" aria-modal="true" aria-labelledby="otpModalTitle">
+    <div class="modal-container otp-modal-container glass-panel">
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(16, 185, 129, 0.12); color: var(--success-color); font-size: 1.4rem;">
+          
+        </div>
+        <div style="flex: 1;">
+          <h2 class="gift-modal-title" id="otpModalTitle">Vérification de votre e-mail</h2>
+          <p class="gift-modal-desc">Protection anti-bot et validation de compte</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseOtpModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="otp-modal-body">
+        <div class="otp-banner">
+          <span class="otp-banner-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></span>
+          <div class="otp-banner-text">
+            Un code sécurisé à 6 chiffres a été envoyé à :<br>
+            <strong id="otpTargetEmail" class="otp-highlight-email">utilisateur@exemple.com</strong>
+          </div>
+          <button type="button" class="btn-change-email" id="btnChangeRegEmail" title="Modifier l'adresse email">Modifier</button>
+        </div>
+
+        <div class="otp-instruction">
+          Entrez le code de vérification reçu par e-mail :<br>
+          <small style="color: #7c9492; font-size: 12px; margin-top: 4px; display: inline-block;">(Pensez à vérifier votre dossier <strong>Courriers indésirables / Spams</strong> si besoin)</small>
+        </div>
+
+        <!-- 6 Segmented OTP Input Boxes -->
+        <div class="otp-inputs-row" id="otpInputsRow">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="0" autocomplete="one-time-code" autofocus>
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="1" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="2" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="3" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="4" autocomplete="off">
+          <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-index="5" autocomplete="off">
+        </div>
+
+        <!-- Dynamic hint / error -->
+        <div id="otpStatusHint" class="otp-status-hint hidden"></div>
+
+        <!-- Timer & Resend Controls -->
+        <div class="otp-meta-row">
+          <span class="otp-timer" id="otpTimer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Expire dans 10:00</span>
+          <button type="button" class="btn-resend-otp" id="btnResendOtp" disabled>
+            <span>Renvoyer le code</span>
+            <span id="resendCountdownText" class="resend-countdown">(40s)</span>
+          </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="otp-modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelOtpModal" style="flex: 1;">
+            <span>Annuler</span>
+          </button>
+          <button type="button" class="btn btn-primary " id="btnSubmitOtp" style="flex: 2;">
+            <span class="btn-text">Vérifier & Activer</span>
+            <div class="btn-spinner hidden" id="otpSpinner"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : 1-ON-1 DIRECT SALON (PRIVATE CHAT & DMS)             -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="directChatModal" role="dialog" aria-modal="true" aria-labelledby="dmFriendName">
+    <div class="modal-container dm-modal-container glass-panel">
+      <!-- DM Header -->
+      <div class="dm-header">
+        <div class="dm-user-profile-wrap">
+          <div class="dm-avatar-container">
+            <img src="" alt="Avatar ami" class="dm-avatar-img" id="dmFriendAvatar">
+            <span class="dm-status-indicator online" id="dmFriendStatusDot"></span>
+          </div>
+          <div class="dm-user-meta">
+            <div class="dm-name-row">
+              <h3 class="dm-user-name" id="dmFriendName">Ami WafaTalk</h3>
+              <span class="dm-country-flag" id="dmFriendFlag"></span>
+            </div>
+            <span class="dm-status-label" id="dmFriendStatusText">En ligne</span>
+          </div>
+        </div>
+
+        <div class="dm-header-actions">
+          <button type="button" class="icon-btn dm-call-btn audio-call" id="btnStartAudioCall" title="Démarrer un appel vocal" aria-label="Appel vocal">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          </button>
+          <button type="button" class="icon-btn dm-call-btn video-call" id="btnStartVideoCall" title="Démarrer un appel vidéo" aria-label="Appel vidéo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          </button>
+          <button type="button" class="icon-btn modal-close-btn" id="btnCloseDirectChat" aria-label="Fermer le salon privé">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- DM Messages Body -->
+      <div class="dm-body">
+        <div class="dm-messages-scroll" id="dmMessagesScroll">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <!-- Floating Scroll-to-Bottom Button with Unread Badge -->
+        <button type="button" class="chat-scroll-bottom-btn hidden" id="dmScrollBottomBtn" title="Faire défiler vers le bas" aria-label="Faire défiler vers le bas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <span class="scroll-unread-badge hidden" id="dmScrollUnreadBadge">0</span>
+        </button>
+
+        <!-- Typing Indicator -->
+        <div class="dm-typing-indicator hidden" id="dmTypingIndicator">
+          <span class="typing-dots"><span></span><span></span><span></span></span>
+          <span class="typing-text" id="dmTypingText">est en train d'écrire...</span>
+        </div>
+      </div>
+
+      <!-- DM Media Preview Bar (shown when file selected) -->
+      <div class="dm-media-preview-bar hidden" id="dmMediaPreviewBar">
+        <div class="dm-media-preview-inner">
+          <div class="dm-media-thumb-wrap" id="dmMediaThumbWrap">
+            <!-- preview populated by JS -->
+          </div>
+          <div class="dm-media-preview-meta">
+            <span class="dm-media-filename" id="dmMediaFilename">fichier.jpg</span>
+            <span class="dm-media-filesize" id="dmMediaFilesize">0 KB</span>
+          </div>
+          <button type="button" class="icon-btn dm-media-remove-btn" id="btnDmMediaRemove" title="Retirer le fichier" aria-label="Retirer le fichier">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <!-- One-View Toggle -->
+        <div class="dm-oneview-toggle-row">
+          <label class="dm-oneview-toggle-label" for="dmOneViewToggle">
+            <span class="dm-oneview-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+            <span>Vue unique</span>
+            <span class="dm-oneview-hint">Disparaît après ouverture</span>
+          </label>
+          <input type="checkbox" id="dmOneViewToggle" class="dm-oneview-checkbox" aria-label="Mode vue unique">
+          <span class="dm-oneview-toggle-pill" id="dmOneViewPill" role="switch" aria-checked="false" tabindex="0" aria-label="Activer la vue unique"></span>
+        </div>
+      </div>
+
+      <!-- DM Input Bar -->
+      <form id="dmMessageForm" class="dm-input-bar">
+        <button type="button" class="icon-btn emoji-trigger" id="btnDmEmoji" title="Émojis"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></button>
+
+        <!-- Attachment Button -->
+        <button type="button" class="icon-btn dm-attach-btn" id="btnDmAttach" title="Joindre une photo, vidéo ou fichier" aria-label="Joindre un fichier">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+        </button>
+        <input type="file" id="dmFileInput" class="dm-file-input-hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt,.mp3,.ogg,.wav" aria-label="Choisir un fichier">
+
+        <input type="text" id="dmTextInput" placeholder="Envoyer un message privé sécurisé..." autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm btn-send-dm" id="btnSendDm" aria-label="Envoyer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : INCOMING CALL (AUDIO & VIDEO RINGING)                -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay incoming-call-overlay hidden" id="incomingCallModal" role="dialog" aria-modal="true">
+    <div class="incoming-call-card glass-panel">
+      <div class="call-pulse-avatar-wrap">
+        <div class="pulse-ring ring-1"></div>
+        <div class="pulse-ring ring-2"></div>
+        <div class="pulse-ring ring-3"></div>
+        <img src="" alt="Appelant" class="call-caller-avatar" id="incomingCallerAvatar">
+      </div>
+
+      <h3 class="incoming-caller-name" id="incomingCallerName">Ami WafaTalk</h3>
+      <div class="incoming-call-type-badge" id="incomingCallTypeBadge">
+        <span class="badge-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></span>
+        <span id="incomingCallTypeText">Appel vocal entrant...</span>
+      </div>
+
+      <div class="incoming-call-actions">
+        <button type="button" class="btn-call-action btn-call-decline" id="btnDeclineIncomingCall" title="Refuser l'appel">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+          <span>Refuser</span>
+        </button>
+
+        <button type="button" class="btn-call-action btn-call-accept pulse" id="btnAcceptIncomingCall" title="Décrocher">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <span>Décrocher</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : ACTIVE CALL EXPERIENCE (AUDIO / VIDEO WEBRTC)         -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay active-call-overlay hidden" id="activeCallModal" role="dialog" aria-modal="true">
+    <div class="active-call-container glass-panel">
+      <!-- Call Header -->
+      <div class="active-call-header">
+        <div class="active-call-user-info">
+          <img src="" alt="Correspondant" class="active-call-avatar-mini" id="activeCallPeerAvatar">
+          <div>
+            <h3 class="active-call-peer-name" id="activeCallPeerName">Ami WafaTalk</h3>
+            <span class="active-call-encrypted-tag">Chiffré de bout en bout P2P</span>
+          </div>
+        </div>
+
+        <div class="active-call-meta-center">
+          <div class="call-timer-badge" id="callDurationBadge">
+            <span class="timer-live-dot pulse"></span>
+            <span id="callDurationTimer">00:00</span>
+          </div>
+        </div>
+
+        <div class="active-call-top-actions">
+          <button type="button" class="icon-btn" id="btnMinimizeCall" title="Réduire l'appel (Picture-in-Picture)" aria-label="Réduire">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Call Main Stage -->
+      <div class="active-call-stage">
+        <!-- Audio Mode Visualizer Stage -->
+        <div class="call-audio-stage" id="callAudioStage">
+          <div class="audio-call-avatars-row">
+            <div class="audio-avatar-card is-local">
+              <div class="avatar-ring-wrap" id="localAudioAvatarRing">
+                <img src="" alt="Moi" class="audio-stage-avatar" id="localAudioAvatar">
+              </div>
+              <span class="audio-stage-name">Moi</span>
+              <span class="audio-stage-mic-status" id="localMicBadge">Micro actif</span>
+            </div>
+
+            <div class="audio-stage-connector">
+              <div class="audio-wave-bars">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+
+            <div class="audio-avatar-card is-peer">
+              <div class="avatar-ring-wrap" id="peerAudioAvatarRing">
+                <img src="" alt="Correspondant" class="audio-stage-avatar" id="peerAudioAvatar">
+              </div>
+              <span class="audio-stage-name" id="peerAudioName">Ami</span>
+              <span class="audio-stage-mic-status" id="peerMicBadge">En ligne</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dedicated Audio Element for WebRTC Audio Playback (Audio & Video Calls) -->
+        <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
+
+        <!-- Video Mode WebRTC Stage -->
+        <div class="call-video-stage hidden" id="callVideoStage">
+          <!-- Remote Video Feed (Full) -->
+          <div class="remote-video-wrap" id="remoteVideoWrap">
+            <video id="remoteVideo" autoplay playsinline class="remote-video-el"></video>
+            <div class="video-placeholder hidden" id="remoteVideoPlaceholder">
+              <img src="" alt="Correspondant" class="video-placeholder-avatar" id="remotePlaceholderAvatar">
+              <p>Caméra du correspondant désactivée</p>
+            </div>
+          </div>
+
+          <!-- Local Video Feed (Floating PiP) -->
+          <div class="local-video-pip" id="localVideoPip">
+            <video id="localVideo" autoplay playsinline muted class="local-video-el"></video>
+            <div class="local-video-placeholder hidden" id="localVideoPlaceholder">
+              <span>Caméra coupée</span>
+            </div>
+            <button type="button" class="btn-flip-camera hidden" id="btnFlipCamera" title="Changer de caméra"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Controls Bar -->
+      <div class="active-call-controls-bar glass-panel">
+        <button type="button" class="call-ctrl-btn active" id="btnCallToggleMic" title="Microphone">
+          <svg class="mic-on-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <svg class="mic-off-icon hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span class="ctrl-label">Micro</span>
+        </button>
+
+        <button type="button" class="call-ctrl-btn" id="btnCallToggleCamera" title="Activer / Couper la caméra">
+          <svg class="camera-on-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          <svg class="camera-off-icon hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          <span class="ctrl-label">Caméra</span>
+        </button>
+
+        <button type="button" class="call-ctrl-btn" id="btnCallShareScreen" title="Partager l'écran">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          <span class="ctrl-label">Écran</span>
+        </button>
+
+        <button type="button" class="call-ctrl-btn btn-call-hangup" id="btnCallHangup" title="Raccrocher">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+          <span class="ctrl-label">Raccrocher</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : MON PROFIL & STATUT                                -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="profileStatusModal" role="dialog" aria-modal="true" aria-labelledby="profileStatusModalTitle">
+    <div class="modal-container profile-modal-container glass-panel">
+      <!-- Signature WafaTalk Header -->
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(13, 131, 125, 0.12); color: var(--teal-primary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div>
+          <h2 class="gift-modal-title" id="profileStatusModalTitle">Mon Profil & Statut</h2>
+          <p class="gift-modal-desc">Personnalisez votre identité, votre avatar et votre statut en temps réel.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseProfileModal" aria-label="Fermer la boîte de dialogue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Modal Body -->
+      <div class="modal-scrollable-body">
+        
+        <!-- Showcase Card: Avatar + User Overview + Badges -->
+        <div class="profile-hero-card">
+          <div class="profile-hero-avatar-area">
+            <div class="profile-avatar-ring">
+              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" alt="Avatar actuel" class="profile-avatar-large" id="profileAvatarPreview">
+              <span class="profile-status-indicator online" id="profileAvatarStatusDot"></span>
+            </div>
+            <div class="avatar-hero-meta">
+              <div class="avatar-action-row">
+                <label for="avatarFileInput" class="btn btn-secondary btn-sm btn-upload-avatar">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Changer d'avatar</span>
+                </label>
+                <input type="file" id="avatarFileInput" accept="image/png, image/jpeg, image/webp" class="hidden">
+              </div>
+              <span class="avatar-filesize-hint">JPG, PNG ou WEBP (Max 2 Mo)</span>
+              
+              <div class="profile-identity-chips">
+                <span class="identity-chip chip-points" id="profilePointsChip">150 WafaPoints</span>
+                <span class="identity-chip chip-tier">VIP Membre</span>
+                <span class="identity-chip chip-verified">Compte Vérifié</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Express Avatar Presets Carousel -->
+        <div class="form-section-group">
+          <label class="section-micro-label">Avatars prédéfinis express</label>
+          <div class="avatar-presets-grid" id="avatarPresetsGrid">
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" title="Alexandre">
+              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80" alt="Preset 1">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" title="Sarah">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80" alt="Preset 2">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=160&auto=format&fit=crop&q=80" title="Youssef">
+              <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80" alt="Preset 3">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&auto=format&fit=crop&q=80" title="Lina">
+              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80" alt="Preset 4">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&auto=format&fit=crop&q=80" title="Marc">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80" alt="Preset 5">
+            </button>
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&auto=format&fit=crop&q=80" title="Emma">
+              <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80" alt="Preset 6">
+            </button>
+          </div>
+
+          <div class="input-group" style="margin-top: 10px;">
+            <div class="input-field-wrap">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
+              <input type="url" id="profileAvatarUrlInput" placeholder="Ou collez l'URL d'une image web (https://...)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-time Presence Status Tiles (Matches WafaTalk privacy-tile system) -->
+        <div class="form-section-group">
+          <label class="section-micro-label">Statut de présence en direct</label>
+          <div class="presence-cards-grid" id="presenceCardsGrid">
+            <div class="presence-card selected" data-status="ONLINE">
+              <span class="presence-card-dot online"></span>
+              <div class="presence-card-content">
+                <span class="presence-title">En ligne</span>
+                <span class="presence-desc">Prêt à discuter et rejoindre les salons</span>
+              </div>
+              <span class="presence-check-icon"></span>
+            </div>
+
+            <div class="presence-card" data-status="BUSY">
+              <span class="presence-card-dot busy"></span>
+              <div class="presence-card-content">
+                <span class="presence-title">Ne pas déranger</span>
+                <span class="presence-desc">Alertes et sonneries en sourdine</span>
+              </div>
+              <span class="presence-check-icon"></span>
+            </div>
+
+            <div class="presence-card" data-status="IDLE">
+              <span class="presence-card-dot idle"></span>
+              <div class="presence-card-content">
+                <span class="presence-title">Absent</span>
+                <span class="presence-desc">Temporairement indisponible</span>
+              </div>
+              <span class="presence-check-icon"></span>
+            </div>
+
+            <div class="presence-card" data-status="OFFLINE">
+              <span class="presence-card-dot offline"></span>
+              <div class="presence-card-content">
+                <span class="presence-title">Invisible</span>
+                <span class="presence-desc">Apparaître déconnecté</span>
+              </div>
+              <span class="presence-check-icon"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mood & Short Status Message -->
+        <div class="form-section-group">
+          <div class="input-group">
+            <label for="profileMoodInput">Humeur & message personnalisé</label>
+            <div class="input-field-wrap">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
+              <input type="text" id="profileMoodInput" placeholder="Partagez votre humeur du moment..." maxlength="80">
+            </div>
+          </div>
+          <div class="quick-mood-pills">
+            <button type="button" class="category-pill mood-pill" data-mood=" En plein travail"> Au boulot</button>
+            <button type="button" class="category-pill mood-pill" data-mood="En session gaming">Gaming</button>
+            <button type="button" class="category-pill mood-pill" data-mood="Pause café">Pause café</button>
+            <button type="button" class="category-pill mood-pill" data-mood="En musique">En musique</button>
+            <button type="button" class="category-pill mood-pill" data-mood="En vacances">En vacances</button>
+          </div>
+        </div>
+
+        <!-- Editable User Identity Fields -->
+        <div class="form-section-group">
+          <label class="section-micro-label">Informations du compte</label>
+          
+          <div class="profile-fields-grid">
+            <div class="input-group">
+              <label for="profileDisplayNameInput">Nom complet affiché</label>
+              <div class="input-field-wrap">
+                <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+                <input type="text" id="profileDisplayNameInput" placeholder="Ex: Alexandre Moreau" required maxlength="50">
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="profileUsernameDisplay">Nom d'utilisateur unique</label>
+              <div class="input-field-wrap input-readonly-wrap">
+                <span class="input-icon">@</span>
+                <input type="text" id="profileUsernameDisplay" readonly>
+                <span class="readonly-badge">Unique</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-top: 14px;">
+            <div class="label-with-counter">
+              <label for="profileBioInput">Biographie</label>
+              <span class="char-counter" id="profileBioCounter">0/160</span>
+            </div>
+            <div class="input-field-wrap">
+              <span class="input-icon" style="align-self: flex-start; margin-top: 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
+              <textarea id="profileBioInput" rows="3" placeholder="Parlez un peu de vous, vos passions, vos centres d'intérêt..." maxlength="160" style="padding-left: 42px; min-height: 80px; resize: vertical;"></textarea>
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-top: 14px;">
+            <label for="profileCountrySelect">Pays de résidence</label>
+            <div class="input-field-wrap">
+              <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg></span>
+              <select id="profileCountrySelect">
+                <option value="France">France</option>
+                <option value="Maroc">Maroc</option>
+                <option value="Tunisie">Tunisie</option>
+                <option value="Algérie">Algérie</option>
+                <option value="Belgique">Belgique</option>
+                <option value="Suisse">Suisse</option>
+                <option value="Canada">Canada</option>
+                <option value="Sénégal">Sénégal</option>
+                <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                <option value="Espagne">Espagne</option>
+                <option value="Italie">Italie</option>
+                <option value="Allemagne">Allemagne</option>
+                <option value="Royaume-Uni">Royaume-Uni</option>
+                <option value="États-Unis">États-Unis</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="profileSaveFeedback" class="modal-feedback-alert hidden"></div>
+
+        <!-- Standard WafaTalk Form Actions -->
+        <div class="modal-form-actions" style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelProfileModal">Annuler</button>
+          <button type="button" class="btn btn-primary" id="btnSaveProfileModal">
+            <span class="btn-text">Enregistrer les modifications</span>
+            <div class="btn-spinner hidden" id="profileSaveSpinner"></div>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : PARAMÈTRES AUDIO & COMPTE                          -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <div class="modal-container settings-modal-container glass-panel">
+      <!-- Signature WafaTalk Header -->
+      <div class="gift-modal-header">
+        <div class="social-modal-icon" style="background: rgba(13, 131, 125, 0.12); color: var(--teal-primary);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </div>
+        <div>
+          <h2 class="gift-modal-title" id="settingsModalTitle">Paramètres WafaTalk</h2>
+          <p class="gift-modal-desc">Gérez vos périphériques audio, votre sécurité et vos préférences.</p>
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btnCloseSettingsModal" aria-label="Fermer les paramètres">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Segmented Navigation Pills Bar -->
+      <div class="settings-nav-pills" role="tablist">
+        <button type="button" class="settings-nav-pill settings-tab-btn active" id="tabSettingsAudio" role="tab" aria-selected="true" data-tab="tabPaneAudio">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span>Audio & Voix</span>
+        </button>
+        <button type="button" class="settings-nav-pill settings-tab-btn" id="tabSettingsAccount" role="tab" aria-selected="false" data-tab="tabPaneAccount">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Compte & Sécurité</span>
+        </button>
+        <button type="button" class="settings-nav-pill settings-tab-btn" id="tabSettingsPrefs" role="tab" aria-selected="false" data-tab="tabPanePrefs">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <span>Apparence</span>
+        </button>
+      </div>
+
+      <!-- Settings Panes Wrapper -->
+      <div class="modal-scrollable-body settings-panes-wrapper">
+
+        <!-- TAB 1 : AUDIO & VOIX -->
+        <div class="settings-tab-pane active" id="tabPaneAudio" role="tabpanel">
+          <!-- Card: Microphone Input -->
+          <div class="settings-section-card">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(13, 131, 125, 0.12); color: var(--teal-primary);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title">Microphone (Entrée Audio)</h3>
+                <p class="settings-section-subtitle">Sélectionnez le micro pour vos échanges vocaux en salon et appels.</p>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+              <div class="input-field-wrap">
+                <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></span>
+                <select id="selectMicDevice">
+                  <option value="default">Microphone par défaut du système</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Real-time Mic Test Vu-Meter -->
+            <div class="vu-meter-console">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">Test du signal micro</span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnTestMic">
+                  <span class="live-dot" id="micTestDot"></span>
+                  <span id="btnTestMicText">Tester mon micro</span>
+                </button>
+              </div>
+              <div class="vu-meter-track" id="micVuMeterTrack">
+                <div class="vu-meter-fill" id="micVuMeterBar"></div>
+              </div>
+              <span class="vu-meter-hint" id="micTestHint">Cliquez sur « Tester mon micro » et parlez pour vérifier la modulation sonore.</span>
+            </div>
+
+            <!-- Sensitivity slider -->
+            <div class="slider-control-group">
+              <div class="slider-label-row">
+                <label for="inputMicSensitivity">Sensibilité d'entrée</label>
+                <span class="slider-val-badge" id="micSensitivityVal">80%</span>
+              </div>
+              <input type="range" id="inputMicSensitivity" min="0" max="100" value="80" class="custom-range-slider">
+            </div>
+
+            <!-- Enhancements Switches -->
+            <div class="toggles-list">
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Annulation d'écho acoustique (AEC)</strong>
+                  <span>Supprime les échos réverbérés par vos enceintes.</span>
+                </div>
+                <input type="checkbox" id="toggleEchoCancellation" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Suppression intelligente du bruit de fond</strong>
+                  <span>Filtre les bruits parasites, clics de clavier et ventilateurs.</span>
+                </div>
+                <input type="checkbox" id="toggleNoiseSuppression" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Contrôle automatique du gain (AGC)</strong>
+                  <span>Harmonise le volume pour vous entendre parfaitement.</span>
+                </div>
+                <input type="checkbox" id="toggleAutoGain" class="ios-switch" checked>
+              </label>
+            </div>
+          </div>
+
+          <!-- Card: Speakers Output -->
+          <div class="settings-section-card">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(242, 91, 62, 0.12); color: var(--coral-primary);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title">Haut-parleurs & Casque (Sortie)</h3>
+                <p class="settings-section-subtitle">Choisissez votre périphérique d'écoute et ajustez le volume général.</p>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+              <div class="input-field-wrap">
+                <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></span>
+                <select id="selectSpeakerDevice">
+                  <option value="default">Haut-parleurs par défaut du système</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="slider-control-group">
+              <div class="slider-label-row">
+                <label for="sliderOutputVolume">Volume de sortie des salons</label>
+                <span class="slider-val-badge" id="outputVolumeVal">100%</span>
+              </div>
+              <input type="range" id="sliderOutputVolume" min="0" max="100" value="100" class="custom-range-slider">
+            </div>
+
+            <div class="speaker-test-row">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnTestSpeakerTone">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <span>Tester la sortie audio</span>
+              </button>
+              <span class="speaker-test-note">Joue un carillon agréable pour vérifier l'écoute.</span>
+            </div>
+
+            <div class="toggles-list" style="margin-top: 14px;">
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Sons de notification des messages & cadeaux</strong>
+                  <span>Signal sonore discret à l'arrivée d'un message direct.</span>
+                </div>
+                <input type="checkbox" id="toggleNotifSounds" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Bip d'entrée / sortie de salon</strong>
+                  <span>Carillon discret quand un participant rejoint le salon.</span>
+                </div>
+                <input type="checkbox" id="toggleRoomChimes" class="ios-switch" checked>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2 : COMPTE & SÉCURITÉ -->
+        <div class="settings-tab-pane" id="tabPaneAccount" role="tabpanel">
+          <!-- Summary Box -->
+          <div class="settings-section-card">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(16, 185, 129, 0.12); color: var(--success-color);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title">Identité du compte</h3>
+                <p class="settings-section-subtitle">Détails d'authentification et identifiant unique WafaTalk.</p>
+              </div>
+            </div>
+
+            <div class="account-summary-pills-row" style="margin-top: 14px;">
+              <div class="acc-summary-box">
+                <span class="acc-box-label">Email de connexion</span>
+                <div class="acc-email-row">
+                  <span class="acc-box-val" id="settingsUserEmail">alexandre@wafatalk.com</span>
+                  <span class="badge-verified-inline">Vérifié</span>
+                </div>
+              </div>
+
+              <div class="acc-summary-box">
+                <span class="acc-box-label">Identifiant unique (UID)</span>
+                <div class="acc-uid-row">
+                  <span class="acc-box-val font-mono" id="settingsUserId">usr_...</span>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnCopyUserId" title="Copier l'identifiant" style="padding: 3px 8px; font-size: 0.75rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Copier</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change Password Form -->
+          <form id="formSettingsPassword" class="settings-section-card">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(248, 184, 78, 0.15); color: var(--amber-primary);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title">Sécurité & Mot de passe</h3>
+                <p class="settings-section-subtitle">Modifiez votre mot de passe pour protéger votre compte.</p>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+              <label for="settingsCurrentPass">Mot de passe actuel</label>
+              <div class="input-field-wrap">
+                <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+                <input type="password" id="settingsCurrentPass" placeholder="Entrez votre mot de passe actuel" required autocomplete="current-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 12px;">
+              <label for="settingsNewPass">Nouveau mot de passe</label>
+              <div class="input-field-wrap">
+                <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+                <input type="password" id="settingsNewPass" placeholder="Au moins 6 caractères" required minlength="6" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 12px;">
+              <label for="settingsConfirmPass">Confirmer le nouveau mot de passe</label>
+              <div class="input-field-wrap">
+                <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+                <input type="password" id="settingsConfirmPass" placeholder="Retapez le nouveau mot de passe" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn icon-btn" title="Afficher/Masquer le mot de passe" aria-label="Afficher/Masquer">
+                  <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg class="eye-closed hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <div id="settingsPasswordHint" class="password-match-hint hidden"></div>
+            </div>
+
+            <div id="passwordUpdateFeedback" class="modal-feedback-alert hidden"></div>
+
+            <div style="margin-top: 18px; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary" id="btnSubmitChangePassword">
+                <span class="btn-text">Mettre à jour le mot de passe</span>
+                <div class="btn-spinner hidden" id="passwordChangeSpinner"></div>
+              </button>
+            </div>
+          </form>
+
+          <!-- Danger Zone -->
+          <div class="settings-section-card danger-card-group">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(239, 68, 68, 0.12); color: var(--danger-color);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title text-danger">Déconnexion de session</h3>
+                <p class="settings-section-subtitle">Mettre fin à votre session active sur cet appareil.</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <button type="button" class="btn btn-outline-danger" id="btnSettingsLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Déconnecter mon compte</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3 : APPARENCE & SALONS -->
+        <div class="settings-tab-pane" id="tabPanePrefs" role="tabpanel">
+          <!-- Theme selector cards -->
+          <div class="settings-section-card">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(13, 131, 125, 0.12); color: var(--teal-primary);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title">Thème de l'interface</h3>
+                <p class="settings-section-subtitle">Personnalisez l'ambiance lumineuse ou sombre selon votre préférence.</p>
+              </div>
+            </div>
+
+            <div class="theme-selection-grid" style="margin-top: 14px;">
+              <div class="theme-select-card" id="themeCardLight" data-theme="light">
+                <div class="theme-card-preview preview-light">
+                  <div class="theme-mock-header"></div>
+                  <div class="theme-mock-content">
+                    <span class="mock-line"></span>
+                    <span class="mock-line short"></span>
+                  </div>
+                </div>
+                <div class="theme-card-footer">
+                  <span class="theme-card-name">Thème Lumineux</span>
+                  <span class="theme-selected-check"></span>
+                </div>
+              </div>
+
+              <div class="theme-select-card" id="themeCardDark" data-theme="dark">
+                <div class="theme-card-preview preview-dark">
+                  <div class="theme-mock-header"></div>
+                  <div class="theme-mock-content">
+                    <span class="mock-line"></span>
+                    <span class="mock-line short"></span>
+                  </div>
+                </div>
+                <div class="theme-card-footer">
+                  <span class="theme-card-name">Thème Cyber Sombre</span>
+                  <span class="theme-selected-check"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video & Room Call Preferences -->
+          <div class="settings-section-card">
+            <div class="settings-card-header">
+              <div class="social-modal-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(242, 91, 62, 0.12); color: var(--coral-primary);">
+                
+              </div>
+              <div>
+                <h3 class="settings-section-title">Expérience des Salons Vocaux</h3>
+                <p class="settings-section-subtitle">Comportement visuel et fluidité d'affichage.</p>
+              </div>
+            </div>
+
+            <div class="toggles-list" style="margin-top: 14px;">
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Caméra volante automatique (Mini PiP)</strong>
+                  <span>Conserver un volet flottant mobile lors de la réduction d'appel.</span>
+                </div>
+                <input type="checkbox" id="toggleAutoPip" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Haute Définition Vidéo (HD 1080p)</strong>
+                  <span>Qualité maximale pour la caméra si votre débit réseau le permet.</span>
+                </div>
+                <input type="checkbox" id="toggleHdVideo" class="ios-switch" checked>
+              </label>
+
+              <label class="setting-toggle-item">
+                <div class="toggle-text">
+                  <strong>Animations d'ambiance et effets visuels</strong>
+                  <span>Particules dorées, confettis de cadeaux et halos réactifs.</span>
+                </div>
+                <input type="checkbox" id="toggleAmbientFx" class="ios-switch" checked>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Settings Form Actions -->
+      <div class="modal-form-actions" style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-primary" id="btnDoneSettingsModal">
+          <span>Terminer</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MINI FLOATING DRAGGABLE PIP VIDEO CALL WINDOW                -->
+  <!-- ============================================================ -->
+  <div class="floating-call-window glass-card hidden" id="miniCallWidget" role="region" aria-label="Caméra volante d'appel">
+    <!-- Draggable Header / Grip Handle -->
+    <div class="floating-call-header" id="floatingCallDragHandle" title="Glisser pour déplacer la caméra volante">
+      <div class="floating-call-drag-indicator">
+        <span class="floating-drag-dots" aria-hidden="true">⠿</span>
+        <span class="floating-live-dot pulse"></span>
+        <span class="floating-call-peer-name" id="miniCallName">Correspondant</span>
+      </div>
+      <div class="floating-call-header-right">
+        <span class="floating-call-timer" id="miniCallTime">00:00</span>
+        <button type="button" class="floating-icon-btn btn-maximize-call" id="btnRestoreCall" title="Agrandir en plein écran" aria-label="Agrandir">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating Call Stage (Video & Audio) -->
+    <div class="floating-call-stage" id="floatingCallStage">
+      <!-- Remote Video Feed -->
+      <div class="floating-remote-wrap" id="floatingRemoteWrap">
+        <video id="floatingRemoteVideo" autoplay playsinline class="floating-remote-video"></video>
+        <!-- Remote Video Off / Avatar Fallback -->
+        <div class="floating-video-placeholder hidden" id="floatingRemotePlaceholder">
+          <img src="" alt="Correspondant" class="floating-placeholder-avatar" id="floatingPlaceholderAvatar">
+          <span class="floating-placeholder-text">Caméra coupée</span>
+        </div>
+      </div>
+
+      <!-- Local Self Video Feed (Mini PiP in corner) -->
+      <div class="floating-local-pip" id="floatingLocalPip" title="Votre caméra">
+        <video id="floatingLocalVideo" autoplay playsinline muted class="floating-local-video"></video>
+        <div class="floating-local-placeholder hidden" id="floatingLocalPlaceholder">
+          <span>Caméra OFF</span>
+        </div>
+      </div>
+
+      <!-- Audio-only Mode Stage (shown if call is audio-only) -->
+      <div class="floating-audio-stage hidden" id="floatingAudioStage">
+        <div class="floating-audio-ring" id="floatingAudioRing">
+          <img src="" alt="Correspondant" class="floating-audio-avatar" id="miniCallAvatar">
+        </div>
+        <div class="floating-audio-waves">
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Action Controls Bar (Quick Mute / Cam / Hangup / Fullscreen) -->
+    <div class="floating-call-controls">
+      <button type="button" class="floating-ctrl-btn" id="btnMiniToggleMic" title="Activer / Couper le micro" aria-label="Micro">
+        <svg class="mini-mic-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <svg class="mini-mic-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn" id="btnMiniToggleCamera" title="Activer / Couper la caméra" aria-label="Caméra">
+        <svg class="mini-cam-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+        <svg class="mini-cam-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-expand" id="btnMiniExpand" title="Agrandir en plein écran" aria-label="Agrandir">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-hangup" id="btnMiniHangup" title="Raccrocher l'appel" aria-label="Raccrocher">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MINI FLOATING DRAGGABLE PIP SALON WINDOW (SALON FLOTTANT)    -->
+  <!-- ============================================================ -->
+  <div class="floating-call-window floating-salon-window glass-card hidden" id="miniSalonWidget" role="region" aria-label="Salon vocal flottant">
+    <!-- Draggable Header / Grip Handle -->
+    <div class="floating-call-header" id="floatingSalonDragHandle" title="Glisser pour déplacer le salon vocal">
+      <div class="floating-call-drag-indicator">
+        <span class="floating-drag-dots" aria-hidden="true">⠿</span>
+        <span class="floating-live-dot pulse"></span>
+        <span class="floating-call-peer-name" id="miniSalonName">Salon Vocal</span>
+      </div>
+      <div class="floating-call-header-right">
+        <span class="floating-call-timer" id="miniSalonCount" title="Participants en ligne"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span id="miniSalonCountNum">8</span></span>
+        <button type="button" class="floating-icon-btn btn-maximize-call" id="btnRestoreSalon" title="Agrandir en plein écran" aria-label="Agrandir">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating Salon Stage (Avatars & Equalizer Waves) -->
+    <div class="floating-call-stage floating-salon-stage" id="floatingSalonStage" title="Cliquer pour agrandir le salon">
+      <div class="floating-salon-avatars" id="miniSalonAvatars">
+        <!-- Rendered dynamically with participants & active speaking rings -->
+      </div>
+      <div class="floating-audio-waves mini-salon-waves">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="mini-salon-status-label" id="miniSalonStatusLabel">En direct • Audio HD</div>
+    </div>
+
+    <!-- Floating Action Controls Bar (Quick Mute / Deafen / Expand / Leave) -->
+    <div class="floating-call-controls">
+      <button type="button" class="floating-ctrl-btn" id="btnMiniSalonToggleMic" title="Activer / Couper le micro" aria-label="Micro">
+        <svg class="mini-mic-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <svg class="mini-mic-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn" id="btnMiniSalonToggleAudio" title="Couper le son / Sourdine" aria-label="Son">
+        <svg class="mini-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        <svg class="mini-sound-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-expand" id="btnMiniSalonExpand" title="Agrandir en plein écran" aria-label="Agrandir">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-hangup" id="btnMiniSalonLeave" title="Quitter le salon" aria-label="Quitter le salon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Socket.IO Client Library -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+  <!-- Demo Session Bootstrap & Mock Interceptor for Instant Landing Preview -->
+  <script>
+    (function() {
+      if (!localStorage.getItem('wafatalk_token')) {
+        localStorage.setItem('wafatalk_token', 'demo_token_alexandre_wafatalk');
+        localStorage.setItem('wafatalk_user', JSON.stringify({
+          id: 'user_alexandre_01',
+          name: 'Alexandre Moreau',
+          displayName: 'Alexandre Moreau',
+          email: 'alexandre@wafatalk.fr',
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+          points: 1450,
+          wafaPoints: 1450,
+          role: 'Membre Fondateur',
+          country: 'FR',
+          countryName: 'France'
+        }));
+      }
+
+      const _origFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0] ? args[0].toString() : '';
+        if (url.includes('/auth/me')) {
+          const u = localStorage.getItem('wafatalk_user');
+          if (u) {
+            return Promise.resolve(new Response(JSON.stringify({
+              success: true,
+              user: JSON.parse(u)
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            }));
+          }
+        }
+        return _origFetch.apply(this, args);
+      };
+    })();
+  </script>
+
+  <!-- Main JavaScript File -->
+  <script src="app.js?v=20261017b"></script>
+</body>
+</html>

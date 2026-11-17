@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conditions Générales d'Utilisation & Charte — WafaTalk</title>
+  <meta name="description" content="Conditions Générales d'Utilisation, Règles Communautaires et Politique de Confidentialité de WafaTalk.">
+  <link rel="icon" type="image/png" href="assets/wafatalk-icon.png">
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .terms-page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .terms-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .terms-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .terms-nav-logo {
+      height: 38px;
+      width: auto;
+    }
+
+    .terms-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: var(--teal-soft-bg);
+      color: var(--teal-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .terms-container {
+      max-width: 920px;
+      margin: 40px auto 60px;
+      padding: 0 24px;
+      width: 100%;
+    }
+
+    .terms-header-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-xl);
+      padding: 36px 40px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terms-header-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--teal-primary), var(--coral-primary), var(--amber-primary));
+    }
+
+    .terms-title {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    .terms-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+    }
+
+    .terms-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .terms-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+    }
+
+    .terms-section:hover {
+      border-color: var(--border-medium);
+      box-shadow: var(--shadow-md);
+    }
+
+    .terms-section-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      background: var(--teal-soft-bg);
+      color: var(--teal-primary);
+      flex-shrink: 0;
+    }
+
+    .section-icon.coral {
+      background: var(--coral-soft-bg);
+      color: var(--coral-primary);
+    }
+
+    .section-icon.amber {
+      background: var(--amber-soft-bg);
+      color: var(--amber-primary);
+    }
+
+    .terms-text {
+      font-size: 0.94rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+    }
+
+    .terms-list {
+      list-style: none;
+      padding-left: 0;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .terms-list li {
+      position: relative;
+      padding-left: 26px;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .terms-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--teal-primary);
+      font-weight: 800;
+    }
+
+    .terms-list.warning-list li::before {
+      content: '✕';
+      color: var(--coral-primary);
+    }
+
+    .terms-highlight-box {
+      background: var(--teal-soft-bg);
+      border-left: 4px solid var(--teal-primary);
+      padding: 14px 18px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin: 16px 0;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .terms-footer {
+      text-align: center;
+      padding: 30px 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border-subtle);
+      margin-top: auto;
+    }
+
+    .btn-back-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: var(--radius-md);
+      background: var(--teal-primary);
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background var(--duration-fast);
+      font-size: 0.88rem;
+    }
+
+    .btn-back-app:hover {
+      background: var(--teal-light);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient background mesh -->
+  <div class="ambient-background" aria-hidden="true">
+    <div class="ambient-shape shape-teal"></div>
+    <div class="ambient-shape shape-coral"></div>
+    <div class="ambient-shape shape-amber"></div>
+    <div class="geometric-pattern-overlay"></div>
+  </div>
+
+  <div class="terms-page-wrapper">
+    <!-- Navbar -->
+    <header class="terms-navbar">
+      <div class="terms-nav-left">
+        <a href="index.html" title="Retour à WafaTalk">
+          <img src="assets/wafatalk-logo.png" alt="WafaTalk Logo" class="terms-nav-logo">
+        </a>
+        <span class="terms-badge">Conditions & Charte Officielle</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="privacy.html" class="btn btn-secondary btn-sm" style="font-size: 0.82rem; padding: 7px 14px;">
+          <span>Politique RGPD 🛡️</span>
+        </a>
+        <button type="button" class="theme-toggle-btn icon-btn" id="themeToggleBtn" title="Changer le thème" aria-label="Changer le thème">
+          <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <a href="index.html" class="btn-back-app">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Retour à WafaTalk</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="terms-container">
+      
+      <div class="terms-header-card">
+        <h1 class="terms-title">Conditions Générales d'Utilisation & Charte Communautaire</h1>
+        <div class="terms-meta">
+          <div class="terms-meta-item">
+            <span>📅</span>
+            <span>Dernière mise à jour : <strong>13 Septembre 2026</strong></span>
+          </div>
+          <div class="terms-meta-item">
+            <span>🛡️</span>
+            <span>Version légale : <strong>WafaTalk v1.0 Production</strong></span>
+          </div>
+          <div class="terms-meta-item">
+            <span>🌍</span>
+            <span>Application internationale & multiculturelle</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 1 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon">🎙️</span>
+          <span>1. Présentation de la Plateforme WafaTalk</span>
+        </h2>
+        <p class="terms-text">
+          <strong>WafaTalk</strong> est une plateforme de communication interactive en temps réel dédiée aux échanges bienveillants entre amis et communautés. Elle permet de créer des <strong>salons audio et textuels</strong> (Chill, Gaming, Musique, Débats, Salons Privés), d'interagir par la voix, de partager des messages et d'envoyer des attentions interactives sous forme de cadeaux virtuels.
+        </p>
+        <div class="terms-highlight-box">
+          En créant un compte sur WafaTalk, vous acceptez expressément et sans réserve les présentes Conditions Générales d'Utilisation ainsi que notre Charte de Convivialité.
+        </div>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon coral">🎂</span>
+          <span>2. Éligibilité, Date de Naissance & Pays de Résidence</span>
+        </h2>
+        <p class="terms-text">
+          Pour garantir un environnement sûr et respectueux de la législation en vigueur relative à la protection des mineurs et des données personnelles :
+        </p>
+        <ul class="terms-list">
+          <li><strong>Âge minimum requis :</strong> L'accès à WafaTalk est strictement réservé aux personnes âgées d'au moins <strong>13 ans révolus</strong> (ou l'âge de majorité numérique applicable dans votre pays de résidence).</li>
+          <li><strong>Date de naissance exacte :</strong> Lors de votre inscription, vous devez renseigner une date de naissance authentique. La falsification de cette information constitue un motif de suspension immédiate du compte.</li>
+          <li><strong>Pays de résidence :</strong> Votre pays nous permet d'adapter la langue d'assistance, les salons recommandés et le respect des réglementations locales applicables.</li>
+          <li><strong>Sécurité des identifiants :</strong> Votre mot de passe doit être personnel et secret. Vous confirmez votre mot de passe lors de l'inscription pour prévenir toute erreur de saisie.</li>
+        </ul>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon amber">🤝</span>
+          <span>3. Charte Communautaire & Comportement dans les Salons</span>
+        </h2>
+        <p class="terms-text">
+          L'esprit de WafaTalk repose sur la convivialité, l'amitié et le respect mutuel. Les comportements suivants sont formellement prohibés et font l'objet d'une politique de <strong>tolérance zéro</strong> :
+        </p>
+        <ul class="terms-list warning-list">
+          <li>Tout harcèlement, intimidation, diffamation, menace ou incitation à la haine (discriminatoire, raciste, sexiste, homophobe, religieuse).</li>
+          <li>La diffusion de contenus pornographiques, violents, pédopornographiques ou portant atteinte à la dignité humaine.</li>
+          <li>L'enregistrement ou la diffusion de la voix ou des messages privés d'autres utilisateurs sans leur consentement préalable et exprès.</li>
+          <li>Le flood, spam vocal (hurlements intempestifs, bruits parasites) ou tout comportement cherchant à saboter un salon de discussion.</li>
+          <li>L'usurpation d'identité d'un autre membre, d'un hôte ou d'un administrateur WafaTalk.</li>
+        </ul>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon">💎</span>
+          <span>4. Économie Virtuelle, WafaPoints & Cadeaux</span>
+        </h2>
+        <p class="terms-text">
+          WafaTalk propose un système d'encouragement et d'animation basé sur les <strong>WafaPoints</strong> :
+        </p>
+        <ul class="terms-list">
+          <li>Les WafaPoints constituent une monnaie virtuelle interne sans valeur financière intrinsèque dans le monde réel.</li>
+          <li>Ils permettent d'envoyer des cadeaux visuels animés (Cœur, Étoile, Couronne, Fusée, Diamant) pour soutenir les hôtes de salons et animer les discussions.</li>
+          <li>Les cadeaux et points virtuels ne sont ni échangeables contre des devises réelles, ni remboursables.</li>
+          <li>Tout abus d'exploitation de failles techniques pour générer frauduleusement des points entraînera la révocation définitive du compte.</li>
+        </ul>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon coral">🔒</span>
+          <span>5. Confidentialité & Protection des Données (RGPD)</span>
+        </h2>
+        <p class="terms-text">
+          La confidentialité de vos échanges et la souveraineté de vos données personnelles sont au cœur de nos priorités :
+        </p>
+        <ul class="terms-list">
+          <li><strong>Données collectées :</strong> Pseudo, adresse e-mail, date de naissance, pays, photo de profil et historique des salons créés.</li>
+          <li><strong>Chiffrement fort :</strong> Vos mots de passe sont hachés de manière irréversible avec le protocole bcrypt.</li>
+          <li><strong>Flux voix en direct :</strong> Les flux vocaux WebRTC transitent en temps réel et ne sont ni enregistrés ni analysés à des fins commerciales.</li>
+          <li><strong>Vos droits :</strong> Conformément au RGPD et aux lois internationales, vous disposez d'un droit d'accès, de rectification et de suppression de l'ensemble de vos données sur simple demande à notre équipe support.</li>
+        </ul>
+        <div class="terms-highlight-box" style="margin-top: 14px;">
+          <strong>Politique de Confidentialité Complète (Standard RGPD) :</strong> Pour consulter le détail exhaustif des traitements, durées de conservation, règles de purge et exercice de vos droits, <a href="privacy.html" class="terms-inline-link" style="font-weight: 700;">consultez notre Politique de Confidentialité complète →</a>.
+        </div>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon amber">⚖️</span>
+          <span>6. Modération, Sanctions & Résiliation</span>
+        </h2>
+        <p class="terms-text">
+          Pour préserver la sécurité de tous, les hôtes de salons disposent d'outils de modération (mute, expulsion, accès restreint par code). En complément, l'équipe de modération globale WafaTalk peut intervenir en cas de signalement et appliquer :
+        </p>
+        <ul class="terms-list">
+          <li>Un avertissement officiel avec rappel des règles.</li>
+          <li>Une suspension temporaire de parole ou d'accès aux salons publics.</li>
+          <li>Un bannissement définitif de compte en cas de récidive ou d'infraction grave.</li>
+        </ul>
+      </section>
+
+      <!-- Section 7 -->
+      <section class="terms-section">
+        <h2 class="terms-section-title">
+          <span class="section-icon">📬</span>
+          <span>7. Support & Contact</span>
+        </h2>
+        <p class="terms-text">
+          Pour toute question concernant les présentes conditions, pour signaler un abus ou exercer vos droits informatiques et libertés, contactez notre équipe via :
+        </p>
+        <ul class="terms-list">
+          <li><strong>Support technique & assistance :</strong> support@wafatalk.com</li>
+          <li><strong>Délégué à la Protection des Données :</strong> privacy@wafatalk.com</li>
+        </ul>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="terms-footer">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 10px; flex-wrap: wrap;">
+        <a href="index.html" class="terms-inline-link">Accueil WafaTalk</a>
+        <span>•</span>
+        <a href="terms.html" class="terms-inline-link">Charte & CGU</a>
+        <span>•</span>
+        <a href="privacy.html" class="terms-inline-link">Politique de Confidentialité RGPD</a>
+        <span>•</span>
+        <a href="mailto:privacy@wafatalk.com" class="terms-inline-link">Contact DPO</a>
+      </div>
+      <p>&copy; 2026 WafaTalk — Plateforme de Salons Nouvelle Génération. Tous droits réservés.</p>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle support for terms page
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const currentTheme = localStorage.getItem('wafatalk_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    themeToggleBtn?.addEventListener('click', () => {
+      const active = document.documentElement.getAttribute('data-theme');
+      const next = active === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('wafatalk_theme', next);
+    });
+  </script>
+</body>
+</html>
