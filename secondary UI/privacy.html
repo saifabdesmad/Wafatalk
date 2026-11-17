@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Politique de Confidentialité (Standard RGPD) — WafaTalk</title>
+  <meta name="description" content="Politique de Confidentialité et Protection des Données Personnelles de WafaTalk, conforme au Règlement Général sur la Protection des Données (RGPD) et à la législation CNIL.">
+  <link rel="icon" type="image/png" href="assets/wafatalk-icon.png">
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .privacy-page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .privacy-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .privacy-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .privacy-nav-logo {
+      height: 38px;
+      width: auto;
+    }
+
+    .privacy-badge-rgpd {
+      font-size: 0.75rem;
+      font-weight: 750;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success-color);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .privacy-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .privacy-container {
+      max-width: 960px;
+      margin: 40px auto 60px;
+      padding: 0 24px;
+      width: 100%;
+    }
+
+    .privacy-header-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-xl);
+      padding: 38px 42px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .privacy-header-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #10b981, var(--teal-primary), var(--coral-primary));
+    }
+
+    .privacy-title {
+      font-family: var(--font-display);
+      font-size: 2.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .privacy-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .privacy-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .privacy-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .privacy-summary-card {
+      background: var(--bg-muted);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .privacy-summary-card .summary-icon {
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
+
+    .privacy-summary-card h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .privacy-summary-card p {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    /* Table of Contents */
+    .privacy-toc {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px 28px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .privacy-toc-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .privacy-toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .privacy-toc-link {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      transition: all var(--duration-fast);
+    }
+
+    .privacy-toc-link:hover {
+      background: var(--teal-soft-bg);
+      color: var(--teal-primary);
+      transform: translateX(4px);
+    }
+
+    .privacy-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 34px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+    }
+
+    .privacy-section:hover {
+      border-color: var(--border-medium);
+      box-shadow: var(--shadow-md);
+    }
+
+    .privacy-section-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      background: var(--teal-soft-bg);
+      color: var(--teal-primary);
+      flex-shrink: 0;
+    }
+
+    .section-icon.green {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success-color);
+    }
+
+    .section-icon.coral {
+      background: var(--coral-soft-bg);
+      color: var(--coral-primary);
+    }
+
+    .section-icon.amber {
+      background: var(--amber-soft-bg);
+      color: var(--amber-primary);
+    }
+
+    .privacy-text {
+      font-size: 0.93rem;
+      line-height: 1.72;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+    }
+
+    .privacy-list {
+      list-style: none;
+      padding-left: 0;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .privacy-list li {
+      position: relative;
+      padding-left: 28px;
+      font-size: 0.91rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .privacy-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--success-color);
+      font-weight: 800;
+    }
+
+    .privacy-list.warning li::before {
+      content: '✕';
+      color: var(--coral-primary);
+    }
+
+    .privacy-highlight-box {
+      background: var(--teal-soft-bg);
+      border-left: 4px solid var(--teal-primary);
+      padding: 14px 18px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin: 18px 0;
+      font-size: 0.91rem;
+      line-height: 1.65;
+      color: var(--text-primary);
+    }
+
+    .privacy-highlight-box.success {
+      background: rgba(16, 185, 129, 0.08);
+      border-left-color: var(--success-color);
+    }
+
+    .privacy-highlight-box.coral {
+      background: var(--coral-soft-bg);
+      border-left-color: var(--coral-primary);
+    }
+
+    .privacy-table-wrap {
+      overflow-x: auto;
+      margin: 18px 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .privacy-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    .privacy-table th {
+      background: var(--bg-muted);
+      color: var(--text-primary);
+      font-weight: 700;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .privacy-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    .privacy-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .privacy-table tr:hover td {
+      background: var(--teal-soft-bg);
+    }
+
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .right-card {
+      background: var(--bg-muted);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .right-card h4 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .right-card p {
+      font-size: 0.83rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .privacy-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 30px 24px;
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+
+    .privacy-footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 12px;
+    }
+
+    .privacy-footer-links a {
+      color: var(--teal-primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color var(--duration-fast);
+    }
+
+    .privacy-footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .privacy-header-card {
+        padding: 24px 20px;
+      }
+      .privacy-title {
+        font-size: 1.65rem;
+      }
+      .privacy-section {
+        padding: 20px 18px;
+      }
+    }
+  </style>
+</head>
+<body class="privacy-body">
+  <div class="privacy-page-wrapper">
+
+    <!-- Navbar -->
+    <header class="privacy-navbar">
+      <div class="privacy-nav-left">
+        <a href="index.html" class="logo-link" title="Retour à WafaTalk">
+          <img src="assets/wafatalk-logo.png" alt="WafaTalk Logo" class="privacy-nav-logo">
+        </a>
+        <span class="privacy-badge-rgpd">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Conforme RGPD & CNIL
+        </span>
+      </div>
+      <div class="privacy-nav-right">
+        <a href="terms.html" class="btn btn-secondary btn-sm">
+          <span>Charte & CGU</span>
+        </a>
+        <a href="index.html" class="btn btn-primary btn-sm">
+          <span>Accéder à l'application</span>
+        </a>
+        <button type="button" class="icon-btn theme-toggle-btn" id="themeToggleBtn" title="Changer de thème">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="privacy-container">
+
+      <!-- Header Card -->
+      <div class="privacy-header-card">
+        <h1 class="privacy-title">Politique de Confidentialité & Protection des Données Personnelles</h1>
+        <div class="privacy-meta">
+          <div class="privacy-meta-item">
+            <span>⚖️ Standard RGPD (Règlement UE 2016/679) & Loi Informatique et Libertés</span>
+          </div>
+          <div class="privacy-meta-item">
+            <span>📅 Dernière mise à jour : 13 septembre 2026</span>
+          </div>
+          <div class="privacy-meta-item">
+            <span>🏢 Éditeur : WafaTalk</span>
+          </div>
+        </div>
+
+        <p class="privacy-text" style="font-size: 0.98rem; margin-bottom: 12px;">
+          Chez <strong>WafaTalk</strong>, la protection de votre vie privée, l'intégrité de vos échanges vocaux et la sécurité de vos données personnelles constituent des engagements cardinaux. La présente politique a pour objet de vous exposer de manière transparente et compréhensible les conditions dans lesquelles nous collectons, traitons, protégeons et conservons vos données dans le respect strict du <strong>Règlement Général sur la Protection des Données (RGPD)</strong> et de la loi n° 78-17 du 6 janvier 1978 modifiée.
+        </p>
+
+        <!-- Summary Highlights -->
+        <div class="privacy-summary-grid">
+          <div class="privacy-summary-card">
+            <div class="summary-icon">🚫</div>
+            <h4>Aucune Revente</h4>
+            <p>Vos données personnelles ne sont jamais cédées, vendues ou louées à des tiers publicitaires.</p>
+          </div>
+          <div class="privacy-summary-card">
+            <div class="summary-icon">🎙️</div>
+            <h4>Voix en Direct Non Enregistrée</h4>
+            <p>Les flux audio des salons vocaux sont transmis en temps réel et ne font l'objet d'aucun enregistrement.</p>
+          </div>
+          <div class="privacy-summary-card">
+            <div class="summary-icon">🇪🇺</div>
+            <h4>Hébergement en Union Européenne</h4>
+            <p>Vos données sont exclusivement stockées sur des serveurs sécurisés situés au sein de l'Union Européenne.</p>
+          </div>
+          <div class="privacy-summary-card">
+            <div class="summary-icon">🔒</div>
+            <h4>Mots de passe Chiffrés</h4>
+            <p>Protection bcrypt avec sel fort. Même nos administrateurs ne peuvent lire vos mots de passe.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table of Contents -->
+      <nav class="privacy-toc" aria-label="Sommaire">
+        <div class="privacy-toc-title">
+          <span>📋</span>
+          <span>Sommaire de la Politique de Confidentialité</span>
+        </div>
+        <div class="privacy-toc-grid">
+          <a href="#section-definitions" class="privacy-toc-link">1. Définitions préalables</a>
+          <a href="#section-nature-donnees" class="privacy-toc-link">2. Nature des données collectées</a>
+          <a href="#section-finalites" class="privacy-toc-link">3. Finalités des traitements</a>
+          <a href="#section-communication-tiers" class="privacy-toc-link">4. Communication à des tiers</a>
+          <a href="#section-fusion-cession" class="privacy-toc-link">5. Cession d'actifs & Fusion</a>
+          <a href="#section-agregation" class="privacy-toc-link">6. Agrégation & Comptes sociaux</a>
+          <a href="#section-consultation-libre" class="privacy-toc-link">7. Consultation libre du site</a>
+          <a href="#section-cookies" class="privacy-toc-link">8. Cookies & Stockage local</a>
+          <a href="#section-conservation" class="privacy-toc-link">9. Durée de conservation & Purge</a>
+          <a href="#section-suppression-compte" class="privacy-toc-link">10. Suppression du compte</a>
+          <a href="#section-securite-failles" class="privacy-toc-link">11. Sécurité & Faille de sécurité</a>
+          <a href="#section-transfert-etranger" class="privacy-toc-link">12. Transfert hors Union Européenne</a>
+          <a href="#section-droits-utilisateurs" class="privacy-toc-link">13. Vos droits RGPD & Portabilité</a>
+          <a href="#section-droit-applicable" class="privacy-toc-link">14. Droit applicable & Litiges</a>
+        </div>
+      </nav>
+
+      <!-- Section 1 -->
+      <section class="privacy-section" id="section-definitions">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">📖</span>
+          <span>1. Définitions préalables</span>
+        </h2>
+        <p class="privacy-text">
+          Pour la bonne compréhension du présent document, les termes suivants ont le sens qui leur est attribué ci-après :
+        </p>
+        <ul class="privacy-list">
+          <li><strong>L'Éditeur :</strong> La plateforme <strong>WafaTalk</strong>, qui édite les services de communication et salons en ligne accessibles aux Utilisateurs.</li>
+          <li><strong>Le Site / L'Application :</strong> L'ensemble des sites internet, pages web, applications clientes et infrastructures d'API (notamment <code>api.wafatalk.com</code>) mis à disposition par l'Éditeur.</li>
+          <li><strong>L'Utilisateur :</strong> Toute personne physique accédant au Site, créant un profil WafaTalk ou participant aux salons vocaux et textuels.</li>
+          <li><strong>Donnée personnelle :</strong> Toute information se rapportant à une personne physique identifiée ou identifiable au sens de l'article 4 du RGPD.</li>
+        </ul>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="privacy-section" id="section-nature-donnees">
+        <h2 class="privacy-section-title">
+          <span class="section-icon green">📂</span>
+          <span>2. Nature des données collectées</span>
+        </h2>
+        <p class="privacy-text">
+          Dans le cadre de l'utilisation de la plateforme WafaTalk, l'Éditeur est susceptible de collecter et traiter les catégories de données suivantes :
+        </p>
+
+        <div class="privacy-table-wrap">
+          <table class="privacy-table">
+            <thead>
+              <tr>
+                <th>Catégorie</th>
+                <th>Données concernées</th>
+                <th>Justification / Finalité</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Identité & Profil</strong></td>
+                <td>Pseudo WafaTalk (lettres, chiffres, tirets et underscores), adresse e-mail, date de naissance, pays de résidence, avatar personnalisé, biographie de profil.</td>
+                <td>Création de compte, authentification, vérification de l'âge minimum requis (13 ans+), affichage du drapeau national, personnalisation de l'expérience.</td>
+              </tr>
+              <tr>
+                <td><strong>Sécurité & Authentification</strong></td>
+                <td>Mot de passe haché par algorithme cryptographique (bcrypt 10 rounds), jetons de session (JWT chiffré), dates de dernière connexion.</td>
+                <td>Protection stricte contre les usurpations d'identité et accès frauduleux.</td>
+              </tr>
+              <tr>
+                <td><strong>Salons Vocaux & Audio</strong></td>
+                <td>Flux audio éphémères en temps réel échangés via WebRTC / WebSocket.</td>
+                <td>Transmission vocale en direct entre membres du salon. <strong>Aucun enregistrement, stockage persistant ou réécoute n'est effectué par WafaTalk.</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Économie Virtuelle & Social</strong></td>
+                <td>Solde de WafaPoints, historique des cadeaux virtuels échangés, salons favoris, liste d'amis connectés.</td>
+                <td>Animation communautaire, fidélisation et fonctionnement des interactions de salon.</td>
+              </tr>
+              <tr>
+                <td><strong>Connexion & Données Techniques</strong></td>
+                <td>Adresse IP, journaux d'erreurs (logs système), identifiant d'appareil, type et langue du navigateur, résolution d'écran.</td>
+                <td>Fourniture technique des services, routage réseau audio, diagnostic d'incidents et protection contre les attaques (DDoS, brute-force).</td>
+              </tr>
+              <tr>
+                <td><strong>Localisation générale</strong></td>
+                <td>Pays et fuseau horaire déduits de l'adresse IP ou choisis dans le sélecteur.</td>
+                <td>Affichage de l'heure locale des salons et respect des réglementations régionales. <em>(Aucune géolocalisation GPS intrusive continue).</em></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="privacy-highlight-box success">
+          <strong>Vérification de l'Âge et Protection des Mineurs :</strong> Conformément aux règles françaises et européennes de protection des mineurs sur les plateformes interactives, WafaTalk exige la saisie de votre date de naissance lors de l'inscription pour vérifier que vous avez au moins 13 ans révolus.
+        </div>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="privacy-section" id="section-finalites">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">🎯</span>
+          <span>3. Finalités de la collecte et réutilisation des données</span>
+        </h2>
+        <p class="privacy-text">
+          Vos données personnelles sont collectées pour des finalités explicites, légitimes et déterminées :
+        </p>
+        <ul class="privacy-list">
+          <li><strong>Fourniture et maintien du service :</strong> Permettre la création et la gestion de votre compte, la connexion sécurisée, la navigation dans les salons et la communication audio et textuelle en direct.</li>
+          <li><strong>Gestion des fonctionnalités communautaires :</strong> Attribution et suivi des WafaPoints, envoi de cadeaux virtuels d'amitié, affichage des statuts de présence en ligne.</li>
+          <li><strong>Sécurité du réseau et modération :</strong> Prévention des fraudes, détection des comportements abusifs contraires à la Charte Communautaire (harcèlement, usurpation, propos haineux) et sécurisation des flux audio.</li>
+          <li><strong>Amélioration continue de la plateforme :</strong> Mesure de la qualité de service (latence audio, stabilité des connexions Socket.IO) afin d'optimiser l'infrastructure.</li>
+          <li><strong>Gestion des demandes d'assistance :</strong> Répondre à vos demandes d'aide technique, réclamations ou requêtes d'exercice de vos droits RGPD.</li>
+        </ul>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="privacy-section" id="section-communication-tiers">
+        <h2 class="privacy-section-title">
+          <span class="section-icon green">🛡️</span>
+          <span>4. Communication des données personnelles à des tiers</span>
+        </h2>
+        <div class="privacy-highlight-box success">
+          <strong>Principe Fondamental : Pas de vente ni de communication commerciale à des tiers.</strong><br>
+          Vos données personnelles ne font l'objet d'aucune vente, location, échange ou communication à des régies publicitaires externes, des courtiers en données ou des tiers à des fins commerciales.
+        </div>
+        <p class="privacy-text">
+          Vos données ne peuvent être communiquées que dans les cas strictement encadrés suivants :
+        </p>
+        <ul class="privacy-list">
+          <li><strong>Sous-traitants techniques qualifiés :</strong> Prestataires indispensables au fonctionnement de WafaTalk (hébergeur serveur VPS IONOS situé au sein de l'UE, passerelles d'infrastructure). Ces partenaires sont contractuellement tenus au respect strict de la confidentialité et de l'article 28 du RGPD.</li>
+          <li><strong>Obligations légales et judiciaires :</strong> Divulgation requise en application formelle d'une loi, d'un règlement ou en vertu d'une réquisition judiciaire émanant d'une autorité judiciaire ou réglementaire compétente (police, gendarmerie, tribunaux français).</li>
+        </ul>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="privacy-section" id="section-fusion-cession">
+        <h2 class="privacy-section-title">
+          <span class="section-icon amber">🤝</span>
+          <span>5. Information préalable en cas de fusion, acquisition ou cession d'actifs</span>
+        </h2>
+        <p class="privacy-text">
+          Dans l'hypothèse où l'Éditeur prendrait part à une opération de fusion, d'acquisition, de réorganisation ou à toute autre forme de cession d'actifs, nous nous engageons expressément à :
+        </p>
+        <ul class="privacy-list">
+          <li>Garantir la stricte confidentialité continue de vos données personnelles.</li>
+          <li>Vous informer par notification e-mail préalable avant que vos données ne soient transférées ou soumises à de nouvelles règles de gouvernance.</li>
+          <li>Vous offrir une possibilité pleine et entière d'<strong>opt-out</strong> (désinscription et suppression immédiate et sans frais de votre compte) si vous n'acceptez pas le transfert.</li>
+        </ul>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="privacy-section" id="section-agregation">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">📊</span>
+          <span>6. Agrégation des données & Comptes sociaux tiers</span>
+        </h2>
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Agrégation avec des données non personnelles :</h3>
+        <p class="privacy-text">
+          Nous pouvons publier, divulguer et utiliser des informations statistiques agrégées (relatives à l'ensemble de nos Utilisateurs combinées de manière à ce qu'aucun Utilisateur individuel ne puisse être identifié) à des fins de surveillance du trafic réseau, d'analyse de performance et d'amélioration des fonctionnalités.
+        </p>
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Agrégation avec des données issues de comptes tiers (Google, Apple, Discord) :</h3>
+        <p class="privacy-text">
+          Si vous choisissez de connecter votre compte via un fournisseur social partenaire (Google OAuth, Apple ID, Discord), nous ne recevons que les données d'identification expressément consenties par vos soins lors de la connexion (adresse e-mail vérifiée, nom public, photo de profil). Aucune autorisation de publication ni accès à vos contacts externes n'est exigé ni exploité.
+        </p>
+      </section>
+
+      <!-- Section 7 -->
+      <section class="privacy-section" id="section-consultation-libre">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">🌐</span>
+          <span>7. Consultation libre du Site</span>
+        </h2>
+        <p class="privacy-text">
+          La consultation générale et la découverte de l'univers WafaTalk (page d'accueil, présentation des salons, conditions d'utilisation, politique de confidentialité) ne nécessitent aucune inscription ni communication préalable de données nominatives. Aucune donnée personnelle n'est enregistrée pour la simple consultation libre de la vitrine du service.
+        </p>
+      </section>
+
+      <!-- Section 8 -->
+      <section class="privacy-section" id="section-cookies">
+        <h2 class="privacy-section-title">
+          <span class="section-icon amber">🍪</span>
+          <span>8. Cookies & Technologies de Stockage Local</span>
+        </h2>
+        <p class="privacy-text">
+          WafaTalk privilégie une approche respectueuse et économe de vos données :
+        </p>
+        <ul class="privacy-list">
+          <li><strong>Stockage local (LocalStorage & SessionStorage) :</strong> Utilisé pour mémoriser vos préférences d'interface (mode sombre ou clair, dernier pays choisi) et maintenir votre jeton de session chiffré de manière sécurisée sur votre propre terminal.</li>
+          <li><strong>Cookies techniques strictement nécessaires :</strong> Indispensables au maintien de votre session connectée et à la sécurité de vos échanges en ligne.</li>
+          <li><strong>Durée de conservation conforme CNIL :</strong> Conformément aux recommandations de la CNIL, la durée maximale de validité des consentements de cookies et de traceurs d'analyse n'excède jamais <strong>13 mois</strong>. Cette durée de vie n'est pas prolongée automatiquement lors de vos visites.</li>
+          <li><strong>Droit de refus :</strong> Vous disposez de la faculté de configurer votre navigateur pour bloquer les cookies ou vider le stockage local à tout moment. Notez toutefois que la désactivation des cookies d'authentification empêchera l'accès à votre compte.</li>
+        </ul>
+      </section>
+
+      <!-- Section 9 -->
+      <section class="privacy-section" id="section-conservation">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">⏳</span>
+          <span>9. Durée de conservation des données & Purge automatique</span>
+        </h2>
+        <p class="privacy-text">
+          Conformément à l'article 5-1-e du RGPD et à la loi Informatique et Libertés, vos données personnelles font l'objet d'une politique de conservation strictement proportionnée :
+        </p>
+        <ul class="privacy-list">
+          <li><strong>Durée de la relation active :</strong> Vos données de compte (pseudo, email, points, préférences) sont conservées tant que votre compte WafaTalk demeure actif.</li>
+          <li><strong>Règle des 3 ans d'inactivité :</strong> Si vous ne vous authentifiez plus sur le Site pendant une période continue de <strong>trois (3) ans</strong>, vous recevrez un e-mail d'avertissement vous invitant à vous reconnecter sous 30 jours, à défaut de quoi l'ensemble de vos données sera définitivement supprimé et purgé de nos bases de données.</li>
+          <li><strong>Journaux techniques (Logs IP) :</strong> Les données de connexion et d'adressage IP sont conservées pour une durée légale maximale de <strong>12 mois</strong>, avant suppression définitive.</li>
+          <li><strong>Anonymisation post-fermeture :</strong> Au-delà de ces délais, seules des données anonymisées non rattachables à une personne physique peuvent être conservées à des fins purement statistiques.</li>
+        </ul>
+      </section>
+
+      <!-- Section 10 -->
+      <section class="privacy-section" id="section-suppression-compte">
+        <h2 class="privacy-section-title">
+          <span class="section-icon coral">🗑️</span>
+          <span>10. Suppression du compte</span>
+        </h2>
+        <p class="privacy-text">
+          <strong>Suppression à la demande de l'Utilisateur :</strong> Vous pouvez à tout moment demander la clôture et la suppression définitive de votre compte WafaTalk, soit depuis les paramètres de votre profil, soit en écrivant directement à <a href="mailto:privacy@wafatalk.com" class="terms-inline-link">privacy@wafatalk.com</a>. La suppression entraîne la destruction immédiate de votre mot de passe, email, date de naissance et solde de points.
+        </p>
+        <p class="privacy-text">
+          <strong>Suppression en cas de violation des CGU :</strong> En cas de manquement grave aux Conditions Générales d'Utilisation ou à la Charte Communautaire (menaces, diffamation, enregistrement clandestin de tiers, piratage), l'Éditeur se réserve le droit de restreindre ou supprimer votre compte sans préavis pour protéger les autres membres de la plateforme.
+        </p>
+      </section>
+
+      <!-- Section 11 -->
+      <section class="privacy-section" id="section-securite-failles">
+        <h2 class="privacy-section-title">
+          <span class="section-icon green">🔐</span>
+          <span>11. Sécurité des données & Gestion des failles</span>
+        </h2>
+        <p class="privacy-text">
+          L'Éditeur met en œuvre des mesures techniques et organisationnelles de premier ordre pour garantir la sécurité et la confidentialité de vos données :
+        </p>
+        <ul class="privacy-list">
+          <li>Chiffrement systématique des mots de passe par empreinte cryptographique unidirectionnelle (bcrypt avec 10 tours de hachage).</li>
+          <li>Chiffrement de toutes les communications en transit via le protocole HTTPS et WebSockets Sécurisés (WSS) avec certificats SSL/TLS 1.3 de pointe.</li>
+          <li>Authentification par jetons sécurisés (JSON Web Tokens) dotés d'une durée de vie limitée et protégés contre les injections.</li>
+          <li>Cloisonnement strict des accès aux serveurs et bases de données backend.</li>
+        </ul>
+        <div class="privacy-highlight-box">
+          <strong>Engagement de notification en cas de faille de sécurité :</strong><br>
+          Dans l'éventualité où nous détecterions un accès illégal ou une fuite avérée touchant vos données personnelles stockées sur nos serveurs, nous nous engageons à :
+          <ul style="margin-top: 6px; margin-bottom: 0; padding-left: 20px;">
+            <li>Notifier la <strong>CNIL</strong> dans le délai légal maximal de <strong>72 heures</strong>.</li>
+            <li>Vous informer dans les plus brefs délais si l'incident présente un risque élevé pour vos droits et libertés.</li>
+            <li>Déployer immédiatement toutes les mesures correctives raisonnables afin d'endiguer la faille et limiter ses répercussions.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Section 12 -->
+      <section class="privacy-section" id="section-transfert-etranger">
+        <h2 class="privacy-section-title">
+          <span class="section-icon green">🇪🇺</span>
+          <span>12. Transfert des données à l'étranger</span>
+        </h2>
+        <div class="privacy-highlight-box success">
+          <strong>Aucun transfert en dehors de l'Union Européenne :</strong><br>
+          L'Éditeur s'engage formellement à héberger et traiter l'intégralité des données personnelles de ses Utilisateurs sur des serveurs physiquement implantés au sein du territoire de l'<strong>Union Européenne</strong> (infrastructures européennes d'IONOS), bénéficiant du niveau de protection le plus élevé garanti par le RGPD.
+        </div>
+      </section>
+
+      <!-- Section 13 -->
+      <section class="privacy-section" id="section-droits-utilisateurs">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">⚖️</span>
+          <span>13. Vos droits RGPD & Portabilité des données</span>
+        </h2>
+        <p class="privacy-text">
+          Conformément aux articles 15 à 22 du Règlement (UE) 2016/679 (RGPD), vous disposez à tout moment des droits suivants sur vos données personnelles :
+        </p>
+
+        <div class="rights-grid">
+          <div class="right-card">
+            <h4><span>🔍</span> Droit d'Accès (Art. 15)</h4>
+            <p>Obtenir la confirmation que vos données sont traitées et en recevoir une copie complète et compréhensible.</p>
+          </div>
+          <div class="right-card">
+            <h4><span>✏️</span> Droit de Rectification (Art. 16)</h4>
+            <p>Corriger à tout moment des informations inexactes ou incomplètes (pseudo, date de naissance, pays).</p>
+          </div>
+          <div class="right-card">
+            <h4><span>🗑️</span> Droit à l'Effacement (Art. 17)</h4>
+            <p>Obtenir la suppression définitive de votre compte et de toutes vos données personnelles ("droit à l'oubli").</p>
+          </div>
+          <div class="right-card">
+            <h4><span>⏸️</span> Droit à la Limitation (Art. 18)</h4>
+            <p>Demander le gel temporaire du traitement de vos données le temps qu'une vérification soit effectuée.</p>
+          </div>
+          <div class="right-card">
+            <h4><span>📦</span> Droit à la Portabilité (Art. 20)</h4>
+            <p>Recevoir vos données dans un format structuré, couramment utilisé et lisible par machine (JSON ou CSV standard).</p>
+          </div>
+          <div class="right-card">
+            <h4><span>✋</span> Droit d'Opposition (Art. 21)</h4>
+            <p>Vous opposer à tout moment, pour des motifs légitimes, au traitement de vos données personnelles.</p>
+          </div>
+        </div>
+
+        <div class="privacy-highlight-box" style="margin-top: 20px;">
+          <strong>Comment exercer vos droits ?</strong><br>
+          Pour toute demande relative à vos données personnelles ou pour demander un export de portabilité, il vous suffit de nous contacter :
+          <div style="margin-top: 10px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <a href="mailto:privacy@wafatalk.com" class="btn btn-primary btn-sm">
+              <span>Écrire au DPO : privacy@wafatalk.com</span>
+            </a>
+            <a href="mailto:support@wafatalk.com" class="btn btn-secondary btn-sm">
+              <span>Support : support@wafatalk.com</span>
+            </a>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">
+            Un justificatif d'identité ou une confirmation via votre adresse email de compte peut vous être demandé pour des raisons de sécurité. Une réponse vous sera apportée dans un délai maximal d'un (1) mois conformément à la loi.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 14 -->
+      <section class="privacy-section" id="section-droit-applicable">
+        <h2 class="privacy-section-title">
+          <span class="section-icon">🏛️</span>
+          <span>14. Droit applicable, réclamations & Modalités de recours</span>
+        </h2>
+        <p class="privacy-text">
+          La présente Politique de Confidentialité est régie et interprétée conformément aux lois de la <strong>République Française</strong> et à la réglementation communautaire européenne applicable.
+        </p>
+        <p class="privacy-text">
+          En cas de contestation ou de différend, les parties s'engagent à rechercher prioritairement une solution amiable en prenant contact avec l'Éditeur.
+        </p>
+        <div class="privacy-highlight-box success">
+          <strong>Droit de réclamation auprès de l'autorité de contrôle (CNIL) :</strong><br>
+          Si vous estimez, après nous avoir contactés, que vos droits Informatique et Libertés ne sont pas respectés, vous disposez du droit d'introduire une réclamation officielle auprès de la <strong>Commission Nationale de l'Informatique et des Libertés (CNIL)</strong> :
+          <ul style="margin-top: 6px; margin-bottom: 0; padding-left: 20px;">
+            <li>En ligne sur le site internet : <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener noreferrer" class="terms-inline-link">www.cnil.fr</a></li>
+            <li>Par voie postale : <em>CNIL — 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07, France</em>.</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="privacy-footer">
+      <div class="privacy-footer-links">
+        <a href="index.html">Accueil WafaTalk</a>
+        <span>•</span>
+        <a href="terms.html">Charte Communautaire & CGU</a>
+        <span>•</span>
+        <a href="privacy.html">Politique de Confidentialité RGPD</a>
+        <span>•</span>
+        <a href="mailto:privacy@wafatalk.com">Contact DPO</a>
+      </div>
+      <p>&copy; 2026 WafaTalk — Plateforme de Salons Nouvelle Génération. Tous droits réservés.</p>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle support for privacy page
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const currentTheme = localStorage.getItem('wafatalk_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    themeToggleBtn?.addEventListener('click', () => {
+      const active = document.documentElement.getAttribute('data-theme');
+      const next = active === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('wafatalk_theme', next);
+    });
+  </script>
+</body>
+</html>

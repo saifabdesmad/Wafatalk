@@ -12,3 +12,8 @@ scratch/
 backend/uploads/*
 !backend/uploads/.gitkeep
 backend/scripts/test-upload.ts
+
+cloudflared.log
+.agent/
+.agents/
+.hallmark/

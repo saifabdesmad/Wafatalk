@@ -1,0 +1,113 @@
+/* WafaTalk Tinder-Inspired Editorial Design System
+ * Primary: Burgundy Wine oklch(24% 0.12 18) & Poppy Coral oklch(62% 0.24 25)
+ * Secondary: Cosmic Indigo oklch(18% 0.08 285) & Warm Ivory oklch(98.5% 0.008 85)
+ * Typography: Outfit (Display) · Plus Jakarta Sans (UI) · Instrument Serif (Editorial Quote)
+ */
+
+:root {
+  /* Spacing Scale */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+
+  /* Typography Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.35rem;
+  --text-2xl: 1.65rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-hero: clamp(2.5rem, 5.5vw, 4.25rem);
+
+  /* Fonts */
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Tinder-Inspired Color System */
+  --color-wine-dark: #3a060d;
+  --color-wine-base: #5c0d16;
+  --color-wine-deep: #680c16;
+  --color-wine-light: #83121f;
+
+  --color-cosmic-dark: #080614;
+  --color-cosmic-base: #0d0c22;
+  --color-cosmic-card: #13102d;
+
+  --color-coral-flame: #ea2844;
+  --color-coral-hover: #d11e38;
+  --color-coral-soft: rgba(234, 40, 68, 0.12);
+
+  --color-ivory-bg: #faf8f5;
+  --color-ivory-surface: #ffffff;
+  --color-ivory-card: #fffaf7;
+  --color-ivory-muted: #f4ede4;
+
+  --color-ink-display: #111116;
+  --color-ink-body: #27272a;
+  --color-ink-muted: #52525b;
+  --color-ink-light: #71717a;
+  --color-paper-pure: #ffffff;
+
+  --color-border-subtle: rgba(0, 0, 0, 0.07);
+  --color-border-dark: rgba(255, 255, 255, 0.12);
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Elevated Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.08);
+  --shadow-wine: 0 20px 50px rgba(92, 13, 22, 0.25);
+  --shadow-cosmic: 0 20px 50px rgba(13, 12, 34, 0.35);
+
+  /* Radius Scale */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 9999px;
+
+  /* Hallmark token mapping for app compatibility */
+  --color-paper: var(--color-ivory-bg);
+  --color-paper-elevated: var(--color-ivory-surface);
+  --color-ink: var(--color-ink-display);
+  --color-ink-soft: var(--color-ink-body);
+  --color-border: var(--color-border-subtle);
+  --color-accent: var(--color-coral-flame);
+  --color-accent-ink: #ffffff;
+  --bg-surface: var(--color-ivory-bg);
+  --bg-surface-elevated: var(--color-ivory-surface);
+  --text-main: var(--color-ink-display);
+  --text-secondary: var(--color-ink-muted);
+}
+
+[data-theme="dark"] {
+  --color-paper: #09090b;
+  --color-paper-elevated: #18181b;
+  --color-ink: #fafafa;
+  --color-ink-soft: #a1a1aa;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-ivory-bg: #09090b;
+  --color-ivory-surface: #18181b;
+  --color-ink-display: #fafafa;
+  --color-ink-body: #e4e4e7;
+  --color-ink-muted: #a1a1aa;
+  --bg-surface: #09090b;
+  --bg-surface-elevated: #18181b;
+  --text-main: #fafafa;
+  --text-secondary: #a1a1aa;
+}

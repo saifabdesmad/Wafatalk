@@ -34,7 +34,7 @@
   <!-- ============================================================ -->
   <!-- SCREEN 1 : AUTHENTICATION / LOGIN PAGE                       -->
   <!-- ============================================================ -->
-  <main id="authScreen" class="screen auth-screen active">
+  <main id="authScreen" class="screen auth-screen" style="display: none; opacity: 0;">
     <div class="auth-wrapper">
       
             <!-- Left Side: Brand Showcase & Realistic Application Preview -->
@@ -441,7 +441,7 @@
   <!-- ============================================================ -->
   <!-- SCREEN 2 : LANDING PAGE & SALONS HUB (POST-LOGIN)             -->
   <!-- ============================================================ -->
-  <div id="hubScreen" class="screen hub-screen">
+  <div id="hubScreen" class="screen hub-screen active" style="opacity: 1;">
     
     <!-- Top Navigation Header -->
     <header class="hub-navbar glass-nav">
@@ -759,6 +759,14 @@
         </div>
 
         <div class="salon-modal-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnToggleSalonFullscreen" title="Basculer Plein écran">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            <span class="fullscreen-label">Plein écran</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnMinimizeSalon" title="Réduire en fenêtre volante (Picture-in-Picture)" aria-label="Réduire le salon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            <span>Réduire</span>
+          </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btnOpenSalonShare" title="Inviter des amis / Partager le salon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
             <span>Inviter</span>
@@ -2464,11 +2472,102 @@
     </div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- MINI FLOATING DRAGGABLE PIP SALON WINDOW (SALON FLOTTANT)    -->
+  <!-- ============================================================ -->
+  <div class="floating-call-window floating-salon-window glass-card hidden" id="miniSalonWidget" role="region" aria-label="Salon vocal flottant">
+    <!-- Draggable Header / Grip Handle -->
+    <div class="floating-call-header" id="floatingSalonDragHandle" title="Glisser pour déplacer le salon vocal">
+      <div class="floating-call-drag-indicator">
+        <span class="floating-drag-dots" aria-hidden="true">⠿</span>
+        <span class="floating-live-dot pulse"></span>
+        <span class="floating-call-peer-name" id="miniSalonName">Salon Vocal</span>
+      </div>
+      <div class="floating-call-header-right">
+        <span class="floating-call-timer" id="miniSalonCount" title="Participants en ligne"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span id="miniSalonCountNum">8</span></span>
+        <button type="button" class="floating-icon-btn btn-maximize-call" id="btnRestoreSalon" title="Agrandir en plein écran" aria-label="Agrandir">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating Salon Stage (Avatars & Equalizer Waves) -->
+    <div class="floating-call-stage floating-salon-stage" id="floatingSalonStage" title="Cliquer pour agrandir le salon">
+      <div class="floating-salon-avatars" id="miniSalonAvatars">
+        <!-- Rendered dynamically with participants & active speaking rings -->
+      </div>
+      <div class="floating-audio-waves mini-salon-waves">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="mini-salon-status-label" id="miniSalonStatusLabel">En direct • Audio HD</div>
+    </div>
+
+    <!-- Floating Action Controls Bar (Quick Mute / Deafen / Expand / Leave) -->
+    <div class="floating-call-controls">
+      <button type="button" class="floating-ctrl-btn" id="btnMiniSalonToggleMic" title="Activer / Couper le micro" aria-label="Micro">
+        <svg class="mini-mic-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <svg class="mini-mic-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn" id="btnMiniSalonToggleAudio" title="Couper le son / Sourdine" aria-label="Son">
+        <svg class="mini-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        <svg class="mini-sound-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-expand" id="btnMiniSalonExpand" title="Agrandir en plein écran" aria-label="Agrandir">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-hangup" id="btnMiniSalonLeave" title="Quitter le salon" aria-label="Quitter le salon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- Socket.IO Client Library -->
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+  <!-- Demo Session Bootstrap & Mock Interceptor for Instant Landing Preview -->
+  <script>
+    (function() {
+      if (!localStorage.getItem('wafatalk_token')) {
+        localStorage.setItem('wafatalk_token', 'demo_token_alexandre_wafatalk');
+        localStorage.setItem('wafatalk_user', JSON.stringify({
+          id: 'user_alexandre_01',
+          name: 'Alexandre Moreau',
+          displayName: 'Alexandre Moreau',
+          email: 'alexandre@wafatalk.fr',
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+          points: 1450,
+          wafaPoints: 1450,
+          role: 'Membre Fondateur',
+          country: 'FR',
+          countryName: 'France'
+        }));
+      }
+
+      const _origFetch = window.fetch;
+      window.fetch = function(...args) {
+        const url = args[0] ? args[0].toString() : '';
+        if (url.includes('/auth/me')) {
+          const u = localStorage.getItem('wafatalk_user');
+          if (u) {
+            return Promise.resolve(new Response(JSON.stringify({
+              success: true,
+              user: JSON.parse(u)
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            }));
+          }
+        }
+        return _origFetch.apply(this, args);
+      };
+    })();
+  </script>
 
   <!-- Main JavaScript File -->
   <script src="app.js?v=20261017b"></script>

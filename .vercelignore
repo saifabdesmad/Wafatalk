@@ -1,4 +1,9 @@
 backend/
+secondary UI/
+.agent/
+.agents/
+.hallmark/
+cloudflared.log
 node_modules/
 .git/
 .env
