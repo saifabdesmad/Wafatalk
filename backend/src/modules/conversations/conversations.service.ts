@@ -28,6 +28,14 @@ export class ConversationsService {
       throw new Error('Un des utilisateurs est introuvable.');
     }
 
+    // Check if users are friends
+    const friendship = await prisma.friendship.findUnique({
+      where: { userId_friendId: { userId: userAId, friendId: userBId } }
+    });
+    if (!friendship) {
+      throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour ouvrir une conversation privée.');
+    }
+
     let conversation = await prisma.conversation.findUnique({
       where: {
         user1Id_user2Id: { user1Id, user2Id },
@@ -214,6 +222,14 @@ export class ConversationsService {
     }
 
     const targetUserId = conv.user1Id === senderId ? conv.user2Id : conv.user1Id;
+
+    // Check friendship before sending message
+    const areFriends = await prisma.friendship.findUnique({
+      where: { userId_friendId: { userId: senderId, friendId: targetUserId } }
+    });
+    if (!areFriends) {
+      throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour envoyer un message.');
+    }
 
     const message = await prisma.directMessage.create({
       data: {

@@ -752,6 +752,17 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           return socket.emit('call:failed', { message: 'Destinataire invalide.' });
         }
 
+        // Check friendship before allowing call
+        const areFriends = await prisma.friendship.findUnique({
+          where: { userId_friendId: { userId: user.id, friendId: targetUserId } }
+        });
+        if (!areFriends) {
+          return socket.emit('call:failed', {
+            reason: 'not_friends',
+            message: 'Vous devez être amis pour passer un appel.',
+          });
+        }
+
         // Check if recipient is connected
         const targetRoom = io.sockets.adapter.rooms.get(`user:${targetUserId}`);
         const isOnline = targetRoom && targetRoom.size > 0;

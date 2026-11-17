@@ -9,6 +9,7 @@ import { salonsRoutes } from './modules/salons/salons.controller.js';
 import { usersRoutes } from './modules/users/users.controller.js';
 import { messagesRoutes } from './modules/messages/messages.controller.js';
 import { conversationsRoutes } from './modules/conversations/conversations.controller.js';
+import { friendsRoutes } from './modules/friends/friends.controller.js';
 import { setupSocketServer } from './socket/socket.server.js';
 import { prisma } from './database/prisma.js';
 import { ConversationsService } from './modules/conversations/conversations.service.js';
@@ -178,6 +179,7 @@ async function buildApp() {
   await fastify.register(usersRoutes, { prefix: '/api/users' });
   await fastify.register(messagesRoutes, { prefix: '/api' });
   await fastify.register(conversationsRoutes, { prefix: '/api/conversations' });
+  await fastify.register(friendsRoutes, { prefix: '/api/friends' });
 
   return fastify;
 }

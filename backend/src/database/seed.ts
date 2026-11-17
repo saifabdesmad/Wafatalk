@@ -89,8 +89,8 @@ async function main() {
     },
   });
 
-  // 2. Create Friendships
-  const friends = [userSarah.id, userYoussef.id, userLina.id, userKarim.id];
+  // 2. Create Friendships (Bidirectional)
+  const friends = [userSarah.id, userYoussef.id];
   for (const friendId of friends) {
     await prisma.friendship.upsert({
       where: {
@@ -106,7 +106,53 @@ async function main() {
         status: 'ACCEPTED',
       },
     });
+    await prisma.friendship.upsert({
+      where: {
+        userId_friendId: {
+          userId: friendId,
+          friendId: userAlex.id,
+        },
+      },
+      update: { status: 'ACCEPTED' },
+      create: {
+        userId: friendId,
+        friendId: userAlex.id,
+        status: 'ACCEPTED',
+      },
+    });
   }
+
+  // Demo pending friend request: userLina sent a request to userAlex
+  await prisma.friendRequest.upsert({
+    where: {
+      senderId_receiverId: {
+        senderId: userLina.id,
+        receiverId: userAlex.id,
+      },
+    },
+    update: { status: 'PENDING' },
+    create: {
+      senderId: userLina.id,
+      receiverId: userAlex.id,
+      status: 'PENDING',
+    },
+  });
+
+  // Demo sent friend request: userAlex sent a request to userKarim
+  await prisma.friendRequest.upsert({
+    where: {
+      senderId_receiverId: {
+        senderId: userAlex.id,
+        receiverId: userKarim.id,
+      },
+    },
+    update: { status: 'PENDING' },
+    create: {
+      senderId: userAlex.id,
+      receiverId: userKarim.id,
+      status: 'PENDING',
+    },
+  });
 
   // 3. Create Salons
   const salons = [

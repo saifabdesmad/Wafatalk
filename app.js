@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let isSalonCamActive = false;
   let salonTypingDebounceTimer = null;
 
+  // Friend Request State
+  let pendingFriendRequests = []; // received pending requests
+  let sentFriendRequests = []; // sent pending requests
+  let myFriendsList = []; // accepted friends
+  let currentFriendTab = 'friends'; // 'friends' | 'explore'
+
   // Chat History & Bidirectional Scrolling State (Salons & DMs)
   let salonOldestMessageId = null;
   let salonHasMoreMessages = true;
@@ -2243,141 +2249,425 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Initialize friend system tabs in sidebar
+  function initFriendTabs() {
+    const container = friendsList?.parentElement;
+    if (!container || document.getElementById('friendTabsBar')) return;
+
+    const tabBar = document.createElement('div');
+    tabBar.id = 'friendTabsBar';
+    tabBar.style.cssText = 'display:flex;gap:4px;padding:8px 10px 4px;border-bottom:1px solid var(--border);';
+    tabBar.innerHTML = `
+      <button id="tabBtnFriends" class="friend-tab-btn active" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--primary);color:#fff;transition:all 0.2s;">
+        👥 Amis
+      </button>
+      <button id="tabBtnExplore" class="friend-tab-btn" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--bg-muted, rgba(120,120,120,0.12));color:var(--text-muted);transition:all 0.2s;position:relative;">
+        🔍 Explorer
+        <span id="friendReqBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.65rem;line-height:16px;text-align:center;"></span>
+      </button>
+    `;
+    container.insertBefore(tabBar, friendsList);
+
+    document.getElementById('tabBtnFriends').addEventListener('click', () => switchFriendTab('friends'));
+    document.getElementById('tabBtnExplore').addEventListener('click', () => switchFriendTab('explore'));
+  }
+
+  function switchFriendTab(tab) {
+    currentFriendTab = tab;
+    const btnFriends = document.getElementById('tabBtnFriends');
+    const btnExplore = document.getElementById('tabBtnExplore');
+    if (btnFriends && btnExplore) {
+      if (tab === 'friends') {
+        btnFriends.style.background = 'var(--primary)';
+        btnFriends.style.color = '#fff';
+        btnExplore.style.background = 'var(--bg-muted, rgba(120,120,120,0.12))';
+        btnExplore.style.color = 'var(--text-muted)';
+      } else {
+        btnExplore.style.background = 'var(--primary)';
+        btnExplore.style.color = '#fff';
+        btnFriends.style.background = 'var(--bg-muted, rgba(120,120,120,0.12))';
+        btnFriends.style.color = 'var(--text-muted)';
+      }
+    }
+    renderFriends();
+  }
+
+  // Fetch friend requests and friends from API
+  async function refreshFriendData() {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const [friendsRes, pendingRes, sentRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/friends/requests/pending`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/friends/requests/sent`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      if (friendsRes.ok) {
+        const d = await friendsRes.json();
+        if (d.success) myFriendsList = d.friends || [];
+      }
+      if (pendingRes.ok) {
+        const d = await pendingRes.json();
+        if (d.success) pendingFriendRequests = d.requests || [];
+      }
+      if (sentRes.ok) {
+        const d = await sentRes.json();
+        if (d.success) sentFriendRequests = d.requests || [];
+      }
+      // Update badge
+      const badge = document.getElementById('friendReqBadge');
+      if (badge) {
+        if (pendingFriendRequests.length > 0) {
+          badge.textContent = pendingFriendRequests.length;
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch(e) {}
+  }
+
   // Render Friends & Discoverable Users List in Sidebar
   async function renderFriends() {
     if (!friendsList) return;
 
+    initFriendTabs();
+
     const myId = state.currentUser?.id;
     const token = getAuthToken();
 
-    // 1. Fetch registered database users if authenticated
-    let allUsers = [...friendsData];
+    if (currentFriendTab === 'friends') {
+      // ── AMIS TAB ────────────────────────────────────────
+      await refreshFriendData();
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/users/discover`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.users)) {
-            data.users.forEach(u => {
-              const exists = allUsers.find(x => x.id === u.id || x.username?.toLowerCase() === u.username?.toLowerCase());
-              if (!exists) {
-                allUsers.push(u);
-              } else {
-                Object.assign(exists, u);
-              }
-            });
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch discover users:', err);
+      const onlineCount = myFriendsList.filter(u => activeOnlineUserIds.has(u.id)).length;
+      const onlineCounter = document.getElementById('onlineFriendsCount');
+      if (onlineCounter) {
+        onlineCounter.textContent = `${onlineCount} en ligne`;
+        onlineCounter.style.display = 'inline-block';
       }
-    }
+      const mobFriendsBadge = document.getElementById('mobFriendsBadge');
+      if (mobFriendsBadge) mobFriendsBadge.textContent = onlineCount;
 
-    // 2. Also merge local accounts from localStorage for offline/demo resilience
-    try {
-      const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
-      localUsers.forEach(lu => {
-        const exists = allUsers.find(x => x.id === lu.id || x.username?.toLowerCase() === lu.username?.toLowerCase());
-        if (!exists) {
-          allUsers.push({
-            id: lu.id,
-            username: lu.username,
-            name: lu.displayName || lu.username,
-            avatar: lu.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(lu.username)}`,
-            country: lu.country || 'FR',
-            status: 'online',
-            role: 'Hors ligne',
-            room: '',
-          });
+      friendsList.innerHTML = '';
+
+      if (myFriendsList.length === 0) {
+        friendsList.innerHTML = `<div style="padding:20px 14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+          <div style="font-size:2rem;margin-bottom:8px;">👥</div>
+          <div style="font-weight:600;margin-bottom:4px;">Aucun ami pour l'instant</div>
+          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié !</div>
+        </div>`;
+
+        // Still show pending requests if any even when no friends yet
+        if (pendingFriendRequests.length > 0) {
+          friendsList.innerHTML = '';
+        } else {
+          return;
         }
-      });
-    } catch (e) { }
+      }
 
-    // Filter out oneself
-    const displayList = allUsers.filter(u => {
-      if (!myId) return true;
-      if (u.id === myId) return false;
-      if (state.currentUser?.username && u.username?.toLowerCase() === state.currentUser.username.toLowerCase()) return false;
-      return true;
-    });
+      // Show pending received requests at top if any
+      if (pendingFriendRequests.length > 0) {
+        const reqHeader = document.createElement('div');
+        reqHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;';
+        reqHeader.textContent = `Demandes reçues (${pendingFriendRequests.length})`;
+        friendsList.appendChild(reqHeader);
 
-    // Check active online status dynamically from WebSocket presence
-    displayList.forEach(u => {
-      const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username));
-      u._isOnline = Boolean(isOnline);
-      u.status = u._isOnline ? 'online' : 'offline';
-    });
-
-    // Sort list: Online users first, then offline users, alphabetically
-    displayList.sort((a, b) => {
-      if (a._isOnline && !b._isOnline) return -1;
-      if (!a._isOnline && b._isOnline) return 1;
-      const nameA = (a.name || a.displayName || a.username || '').toLowerCase();
-      const nameB = (b.name || b.displayName || b.username || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-
-    const onlineCount = displayList.filter(u => u._isOnline).length;
-    const onlineCounter = document.getElementById('onlineFriendsCount');
-    if (onlineCounter) {
-      onlineCounter.textContent = `${onlineCount} en ligne`;
-      onlineCounter.style.display = 'inline-block';
-    }
-    const mobFriendsBadge = document.getElementById('mobFriendsBadge');
-    if (mobFriendsBadge) {
-      mobFriendsBadge.textContent = onlineCount;
-    }
-
-    friendsList.innerHTML = '';
-
-    if (displayList.length === 0) {
-      friendsList.innerHTML = '<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">Aucun autre membre connecté.</div>';
-      return;
-    }
-
-    displayList.forEach(friend => {
-      const isOnline = friend._isOnline;
-      const statusClass = isOnline ? 'online' : 'offline';
-      const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
-      const flagTag = getFlagImgTag(friend.country, friend.country);
-      const item = document.createElement('div');
-      item.className = `friend-item ${statusClass}`;
-      item.innerHTML = `
-        <div class="friend-item-left" style="cursor: pointer; flex: 1;" title="${statusLabel} — Cliquer pour ouvrir le salon privé avec ${friend.name || friend.username}">
-          <div class="friend-avatar-wrap">
-            <img src="${friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
-            <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
-          </div>
-          <div class="friend-meta">
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <span class="friend-name">${friend.name || friend.displayName || friend.username}</span>
-              <span style="display: inline-flex; align-items: center;">${flagTag}</span>
+        pendingFriendRequests.forEach(req => {
+          const sender = req.sender;
+          const item = document.createElement('div');
+          item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-muted, rgba(120,120,120,0.08));';
+          item.innerHTML = `
+            <img src="${sender.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender.username)}`}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${sender.displayName || sender.username}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous</div>
             </div>
-            <span class="friend-activity ${statusClass}">
-              <span class="activity-status-dot ${statusClass}"></span>
-              ${statusLabel}
-            </span>
+            <div style="display:flex;gap:4px;">
+              <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✓</button>
+              <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#ef4444;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✗</button>
+            </div>
+          `;
+          item.querySelector('.btn-accept-req').addEventListener('click', async () => {
+            await handleAcceptRequest(req.id, sender);
+          });
+          item.querySelector('.btn-reject-req').addEventListener('click', async () => {
+            await handleRejectRequest(req.id);
+          });
+          friendsList.appendChild(item);
+        });
+
+        if (myFriendsList.length > 0) {
+          const friendsHeader = document.createElement('div');
+          friendsHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;';
+          friendsHeader.textContent = `Amis (${myFriendsList.length})`;
+          friendsList.appendChild(friendsHeader);
+        }
+      }
+
+      if (myFriendsList.length === 0 && pendingFriendRequests.length === 0) {
+        friendsList.innerHTML = `<div style="padding:20px 14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+          <div style="font-size:2rem;margin-bottom:8px;">👥</div>
+          <div style="font-weight:600;margin-bottom:4px;">Aucun ami pour l'instant</div>
+          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié !</div>
+        </div>`;
+        return;
+      }
+
+      myFriendsList.forEach(friend => {
+        const isOnline = activeOnlineUserIds.has(friend.id);
+        const statusClass = isOnline ? 'online' : 'offline';
+        const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
+        const flagTag = getFlagImgTag(friend.country, friend.country);
+        const item = document.createElement('div');
+        item.className = `friend-item ${statusClass}`;
+        item.innerHTML = `
+          <div class="friend-item-left" style="cursor:pointer;flex:1;" title="${statusLabel} — Cliquer pour envoyer un message">
+            <div class="friend-avatar-wrap">
+              <img src="${friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
+            </div>
+            <div class="friend-meta">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span class="friend-name">${friend.name || friend.username}</span>
+                <span style="display:inline-flex;align-items:center;">${flagTag}</span>
+              </div>
+              <span class="friend-activity ${statusClass}">
+                <span class="activity-status-dot ${statusClass}"></span>
+                ${statusLabel}
+              </span>
+            </div>
           </div>
-        </div>
-        <button type="button" class="friend-action-btn" title="Envoyer un message ou appeler">
-          
-        </button>
-      `;
-
-      // Clicking friend opens 1-on-1 private DM salon
-      item.querySelector('.friend-item-left')?.addEventListener('click', () => {
-        openDirectChat(friend);
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button type="button" class="friend-action-btn" title="Envoyer un message">💬</button>
+            <button type="button" class="friend-unfriend-btn" title="Retirer de la liste d'amis" style="background:transparent;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.6;transition:all 0.2s;" onmouseover="this.style.opacity=1;this.style.color='#ef4444'" onmouseout="this.style.opacity=0.6;this.style.color='var(--text-muted)'">✕</button>
+          </div>
+        `;
+        item.querySelector('.friend-item-left').addEventListener('click', () => openDirectChat(friend));
+        item.querySelector('.friend-action-btn').addEventListener('click', () => openDirectChat(friend));
+        item.querySelector('.friend-unfriend-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleUnfriend(friend.id, friend.name || friend.username);
+        });
+        friendsList.appendChild(item);
       });
 
-      item.querySelector('.friend-action-btn')?.addEventListener('click', () => {
-        openDirectChat(friend);
-      });
+    } else {
+      // ── EXPLORER TAB ────────────────────────────────────
+      friendsList.innerHTML = '<div style="padding:10px 14px;text-align:center;color:var(--text-muted);font-size:0.78rem;">Chargement...</div>';
 
-      friendsList.appendChild(item);
-    });
+      let exploreUsers = [];
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/friends/discover`, { headers: { 'Authorization': `Bearer ${token}` } });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) exploreUsers = data.users || [];
+          }
+        } catch(e) {}
+      }
+
+      // Filter out self
+      exploreUsers = exploreUsers.filter(u => u.id !== myId);
+
+      // Sort: request_received first, then none, then request_sent, then friends
+      const order = { request_received: 0, none: 1, request_sent: 2, friends: 3 };
+      exploreUsers.sort((a, b) => (order[a.friendStatus] ?? 1) - (order[b.friendStatus] ?? 1));
+
+      const onlineCounter = document.getElementById('onlineFriendsCount');
+      const onlineCount = exploreUsers.filter(u => activeOnlineUserIds.has(u.id)).length;
+      if (onlineCounter) {
+        onlineCounter.textContent = `${onlineCount} en ligne`;
+        onlineCounter.style.display = 'inline-block';
+      }
+
+      friendsList.innerHTML = '';
+
+      if (exploreUsers.length === 0) {
+        friendsList.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">Aucun membre à explorer.</div>';
+        return;
+      }
+
+      exploreUsers.forEach(u => {
+        const isOnline = activeOnlineUserIds.has(u.id);
+        const flagTag = getFlagImgTag(u.country, u.country);
+        const item = document.createElement('div');
+        item.className = `friend-item ${isOnline ? 'online' : 'offline'}`;
+
+        let actionBtn = '';
+        if (u.friendStatus === 'friends') {
+          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message" style="padding:5px 10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">💬 Message</button>`;
+        } else if (u.friendStatus === 'request_sent') {
+          actionBtn = `<button class="explore-action-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler la demande" style="padding:5px 10px;border-radius:8px;border:none;background:var(--bg-muted, rgba(120,120,120,0.15));color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;">⏳ Envoyée</button>`;
+        } else if (u.friendStatus === 'request_received') {
+          actionBtn = `
+            <button class="explore-action-btn" data-action="accept" data-reqid="${u.requestId}" data-uid="${u.id}" title="Accepter" style="padding:5px 8px;border-radius:8px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✓</button>
+            <button class="explore-action-btn" data-action="reject" data-reqid="${u.requestId}" title="Refuser" style="padding:5px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✗</button>
+          `;
+        } else {
+          actionBtn = `<button class="explore-action-btn" data-action="add" data-uid="${u.id}" title="Envoyer une demande d'ami" style="padding:5px 10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">➕ Ajouter</button>`;
+        }
+
+        item.innerHTML = `
+          <div class="friend-item-left" style="flex:1;min-width:0;">
+            <div class="friend-avatar-wrap">
+              <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${u.name || u.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="friend-status-dot ${isOnline ? 'online' : 'offline'}"></span>
+            </div>
+            <div class="friend-meta">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span class="friend-name">${u.name || u.username}</span>
+                <span>${flagTag}</span>
+              </div>
+              <span class="friend-activity" style="font-size:0.72rem;color:var(--text-muted);">${u.role || ''}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">${actionBtn}</div>
+        `;
+
+        // Wire up action buttons
+        item.querySelectorAll('.explore-action-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const action = btn.dataset.action;
+            const uid = btn.dataset.uid;
+            const reqid = btn.dataset.reqid;
+            if (action === 'add') {
+              await handleSendFriendRequest(uid, item, btn);
+            } else if (action === 'cancel') {
+              await handleCancelRequest(reqid, item, btn);
+            } else if (action === 'accept') {
+              await handleAcceptRequest(reqid, { id: uid, name: u.name, avatar: u.avatar, username: u.username, country: u.country });
+            } else if (action === 'reject') {
+              await handleRejectRequest(reqid);
+            } else if (action === 'chat') {
+              openDirectChat(u);
+            }
+          });
+        });
+
+        friendsList.appendChild(item);
+      });
+    }
+  }
+
+  // Friend Request Action Handlers
+  async function handleSendFriendRequest(targetUserId, itemEl, btn) {
+    const token = getAuthToken();
+    if (!token) { showToast('Connexion requise.', 'coral'); return; }
+    try {
+      btn.disabled = true;
+      btn.textContent = '...';
+      const res = await fetch(`${API_BASE_URL}/friends/request/${targetUserId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = '⏳ Envoyée';
+        btn.style.background = 'var(--bg-secondary,#e5e7eb)';
+        btn.style.color = 'var(--text-muted)';
+        btn.dataset.action = 'cancel';
+        btn.dataset.reqid = data.request.id;
+        btn.disabled = false;
+        showToast('Demande d\'ami envoyée !', 'green');
+      } else {
+        btn.disabled = false;
+        btn.textContent = '➕ Ajouter';
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = '➕ Ajouter';
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleCancelRequest(requestId, itemEl, btn) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      btn.disabled = true;
+      const res = await fetch(`${API_BASE_URL}/friends/cancel/${requestId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = '➕ Ajouter';
+        btn.style.background = 'var(--primary)';
+        btn.style.color = '#fff';
+        btn.dataset.action = 'add';
+        delete btn.dataset.reqid;
+        btn.disabled = false;
+        showToast('Demande annulée.', 'orange');
+      } else {
+        btn.disabled = false;
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      btn.disabled = false;
+    }
+  }
+
+  async function handleAcceptRequest(requestId, sender) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/accept/${requestId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Vous êtes maintenant amis avec ${sender.name || sender.displayName || sender.username} ! 🎉`, 'green');
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleRejectRequest(requestId) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/reject/${requestId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Demande refusée.', 'orange');
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleUnfriend(friendId, friendName) {
+    if (!confirm(`Voulez-vous vraiment retirer ${friendName} de vos amis ?`)) return;
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`${friendName} a été retiré de vos amis.`, 'orange');
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      showToast('Erreur réseau.', 'coral');
+    }
   }
 
 
@@ -5854,7 +6144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeOnlineUserIds.add(state.currentUser.username);
       }
       socket.emit('presence:request_all');
-      renderFriends();
+      refreshFriendData().then(() => renderFriends());
     });
 
     // Real-time snapshot of all currently online users upon connection
@@ -6017,6 +6307,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       // Instantly refresh discoverable members in real time when anyone logs in or joins
       renderFriends();
+    });
+
+    // Real-time friend request events
+    socket.on('friend:request_received', ({ request }) => {
+      if (request && !pendingFriendRequests.some(r => r.id === request.id)) {
+        pendingFriendRequests.unshift(request);
+      }
+      const badge = document.getElementById('friendReqBadge');
+      if (badge) {
+        badge.textContent = pendingFriendRequests.length;
+        badge.style.display = pendingFriendRequests.length > 0 ? 'block' : 'none';
+      }
+      const senderName = request?.sender?.displayName || request?.sender?.username || 'Quelqu\'un';
+      showToast(`👋 ${senderName} vous a envoyé une demande d'ami !`, 'green');
+      playTone(550, 'sine', 0.2);
+      renderFriends();
+    });
+
+    socket.on('friend:request_accepted', ({ request }) => {
+      const accepterName = request?.receiver?.displayName || request?.receiver?.username || 'Un utilisateur';
+      showToast(`🎉 ${accepterName} a accepté votre demande d'ami !`, 'green');
+      playTone(660, 'sine', 0.2);
+      refreshFriendData().then(() => renderFriends());
     });
 
     socket.on('disconnect', () => {
@@ -6190,6 +6503,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1-ON-1 DIRECT CHAT CONTROLLER
   // =========================================================================
   async function openDirectChat(friend) {
+    if (!friend) return;
+
+    // Check if user is logged in and whether they are accepted friends
+    const isFriend = myFriendsList.some(f => f.id === friend.id || (f.username && friend.username && f.username.toLowerCase() === friend.username.toLowerCase()));
+    if (state.currentUser?.id && !isFriend) {
+      showToast('Vous devez être amis pour ouvrir une conversation privée.', 'coral');
+      return;
+    }
+
     currentDmFriend = friend;
     if (!directChatModal) return;
 
@@ -6227,13 +6549,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load messages history
         await loadConversationMessages(currentConversation.id);
       } else {
+        directChatModal.classList.add('hidden');
         showToast(data.message || 'Impossible d\'ouvrir la conversation.', 'coral');
+        return;
       }
     } catch (err) {
-      console.warn('Fallback local conversation:', err);
-      // Offline fallback
-      currentConversation = { id: `local-conv-${friend.id}` };
-      dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"></span><p>Début de votre discussion privée sécurisée. Dites bonjour ! </p></div>';
+      console.warn('Erreur ouverture conversation:', err);
+      directChatModal.classList.add('hidden');
+      showToast('Impossible d\'ouvrir la conversation. Connexion ou amitié requise.', 'coral');
+      return;
     }
 
     dmTextInput?.focus();
@@ -7157,6 +7481,13 @@ document.addEventListener('DOMContentLoaded', () => {
   async function initiateCall(type = 'audio') {
     if (!currentDmFriend || !currentConversation) {
       showToast('Ouvrez d\'abord un salon privé avec un ami.', 'coral');
+      return;
+    }
+
+    // Check if friends before calling
+    const isFriend = myFriendsList.some(f => f.id === currentDmFriend.id || (f.username && currentDmFriend.username && f.username.toLowerCase() === currentDmFriend.username.toLowerCase()));
+    if (state.currentUser?.id && !isFriend) {
+      showToast('Vous devez être amis pour passer un appel.', 'coral');
       return;
     }
 
