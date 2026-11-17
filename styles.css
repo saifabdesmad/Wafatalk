@@ -2431,11 +2431,11 @@ a {
   box-shadow: 0 6px 20px var(--amber-glow);
 }
 
-/* Salon Modal Body: Stage & Chat (Full Screen Viewport) */
+/* Salon Modal Body: Messages (Left) & Call Stage (Right) */
 .salon-modal-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 380px 1fr;
   overflow: hidden;
   min-height: 0;
   height: calc(100vh - 76px);
@@ -2725,7 +2725,8 @@ a {
 /* Chat Stream in Live Salon */
 .salon-chat-panel {
   background: var(--bg-surface-elevated);
-  border-left: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  border-left: none;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -3885,6 +3886,7 @@ a {
     flex: 1 !important;
     height: 100% !important;
     border-left: none !important;
+    border-right: none !important;
   }
 
   /* Default split view if no tab class set */
@@ -3897,6 +3899,7 @@ a {
     height: 50% !important;
     flex: none !important;
     border-left: none !important;
+    border-right: none !important;
     border-top: 1px solid var(--border-subtle) !important;
   }
 

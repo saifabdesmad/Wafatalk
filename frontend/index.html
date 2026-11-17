@@ -787,24 +787,59 @@
 
       <!-- Mobile Salon Tab Switcher (Visible on mobile only) -->
       <div class="mobile-salon-tabs" role="tablist">
-        <button type="button" class="mobile-salon-tab active" id="tabMobileStage" role="tab" aria-selected="true">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-          <span>Scène Vocale & Vidéo</span>
-        </button>
         <button type="button" class="mobile-salon-tab" id="tabMobileChat" role="tab" aria-selected="false">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           <span>Chat en direct</span>
           <span class="mobile-chat-badge hidden" id="mobileChatUnreadDot"></span>
         </button>
+        <button type="button" class="mobile-salon-tab active" id="tabMobileStage" role="tab" aria-selected="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <span>Scène Vocale & Vidéo</span>
+        </button>
       </div>
 
-      <!-- Live Salon Body: Split Audio Stage & Chat Stream -->
+      <!-- Live Salon Body: Chat Stream (Left) & Unified Call Stage (Right) -->
       <div class="salon-modal-body">
-        
-        <!-- Left Stage: Voice Avatars & Equalizer -->
+
+        <!-- Left Side: Real-time Salon Chat Stream (Messages Section) -->
+        <div class="salon-chat-panel">
+          <div class="chat-panel-header">
+            <h4>Discussion en Direct</h4>
+            <span class="chat-users-online" id="chatParticipantsCount">1 participant</span>
+          </div>
+
+          <div class="chat-messages-scroll" id="chatMessagesScroll">
+            <!-- Messages populated via app.js -->
+          </div>
+
+          <!-- Floating Scroll-to-Bottom Button with Unread Badge -->
+          <button type="button" class="chat-scroll-bottom-btn hidden" id="salonScrollBottomBtn" title="Faire défiler vers le bas" aria-label="Faire défiler vers le bas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span class="scroll-unread-badge hidden" id="salonScrollUnreadBadge">0</span>
+          </button>
+
+          <!-- Typing Indicator -->
+          <div class="salon-typing-indicator hidden" id="salonTypingIndicator">
+            <span class="typing-dots"><span></span><span></span><span></span></span>
+            <span id="salonTypingText">Un membre est en train d'écrire...</span>
+          </div>
+
+          <!-- Chat Input Row -->
+          <form id="chatForm" class="chat-input-bar">
+            <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+            </button>
+            <input type="text" id="chatInputText" placeholder="Écrire un message bienveillant..." autocomplete="off" required>
+            <button type="submit" class="btn btn-primary btn-chat-send" title="Envoyer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Right Side: Call Stage (Unified Equal Stage Grid) -->
         <div class="voice-stage-container">
           <div class="voice-stage-grid" id="voiceStageGrid">
-            <!-- Populated dynamically via app.js -->
+            <!-- Populated dynamically via app.js - all members equal -->
           </div>
 
           <!-- Floating Voice Controls Bar -->
@@ -836,41 +871,6 @@
               <span class="ctrl-label">Quitter</span>
             </button>
           </div>
-        </div>
-
-        <!-- Right Side: Real-time Salon Chat Stream -->
-        <div class="salon-chat-panel">
-          <div class="chat-panel-header">
-            <h4>Discussion en Direct</h4>
-            <span class="chat-users-online" id="chatParticipantsCount">1 participant</span>
-          </div>
-
-          <div class="chat-messages-scroll" id="chatMessagesScroll">
-            <!-- Messages populated via app.js -->
-          </div>
-
-          <!-- Floating Scroll-to-Bottom Button with Unread Badge -->
-          <button type="button" class="chat-scroll-bottom-btn hidden" id="salonScrollBottomBtn" title="Faire défiler vers le bas" aria-label="Faire défiler vers le bas">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            <span class="scroll-unread-badge hidden" id="salonScrollUnreadBadge">0</span>
-          </button>
-
-          <!-- Typing Indicator -->
-          <div class="salon-typing-indicator hidden" id="salonTypingIndicator">
-            <span class="typing-dots"><span></span><span></span><span></span></span>
-            <span id="salonTypingText">Un membre est en train d'écrire...</span>
-          </div>
-
-          <!-- Chat Input Row -->
-          <form id="chatForm" class="chat-input-bar">
-            <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">
-              
-            </button>
-            <input type="text" id="chatInputText" placeholder="Écrire un message bienveillant..." autocomplete="off" required>
-            <button type="submit" class="btn btn-primary btn-chat-send" title="Envoyer">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-          </form>
         </div>
 
       </div>

@@ -261,12 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Stage Voices Simulation in Room
   const stageParticipants = [
-    { name: 'Alexandre (Vous)', role: 'Hôte du salon', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Sarah B.', role: 'Modérateur', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80', isSpeaking: true },
-    { name: 'Youssef K.', role: 'Participant VIP', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Lina M.', role: 'Participant', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Mehdi R.', role: 'Participant', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Chloé V.', role: 'Participant', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', isSpeaking: true }
+    { userId: 'mock-1', name: 'Sarah B.', role: 'Modérateur', badgeType: 'ADMIN', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80', isSpeaking: true, country: 'MA' },
+    { userId: 'mock-2', name: 'Youssef K.', role: 'Participant VIP', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'DZ' },
+    { userId: 'mock-3', name: 'Lina M.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'TN' },
+    { userId: 'mock-4', name: 'Mehdi R.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'FR' },
+    { userId: 'mock-5', name: 'Chloé V.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', isSpeaking: true, country: 'BE' },
+    { userId: 'mock-6', name: 'Karim T.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'FR' },
+    { userId: 'mock-7', name: 'Nadia S.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'CA' },
+    { userId: 'mock-8', name: 'Sami B.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'CH' }
   ];
 
   // =========================================================================
@@ -2482,6 +2484,24 @@ document.addEventListener('DOMContentLoaded', () => {
       isSpeaking: false,
       isCameraOn: false,
     });
+
+    // Offline / Standalone demo fallback: seed stage & audience participants
+    if (!socket || !socket.connected) {
+      stageParticipants.forEach((sp) => {
+        currentSalonRoster.set(sp.userId, {
+          userId: sp.userId,
+          username: sp.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          displayName: sp.name,
+          avatarUrl: sp.avatar,
+          role: sp.role,
+          badgeType: sp.badgeType || 'USER',
+          country: sp.country || 'FR',
+          isMuted: !sp.isSpeaking,
+          isSpeaking: Boolean(sp.isSpeaking),
+          isCameraOn: false,
+        });
+      });
+    }
 
     renderVoiceStage();
     initSalonChat(salon);
