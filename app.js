@@ -2559,7 +2559,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.textContent = '...';
       const res = await fetch(`${API_BASE_URL}/friends/request/${targetUserId}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) {

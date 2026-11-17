@@ -34,6 +34,20 @@ async function buildApp() {
     logger: env.NODE_ENV === 'development',
   });
 
+  // Gracefully handle empty body when content-type is set to application/json
+  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body: string, done) => {
+    if (!body || body.trim() === '') {
+      return done(null, {});
+    }
+    try {
+      const json = JSON.parse(body);
+      done(null, json);
+    } catch (err: any) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
+
   // 1. CORS Configuration
   const allowedOrigins = env.FRONTEND_URL.split(',').map((u) => u.trim());
   await fastify.register(cors, {
