@@ -11,13 +11,23 @@ export async function messagesRoutes(fastify: FastifyInstance) {
   // Get Messages for a Salon
   fastify.get('/salons/:salonId/messages', async (request: any, reply: FastifyReply) => {
     try {
+      let currentUserId: string | undefined;
+      try {
+        const authHeader = request.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const decoded: any = fastify.jwt.verify(authHeader.split(' ')[1]);
+          currentUserId = decoded.id || decoded.userId;
+        }
+      } catch (e) {}
+
       const { salonId } = request.params;
       const { limit, beforeId } = request.query as any;
       const parsedLimit = limit ? parseInt(limit) : 50;
       const messages = await MessagesService.getSalonMessages(
         salonId,
         parsedLimit,
-        beforeId
+        beforeId,
+        currentUserId
       );
       return reply.send({ success: true, messages, hasMore: messages.length === parsedLimit });
     } catch (error: any) {

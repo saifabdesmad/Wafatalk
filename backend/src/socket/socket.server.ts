@@ -565,18 +565,54 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       }
     });
 
-    // Group Salon Real-time Chat
-    socket.on('chat:send', async ({ salonId, content, type }) => {
+    // Group Salon Real-time Chat & Private In-Salon Whispers
+    socket.on('chat:send', async ({ salonId, content, type, targetUserId }) => {
       try {
         if (!content || !content.trim()) return;
 
-        let message;
+        const isWhisper = type === 'WHISPER' && Boolean(targetUserId);
+
+        let targetUser: any = null;
+        if (isWhisper) {
+          const salonMap = salonParticipants.get(salonId);
+          const p = salonMap?.get(targetUserId);
+          if (p) {
+            targetUser = {
+              id: p.userId,
+              username: p.username,
+              displayName: p.displayName,
+              avatarUrl: p.avatarUrl,
+            };
+          } else {
+            const dbU = await prisma.user.findUnique({
+              where: { id: targetUserId },
+              select: { id: true, username: true, displayName: true, avatarUrl: true },
+            });
+            if (dbU) {
+              targetUser = dbU;
+            }
+          }
+
+          if (!targetUser) {
+            return socket.emit('error', { message: 'Destinataire du message privé introuvable.' });
+          }
+        }
+
+        const metadataStr = isWhisper
+          ? JSON.stringify({
+              whisperToId: targetUser.id,
+              whisperToName: targetUser.displayName || targetUser.username,
+            })
+          : undefined;
+
+        let message: any;
         try {
           message = await MessagesService.createMessage(
             salonId,
             user.id,
             content.trim(),
-            type || 'TEXT'
+            isWhisper ? 'WHISPER' : (type || 'TEXT'),
+            metadataStr
           );
         } catch (dbErr) {
           // If demo / unsaved salon, fallback to resilient in-memory message object
@@ -590,13 +626,27 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
               avatarUrl: user.avatarUrl,
             },
             content: content.trim(),
-            type: type || 'TEXT',
+            type: isWhisper ? 'WHISPER' : (type || 'TEXT'),
+            metadata: metadataStr,
+            whisperToId: targetUser?.id,
+            whisperToName: targetUser?.displayName || targetUser?.username,
             time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
             createdAt: new Date(),
           };
         }
 
-        io.to(`salon:${salonId}`).emit('chat:message', message);
+        if (isWhisper) {
+          message.isWhisper = true;
+          message.whisperToId = targetUser.id;
+          message.whisperToName = targetUser.displayName || targetUser.username;
+          message.targetUser = targetUser;
+
+          // Deliver strictly to the recipient and the sender - no one else in the salon
+          io.to(`user:${targetUserId}`).emit('chat:message', message);
+          io.to(`user:${user.id}`).emit('chat:message', message);
+        } else {
+          io.to(`salon:${salonId}`).emit('chat:message', message);
+        }
       } catch (error) {
         socket.emit('error', { message: 'Erreur lors de l\'envoi du message' });
       }

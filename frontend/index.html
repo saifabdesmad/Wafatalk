@@ -824,6 +824,15 @@
             <span id="salonTypingText">Un membre est en train d'écrire...</span>
           </div>
 
+          <!-- In-Salon Private Whisper Banner -->
+          <div class="salon-whisper-banner hidden" id="salonWhisperBanner">
+            <div class="whisper-banner-left">
+              <span class="whisper-lock-icon">🔒</span>
+              <span class="whisper-target-desc">Chuchotement à <strong id="whisperTargetName">@Membre</strong> <span class="whisper-privacy-note">(visible uniquement par vous deux)</span></span>
+            </div>
+            <button type="button" id="btnCancelWhisper" class="btn-cancel-whisper" title="Annuler le chuchotement">✕</button>
+          </div>
+
           <!-- Chat Input Row -->
           <form id="chatForm" class="chat-input-bar">
             <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">

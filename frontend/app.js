@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let sentFriendRequests = []; // sent pending requests
   let myFriendsList = []; // accepted friends
   let currentFriendTab = 'friends'; // 'friends' | 'explore'
+  let activeWhisperTarget = null; // { id, name, username, avatar }
 
   // Chat History & Bidirectional Scrolling State (Salons & DMs)
   let salonOldestMessageId = null;
@@ -2741,6 +2742,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clear previous roster & peer connections
     currentSalonRoster.clear();
+    cancelWhisperTarget();
     salonPeerConnections.forEach(pc => pc.close());
     salonPeerConnections.clear();
     salonRemoteStreams.clear();
@@ -2876,6 +2878,7 @@ document.addEventListener('DOMContentLoaded', () => {
     salonRemoteAudioElements.forEach(el => el.remove());
     salonRemoteAudioElements.clear();
     currentSalonRoster.clear();
+    cancelWhisperTarget();
 
     liveSalonModal.classList.add('hidden');
     miniSalonWidget?.classList.add('hidden');
@@ -3535,6 +3538,38 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerBtn.remove();
       }
 
+      // Ensure in-salon whisper trigger button exists on other participants
+      let whisperBtn = card.querySelector('.stage-whisper-trigger');
+      if (!isSelf && !whisperBtn) {
+        whisperBtn = document.createElement('button');
+        whisperBtn.type = 'button';
+        whisperBtn.className = 'stage-whisper-trigger';
+        whisperBtn.dataset.userId = userId;
+        whisperBtn.title = `Chuchoter en privé à ${escapeHtml(p.displayName || p.name || 'ce membre')}`;
+        whisperBtn.innerHTML = '💬';
+        whisperBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setWhisperTarget(p);
+        });
+        card.appendChild(whisperBtn);
+      } else if (isSelf && whisperBtn) {
+        whisperBtn.remove();
+      }
+
+      // Clicking anywhere on the card (except admin controls) activates whisper
+      if (!isSelf) {
+        card.style.cursor = 'pointer';
+        card.title = `Cliquer pour chuchoter en privé à ${p.displayName || p.name || 'ce membre'}`;
+        card.onclick = (e) => {
+          if (e.target.closest('.stage-admin-trigger') || e.target.closest('.stage-whisper-trigger')) return;
+          setWhisperTarget(p);
+        };
+      } else {
+        card.style.cursor = 'default';
+        card.title = '';
+        card.onclick = null;
+      }
+
       // Ensure mute badge reflects real-time mute state
       let muteBadge = card.querySelector('.stage-mute-badge');
       if (p.isMuted && !muteBadge) {
@@ -3602,6 +3637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selfInRoster = currentSalonRoster.get(myId) || (myId ? null : Array.from(currentSalonRoster.values())[0]);
 
     currentSalonRoster.clear();
+    cancelWhisperTarget();
     if (selfInRoster) {
       currentSalonRoster.set(selfInRoster.userId, selfInRoster);
     }
@@ -3654,6 +3690,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     salonRemoteStreams.delete(userId);
     currentSalonRoster.delete(userId);
+
+    if (activeWhisperTarget && activeWhisperTarget.id === userId) {
+      cancelWhisperTarget();
+      showToast(`${displayName || 'Ce participant'} a quitté le salon. Chuchotement désactivé.`, 'coral');
+    }
 
     renderVoiceStage();
     showToast(`${displayName || 'Un participant'} a quitté le salon.`, 'coral');
@@ -4115,28 +4156,115 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(state.isAudioMuted ? 'Son du salon coupé' : 'Son du salon rétabli', state.isAudioMuted ? 'coral' : 'teal');
   });
 
+  // In-Salon Private Whisper Controller
+  function setWhisperTarget(target) {
+    if (!target) return;
+    const targetId = target.userId || target.id;
+    const myId = state.currentUser?.id;
+    if (myId && targetId === myId) return;
+
+    const targetName = target.displayName || target.name || target.username || 'Membre';
+    activeWhisperTarget = {
+      id: targetId,
+      name: targetName,
+      username: target.username || '',
+      avatar: target.avatarUrl || target.avatar || '',
+    };
+
+    updateWhisperBannerUI();
+    chatInputText?.focus();
+    showToast(`🔒 Mode message privé activé avec ${targetName} dans le salon`, 'teal');
+  }
+
+  function cancelWhisperTarget() {
+    activeWhisperTarget = null;
+    updateWhisperBannerUI();
+  }
+
+  function updateWhisperBannerUI() {
+    const banner = document.getElementById('salonWhisperBanner');
+    const nameEl = document.getElementById('whisperTargetName');
+    const cancelBtn = document.getElementById('btnCancelWhisper');
+
+    if (activeWhisperTarget) {
+      if (banner) {
+        banner.classList.remove('hidden');
+        banner.style.display = 'flex';
+      }
+      if (nameEl) nameEl.textContent = `@${activeWhisperTarget.name}`;
+      if (chatInputText) {
+        chatInputText.placeholder = `Chuchoter en privé à ${activeWhisperTarget.name}...`;
+        chatInputText.style.borderColor = '#c084fc';
+      }
+      if (cancelBtn && !cancelBtn.dataset.bound) {
+        cancelBtn.dataset.bound = 'true';
+        cancelBtn.addEventListener('click', () => {
+          cancelWhisperTarget();
+          chatInputText?.focus();
+        });
+      }
+    } else {
+      if (banner) {
+        banner.classList.add('hidden');
+        banner.style.display = 'none';
+      }
+      if (chatInputText) {
+        chatInputText.placeholder = 'Écrire un message bienveillant...';
+        chatInputText.style.borderColor = '';
+      }
+    }
+  }
+
   // N. Real-Time Salon Chat System (Discord-Grade Scrolling & Infinite History)
   function createSalonMessageElement(message) {
     const myId = state.currentUser?.id;
     const isFromMe = (message.user?.id && message.user.id === myId) || (message.userId && message.userId === myId);
 
+    const isWhisper = message.type === 'WHISPER' || Boolean(message.isWhisper);
     const msgEl = document.createElement('div');
-    msgEl.className = `chat-msg ${isFromMe ? 'self' : ''}`;
+    msgEl.className = `chat-msg ${isFromMe ? 'self' : ''} ${isWhisper ? 'chat-msg-whisper' : ''}`;
     if (message.id) msgEl.dataset.msgId = message.id;
     const authorName = isFromMe ? 'Vous' : (message.user?.displayName || message.user?.username || 'Membre');
     const avatar = message.user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
     const timeStr = message.time || (message.createdAt ? new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'À l\'instant');
 
+    let whisperBadgeHtml = '';
+    if (isWhisper) {
+      if (isFromMe) {
+        const toName = message.whisperToName || message.targetUser?.displayName || message.targetUser?.username || 'Membre';
+        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous et @${escapeHtml(toName)}">🔒 Chuchoté à @${escapeHtml(toName)}</span>`;
+      } else {
+        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous deux">🔒 Vous chuchote en privé</span>`;
+      }
+    }
+
     msgEl.innerHTML = `
-      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'" style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">
       <div class="chat-msg-body">
         <div class="chat-msg-author">
-          <strong>${escapeHtml(authorName)}</strong>
+          <strong style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">${escapeHtml(authorName)}</strong>
+          ${whisperBadgeHtml}
           <span class="chat-msg-time">${timeStr}</span>
         </div>
         <p class="chat-msg-text">${escapeHtml(message.content)}</p>
       </div>
     `;
+
+    // Clicking non-self author or avatar sets them as whisper target
+    if (!isFromMe && message.user) {
+      const clickHandler = (e) => {
+        e.stopPropagation();
+        setWhisperTarget({
+          id: message.user.id || message.userId,
+          displayName: message.user.displayName,
+          username: message.user.username,
+          avatarUrl: message.user.avatarUrl,
+        });
+      };
+      msgEl.querySelector('.chat-msg-avatar')?.addEventListener('click', clickHandler);
+      msgEl.querySelector('.chat-msg-author strong')?.addEventListener('click', clickHandler);
+    }
+
     return msgEl;
   }
 
@@ -4175,7 +4303,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch existing recent messages from backend API
     try {
-      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages?limit=50`);
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages?limit=50`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
         const msgs = Array.isArray(data) ? data : (data.messages || []);
@@ -4209,7 +4340,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevScrollTop = chatMessagesScroll.scrollTop;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/messages?beforeId=${salonOldestMessageId}&limit=50`);
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/messages?beforeId=${salonOldestMessageId}&limit=50`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
         const olderMsgs = Array.isArray(data) ? data : (data.messages || []);
@@ -4326,11 +4460,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text || !state.currentRoom) return;
 
     if (socket && socket.connected) {
-      socket.emit('chat:send', {
-        salonId: state.currentRoom.id,
-        content: text,
-        type: 'TEXT',
-      });
+      if (activeWhisperTarget) {
+        socket.emit('chat:send', {
+          salonId: state.currentRoom.id,
+          content: text,
+          type: 'WHISPER',
+          targetUserId: activeWhisperTarget.id,
+        });
+      } else {
+        socket.emit('chat:send', {
+          salonId: state.currentRoom.id,
+          content: text,
+          type: 'TEXT',
+        });
+      }
       socket.emit('chat:typing', {
         salonId: state.currentRoom.id,
         isTyping: false,

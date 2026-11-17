@@ -2938,6 +2938,123 @@ a {
   word-break: break-word;
 }
 
+/* In-Salon Whisper Banner above Chat Input */
+.salon-whisper-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.16), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  color: #c084fc;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+.salon-whisper-banner .whisper-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.salon-whisper-banner .whisper-target-desc {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.salon-whisper-banner .whisper-privacy-note {
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.salon-whisper-banner .btn-cancel-whisper {
+  background: rgba(168, 85, 247, 0.2);
+  border: none;
+  color: #e9d5ff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.salon-whisper-banner .btn-cancel-whisper:hover {
+  background: rgba(168, 85, 247, 0.45);
+  color: #ffffff;
+}
+
+/* In-Salon Whisper Message Bubble */
+.chat-msg.chat-msg-whisper .chat-msg-body {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(147, 51, 234, 0.08)) !important;
+  border: 1px solid rgba(168, 85, 247, 0.35) !important;
+  box-shadow: 0 2px 10px rgba(168, 85, 247, 0.08);
+}
+
+.chat-msg.chat-msg-whisper.self .chat-msg-body {
+  background: linear-gradient(135deg, #7e22ce, #9333ea) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(192, 132, 252, 0.4) !important;
+}
+
+.whisper-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(168, 85, 247, 0.22);
+  color: #c084fc;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.chat-msg.chat-msg-whisper.self .whisper-badge-pill {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Stage Whisper Trigger Button on Participant Card */
+.stage-whisper-trigger {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  background: rgba(168, 85, 247, 0.25);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  color: #c084fc;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.stage-whisper-trigger:hover {
+  background: rgba(168, 85, 247, 0.55);
+  color: #ffffff;
+  transform: scale(1.12);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
 .chat-input-bar {
   padding: 12px 16px;
   border-top: 1px solid var(--border-subtle);
