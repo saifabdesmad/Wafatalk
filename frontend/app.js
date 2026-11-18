@@ -2750,7 +2750,7 @@ document.addEventListener('DOMContentLoaded', () => {
     salonRemoteAudioElements.clear();
 
     // Register self in local roster with proper role & badge
-    const isSuper = Boolean(state.currentUser?.role === 'SUPERADMIN');
+    const isSuper = Boolean(state.currentUser?.role === 'SUPERADMIN' || state.currentUser?.role === 'ADMIN');
     const selfBadge = isOwner ? 'OWNER' : (isSuper ? 'SUPERADMIN' : 'USER');
     const selfRole = isOwner ? 'Propriétaire' : (isSuper ? 'SuperAdmin' : 'Participant');
 
@@ -3337,7 +3337,7 @@ document.addEventListener('DOMContentLoaded', () => {
       !isOwner && (
         p.badgeType === 'SUPERADMIN' ||
         p.role === 'SuperAdmin' ||
-        (p.userId === myId && (state.currentUser?.role === 'SUPERADMIN'))
+        (p.userId === myId && (state.currentUser?.role === 'SUPERADMIN' || state.currentUser?.role === 'ADMIN'))
       )
     );
 

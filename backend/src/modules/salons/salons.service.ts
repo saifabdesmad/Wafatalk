@@ -214,6 +214,14 @@ export class SalonsService {
     });
     if (!salon) throw new Error('Salon introuvable.');
 
+    // 0. SuperAdmin / Global Admin privilege: always allowed in all salons (public or private, bypass bans and codes)
+    if (userId) {
+      const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (u && (u.role === 'ADMIN' || u.role === 'SUPERADMIN')) {
+        return { allowed: true, salon, isOwner: salon.ownerId === userId };
+      }
+    }
+
     // 1. Check if user or IP is banned
     if (userId || ipAddress) {
       const banConditions: any[] = [];
@@ -272,15 +280,20 @@ export class SalonsService {
   static async join(salonId: string, userId: string, ipAddress?: string, accessCode?: string, inviteToken?: string) {
     const { salon } = await this.checkAccess(salonId, userId, ipAddress, accessCode, inviteToken);
 
+    const userRole = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const isGlobalAdmin = userRole && (userRole.role === 'ADMIN' || userRole.role === 'SUPERADMIN');
+
     const member = await prisma.salonMember.upsert({
       where: {
         salonId_userId: { salonId, userId },
       },
-      update: {},
+      update: {
+        role: salon.ownerId === userId ? 'OWNER' : (isGlobalAdmin ? 'ADMIN' : undefined),
+      },
       create: {
         salonId,
         userId,
-        role: salon.ownerId === userId ? 'OWNER' : 'LISTENER',
+        role: salon.ownerId === userId ? 'OWNER' : (isGlobalAdmin ? 'ADMIN' : 'LISTENER'),
       },
       include: {
         user: {
