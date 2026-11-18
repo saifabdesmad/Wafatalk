@@ -28,9 +28,14 @@ export class ConversationsService {
       throw new Error('Un des utilisateurs est introuvable.');
     }
 
-    // Check if users are friends
-    const friendship = await prisma.friendship.findUnique({
-      where: { userId_friendId: { userId: userAId, friendId: userBId } }
+    // Check if users are friends (bidirectional check)
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { userId: userAId, friendId: userBId, status: 'ACCEPTED' },
+          { userId: userBId, friendId: userAId, status: 'ACCEPTED' },
+        ],
+      },
     });
     if (!friendship) {
       throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour ouvrir une conversation privée.');

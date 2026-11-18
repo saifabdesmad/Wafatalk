@@ -71,12 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
 
-      // 2. Cloudflare, Twilio, & Mozilla Anycast STUN
+      // 2. Cloudflare Anycast STUN
       { urls: 'stun:stun.cloudflare.com:3478' },
-      { urls: 'stun:global.stun.twilio.com:3478' },
-      { urls: 'stun:stun.services.mozilla.com' },
 
-      // 3. WafaTalk Dedicated VPS Coturn STUN & TURN Relays (Production VPS 31.70.139.221)
+      // 3. WafaTalk Dedicated Coturn STUN & TURN Relays (Production VPS 31.70.139.221 : 3478 UDP & TCP)
       { urls: 'stun:api.wafatalk.com:3478' },
       { urls: 'stun:31.70.139.221:3478' },
       {
@@ -88,21 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         username: 'wafatalk',
         credential: 'WafaTalkGlobalTurn2026!',
-      },
-      {
-        urls: 'turns:api.wafatalk.com:5349?transport=tcp',
-        username: 'wafatalk',
-        credential: 'WafaTalkGlobalTurn2026!',
-      },
-
-      // 4. Global Fallback Relays (Metered Static Auth via TLS & TCP on 443 - Traverses Strict Firewalls)
-      {
-        urls: [
-          'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
-          'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
-        ],
-        username: 'openrelayproject',
-        credential: 'openrelayprojectsecret',
       },
     ],
     iceCandidatePoolSize: 10,
@@ -127,28 +110,22 @@ document.addEventListener('DOMContentLoaded', () => {
       // Fallback to embedded high-availability RTC_CONFIG
     });
 
-  // Discord-Grade Opus Audio Optimizer: Inband Forward Error Correction (FEC), 64kbps, stereo
+  // Safe Opus Audio SDP Optimizer (adds FEC & stereo without corrupting SDP tokens or line endings)
   function enhanceSdpForDiscordQuality(sdp) {
     if (!sdp || typeof sdp !== 'string') return sdp;
-    let modified = sdp;
-    if (modified.includes('opus/48000')) {
-      modified = modified.replace(
-        /a=fmtp:(\d+)\s+([^\r\n]+)/g,
-        (match, pt, params) => {
-          if (params.includes('minptime') || params.includes('useinbandfec')) {
-            return `a=fmtp:${pt} minptime=10;useinbandfec=1;maxaveragebitrate=64000;stereo=1;sprop-stereo=1`;
+    try {
+      if (sdp.includes('opus/48000') && !sdp.includes('useinbandfec=1')) {
+        return sdp.replace(/a=fmtp:(\d+)\s+([^\r\n]+)/g, (match, pt, params) => {
+          if (!params.includes('useinbandfec=1')) {
+            return `a=fmtp:${pt} ${params};useinbandfec=1;stereo=1`;
           }
           return match;
-        }
-      );
-      if (!modified.includes('useinbandfec=1')) {
-        modified = modified.replace(
-          /(a=rtpmap:(\d+)\s+opus\/48000\/2[\r\n]+)/g,
-          '$1a=fmtp:$2 minptime=10;useinbandfec=1;maxaveragebitrate=64000;stereo=1;sprop-stereo=1\r\n'
-        );
+        });
       }
+    } catch (e) {
+      console.warn('SDP formatting fallback:', e);
     }
-    return modified;
+    return sdp;
   }
 
   // Global browser autoplay audio unlocker: un-blocks audio playback on user touch/click
@@ -2819,7 +2796,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playTone(440, 'sine', 0.15);
     showToast(`Connexion au salon "${salon.name}"...`, 'teal');
 
-    // Acquire local microphone stream for voice calling
+    // Acquire local microphone stream for voice calling (with resilient synthetic fallback)
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         salonLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -2828,6 +2805,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (micErr) {
       console.warn('Microphone access denied or unavailable in salon:', micErr);
+    }
+
+    if (!salonLocalAudioTrack) {
+      salonLocalStream = createSyntheticStream(false);
+      salonLocalAudioTrack = salonLocalStream.getAudioTracks()[0];
+      setupSalonVoiceActivityDetector();
     }
 
     // Join Socket Salon Room with accessCode / inviteToken
@@ -3444,6 +3427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
             ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">️</button>` : ''}
             <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
+            <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" class="stage-video-poster" id="videoPoster_${userId}" alt="" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
@@ -3455,10 +3439,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Attach video stream with muted=true & play()
         const vidEl = card.querySelector(`#videoEl_${userId}`);
         const loadEl = card.querySelector(`#videoLoading_${userId}`);
+        const posterEl = card.querySelector(`#videoPoster_${userId}`);
         if (vidEl) {
           vidEl.muted = true;
 
-          const hideLoader = () => { if (loadEl) { loadEl.style.display = 'none'; } };
+          const hideLoader = () => {
+            if (loadEl) loadEl.style.display = 'none';
+            if (posterEl) posterEl.style.opacity = '0';
+          };
           vidEl.addEventListener('loadeddata', hideLoader, { once: true });
           vidEl.addEventListener('playing', hideLoader, { once: true });
 
@@ -3478,6 +3466,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (rx && rx.track) {
                   remoteStr = new MediaStream([rx.track]);
                   salonRemoteStreams.set(userId, remoteStr);
+                  rx.track.onunmute = () => attachStream(remoteStr);
                 }
               }
             }
@@ -3770,6 +3759,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log(` [${isInitiator ? 'INIT' : 'ANSW'}] Track from ${targetUserId}:`, track.kind, track.id);
 
       if (track.kind === 'audio') {
+        const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
         let audioEl = salonRemoteAudioElements.get(targetUserId);
         if (!audioEl) {
           audioEl = document.createElement('audio');
@@ -3777,10 +3767,14 @@ document.addEventListener('DOMContentLoaded', () => {
           audioEl.playsInline = true;
           audioEl.setAttribute('playsinline', '');
           audioEl.muted = state.isAudioMuted;
+          audioEl.volume = 1.0;
           document.body.appendChild(audioEl);
           salonRemoteAudioElements.set(targetUserId, audioEl);
         }
-        audioEl.srcObject = new MediaStream([track]);
+        if (audioEl.srcObject !== stream) {
+          audioEl.srcObject = stream;
+        }
+        audioEl.muted = state.isAudioMuted;
         const playPromise = audioEl.play();
         if (playPromise !== undefined) {
           playPromise.catch((e) => {
@@ -3793,25 +3787,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const attachVideo = () => {
           const lEl = document.getElementById(`videoLoading_${targetUserId}`);
+          const pEl = document.getElementById(`videoPoster_${targetUserId}`);
           const vidEl = document.getElementById(`videoEl_${targetUserId}`);
           if (vidEl) {
             if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
             vidEl.muted = true;
             vidEl.playsInline = true;
             vidEl.setAttribute('playsinline', '');
-            vidEl.play().catch(() => {});
-            if (lEl) lEl.style.display = 'none';
+            vidEl.play().then(() => {
+              if (lEl) lEl.style.display = 'none';
+              if (pEl) pEl.style.opacity = '0';
+            }).catch(() => {});
           } else {
             let attempts = 0;
             const poll = setInterval(() => {
               const el = document.getElementById(`videoEl_${targetUserId}`);
               const ll = document.getElementById(`videoLoading_${targetUserId}`);
+              const pp = document.getElementById(`videoPoster_${targetUserId}`);
               if (el) {
                 if (el.srcObject !== stream) el.srcObject = stream;
                 el.muted = true;
                 el.playsInline = true;
-                el.play().catch(() => {});
-                if (ll) ll.style.display = 'none';
+                el.play().then(() => {
+                  if (ll) ll.style.display = 'none';
+                  if (pp) pp.style.opacity = '0';
+                }).catch(() => {});
                 clearInterval(poll);
               } else if (++attempts > 30) {
                 clearInterval(poll);
@@ -3924,6 +3924,16 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Polite peer handling if local offer is simultaneously in flight
+        if (pc.signalingState === 'have-local-offer') {
+          const myId = state.currentUser?.id || '';
+          if (myId < senderId) {
+            await pc.setLocalDescription({ type: 'rollback' });
+          } else {
+            return;
+          }
+        }
+
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
 
         // Configure transceivers: Answerer sets direction to sendrecv for both audio and video
@@ -3953,8 +3963,12 @@ document.addEventListener('DOMContentLoaded', () => {
           socket.emit('salon:signal', {
             salonId: state.currentRoom.id,
             targetUserId: senderId,
-            signal: { type: 'answer', sdp: pc.localDescription.sdp },
+            signal: { type: 'answer', sdp: pc.localDescription.sdp, isCameraToggle: Boolean(signal.isCameraToggle) },
           });
+        }
+
+        if (signal.isCameraToggle) {
+          renderVoiceStage();
         }
       } catch (err) {
         console.warn('Error handling salon offer:', err);
@@ -3965,6 +3979,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
           await drainSalonPendingCandidates(senderId, pc);
+          if (signal.isCameraToggle) {
+            renderVoiceStage();
+          }
         } catch (err) {
           console.warn('Error setting salon answer:', err);
         }
@@ -4066,24 +4083,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = true;
 
-      // Instantly replace track on all active peer connection video senders
-      salonPeerConnections.forEach(async (pc) => {
+      // Update tracks on all active peer connections and trigger renegotiation
+      salonPeerConnections.forEach(async (pc, peerId) => {
         try {
-          const videoTransceiver = pc.getTransceivers().find(t => t.receiver?.track?.kind === 'video');
-          if (videoTransceiver) {
+          let videoTransceiver = pc.getTransceivers().find(t => t.receiver?.track?.kind === 'video');
+          if (!videoTransceiver) {
+            videoTransceiver = pc.addTransceiver(salonLocalVideoTrack, { direction: 'sendrecv' });
+          } else {
             videoTransceiver.direction = 'sendrecv';
             await videoTransceiver.sender.replaceTrack(salonLocalVideoTrack);
-          } else {
-            const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (videoSender) {
-              await videoSender.replaceTrack(salonLocalVideoTrack);
-            } else {
-              const nullVideoSender = pc.getSenders().find(s => !s.track);
-              if (nullVideoSender) await nullVideoSender.replaceTrack(salonLocalVideoTrack);
-            }
+          }
+
+          // Trigger renegotiation offer so remote peer receives live video frames instantly
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+          const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+          await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+
+          if (socket && socket.connected && state.currentRoom) {
+            socket.emit('salon:signal', {
+              salonId: state.currentRoom.id,
+              targetUserId: peerId,
+              signal: { type: 'offer', sdp: pc.localDescription.sdp, isCameraToggle: true },
+            });
           }
         } catch (e) {
-          console.warn('Error replacing video track:', e);
+          console.warn('Error renegotiating video track with ' + peerId, e);
         }
       });
 
@@ -4119,12 +4143,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = false;
 
-      // Blank track on all peer connections
-      salonPeerConnections.forEach(async (pc) => {
+      // Blank track on all peer connections and renegotiate
+      salonPeerConnections.forEach(async (pc, peerId) => {
         try {
           const videoTransceiver = pc.getTransceivers().find(t => t.receiver && t.receiver.track && t.receiver.track.kind === 'video');
-          const videoSender = videoTransceiver ? videoTransceiver.sender : pc.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (videoSender) await videoSender.replaceTrack(null);
+          if (videoTransceiver) {
+            await videoTransceiver.sender.replaceTrack(null);
+            videoTransceiver.direction = 'recvonly';
+          }
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+          const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+          await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+
+          if (socket && socket.connected && state.currentRoom) {
+            socket.emit('salon:signal', {
+              salonId: state.currentRoom.id,
+              targetUserId: peerId,
+              signal: { type: 'offer', sdp: pc.localDescription.sdp, isCameraToggle: true },
+            });
+          }
         } catch (e) { }
       });
 
@@ -7627,9 +7664,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Check if friends before calling
+    // Check if friends before calling (authoritative check done by backend; only block client-side if friend list is loaded)
     const isFriend = myFriendsList.some(f => f.id === currentDmFriend.id || (f.username && currentDmFriend.username && f.username.toLowerCase() === currentDmFriend.username.toLowerCase()));
-    if (state.currentUser?.id && !isFriend) {
+    if (state.currentUser?.id && !isFriend && myFriendsList.length > 0) {
       showToast('Vous devez être amis pour passer un appel.', 'coral');
       return;
     }
@@ -7827,8 +7864,14 @@ document.addEventListener('DOMContentLoaded', () => {
           remoteVideo.srcObject = remoteMediaStream;
           remoteVideo.playsInline = true;
           remoteVideo.setAttribute('playsinline', '');
+          const hideRemotePlaceholder = () => {
+            remoteVideoPlaceholder?.classList.add('hidden');
+            floatingRemotePlaceholder?.classList.add('hidden');
+          };
+          remoteVideo.addEventListener('loadeddata', hideRemotePlaceholder, { once: true });
+          remoteVideo.addEventListener('playing', hideRemotePlaceholder, { once: true });
           const vp = remoteVideo.play();
-          if (vp !== undefined) vp.catch(() => {});
+          if (vp !== undefined) vp.then(hideRemotePlaceholder).catch(() => {});
         }
         if (floatingRemoteVideo) {
           floatingRemoteVideo.srcObject = remoteMediaStream;
@@ -7838,6 +7881,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (fvp !== undefined) fvp.catch(() => {});
         }
         floatingRemotePlaceholder?.classList.add('hidden');
+        remoteVideoPlaceholder?.classList.add('hidden');
 
         startAudioVisualizer(remoteMediaStream, 'peer');
       };
@@ -8217,6 +8261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isVideo) {
       callAudioStage?.classList.add('hidden');
       callVideoStage?.classList.remove('hidden');
+      if (remotePlaceholderAvatar) remotePlaceholderAvatar.src = session.peer.avatar;
+      remoteVideoPlaceholder?.classList.remove('hidden');
       if (localVideo && localMediaStream) {
         localVideo.srcObject = localMediaStream;
         localVideo.play().catch(() => { });

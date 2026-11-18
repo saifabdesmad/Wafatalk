@@ -802,9 +802,14 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           return socket.emit('call:failed', { message: 'Destinataire invalide.' });
         }
 
-        // Check friendship before allowing call
-        const areFriends = await prisma.friendship.findUnique({
-          where: { userId_friendId: { userId: user.id, friendId: targetUserId } }
+        // Check friendship before allowing call (bidirectional check)
+        const areFriends = await prisma.friendship.findFirst({
+          where: {
+            OR: [
+              { userId: user.id, friendId: targetUserId, status: 'ACCEPTED' },
+              { userId: targetUserId, friendId: user.id, status: 'ACCEPTED' },
+            ],
+          },
         });
         if (!areFriends) {
           return socket.emit('call:failed', {
@@ -815,16 +820,23 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
 
         // Check if recipient is connected
         const targetRoom = io.sockets.adapter.rooms.get(`user:${targetUserId}`);
-        const isOnline = targetRoom && targetRoom.size > 0;
+        const isOnline = (targetRoom && targetRoom.size > 0) || onlineUserIds.has(targetUserId);
 
         if (!isOnline) {
           const demoPeerIds = ['user-alexandre', 'user-sarah', 'user-youssef', 'user-lina', 'user-karim'];
           const isDemoPeer = demoPeerIds.includes(targetUserId);
           if (!isDemoPeer) {
-            return socket.emit('call:failed', {
-              reason: 'offline',
-              message: 'Le correspondant est actuellement hors ligne.',
-            });
+            const dbTarget = await prisma.user.findUnique({
+              where: { id: targetUserId },
+              select: { status: true },
+            }).catch(() => null);
+
+            if (!dbTarget || dbTarget.status === 'OFFLINE') {
+              return socket.emit('call:failed', {
+                reason: 'offline',
+                message: 'Le correspondant est actuellement hors ligne.',
+              });
+            }
           }
 
           // Interactive Companion Mode for Seed/Demo Users
