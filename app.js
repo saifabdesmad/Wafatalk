@@ -3876,8 +3876,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Real ICE restart function for salons
   async function restartSalonIce(targetUserId, pc) {
     if (!pc || !socket || !socket.connected || !state.currentRoom) return;
+    if (pc.signalingState !== 'stable' || pc._iceRestartInFlight) return;
     try {
-      if (typeof pc.restartIce === 'function') pc.restartIce();
+      pc._iceRestartInFlight = true;
       const offer = await pc.createOffer({ iceRestart: true });
       const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
       await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
@@ -3888,6 +3889,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (e) {
       console.warn('restartSalonIce failed:', e);
+    } finally {
+      pc._iceRestartInFlight = false;
     }
   }
 
@@ -7889,9 +7892,9 @@ document.addEventListener('DOMContentLoaded', () => {
       peerConnection.oniceconnectionstatechange = () => {
         console.log(' 1-on-1 ICE State:', peerConnection.iceConnectionState);
         if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
-          if (currentCallSession?.isCaller && typeof peerConnection.restartIce === 'function') {
-            console.warn('ICE failed — restarting ICE with TURN relays...');
-            peerConnection.restartIce();
+          // Let both call participants attempt ICE restart; avoid double-ice-restart offer loops
+          if (typeof peerConnection.restartIce === 'function' && peerConnection.signalingState === 'stable' && !peerConnection._iceRestartInFlight) {
+            peerConnection._iceRestartInFlight = true;
             peerConnection.createOffer({ iceRestart: true })
               .then(offer => {
                 const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
@@ -7906,7 +7909,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   });
                 }
               })
-              .catch(e => console.warn('ICE restart error:', e));
+              .catch(e => console.warn('ICE restart error:', e))
+              .finally(() => { peerConnection._iceRestartInFlight = false; });
           }
         }
       };
