@@ -3921,7 +3921,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (signal.type === 'offer') {
       const pc = createSalonPeerConnection(senderId, false);
       try {
-        if (pc.signalingState === 'have-remote-offer') {
+        // Allow ICE restart offers even when in have-remote-offer state
+        if (pc.signalingState === 'have-remote-offer' && !signal.isIceRestart) {
           console.warn(`Already in have-remote-offer for ${senderId}, ignoring duplicate offer`);
           return;
         }
@@ -3931,9 +3932,14 @@ document.addEventListener('DOMContentLoaded', () => {
           const myId = state.currentUser?.id || '';
           if (myId < senderId) {
             await pc.setLocalDescription({ type: 'rollback' });
-          } else {
+          } else if (!signal.isIceRestart) {
             return;
           }
+        }
+
+        // If we're in have-remote-offer and this IS an ICE restart, roll back to stable first
+        if (pc.signalingState === 'have-remote-offer') {
+          await pc.setLocalDescription({ type: 'rollback' });
         }
 
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
@@ -7935,9 +7941,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (signal.type === 'offer') {
-        if (peerConnection.signalingState === 'have-remote-offer') {
+        // Allow ICE restart offers even when in have-remote-offer state
+        if (peerConnection.signalingState === 'have-remote-offer' && !signal.isIceRestart) {
           console.warn('Already in have-remote-offer, ignoring duplicate offer');
           return;
+        }
+
+        // If in have-remote-offer and this IS an ICE restart, roll back first
+        if (peerConnection.signalingState === 'have-remote-offer') {
+          await peerConnection.setLocalDescription({ type: 'rollback' });
         }
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
