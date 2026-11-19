@@ -3839,9 +3839,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log(` ICE [${targetUserId}]:`, pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn(`ICE ${pc.iceConnectionState} with ${targetUserId} — triggering ICE restart`);
-        if (isInitiator) {
-          restartSalonIce(targetUserId, pc);
-        }
+        // Both initiator and answerer may attempt restart; guard prevents double-fire
+        restartSalonIce(targetUserId, pc);
       }
     };
 
