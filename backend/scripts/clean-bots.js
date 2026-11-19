@@ -5,6 +5,8 @@ const prisma = new PrismaClient();
 
 const isBotUser = (u) => {
   return (
+    u.id.startsWith('user-') ||
+    ['alexandre', 'sarah_b', 'youssef_k', 'lina_m', 'karim_d'].includes(u.username) ||
     u.username.startsWith('wafa_user_') ||
     u.username.startsWith('googleuser') ||
     u.username.startsWith('User_Name-') ||

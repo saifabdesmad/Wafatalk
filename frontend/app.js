@@ -234,26 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Real-time Presence Tracker for connected online user IDs & usernames
   const activeOnlineUserIds = new Set();
 
-  // Seeded & Connected Friends Data with Real DB IDs & Flags (default offline until socket confirms)
-  const friendsData = [
-    { id: 'user-sarah', username: 'sarah_b', name: 'Sarah B.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80', country: 'FR' },
-    { id: 'user-youssef', username: 'youssef_k', name: 'Youssef K.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80', country: 'MA' },
-    { id: 'user-lina', username: 'lina_m', name: 'Lina M.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80', country: 'DZ' },
-    { id: 'user-karim', username: 'karim_d', name: 'Karim D.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80', country: 'TN' },
-    { id: 'user-alexandre', username: 'alexandre', name: 'Alexandre', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', country: 'FR' }
-  ];
+  // Connected Friends Data (dynamically loaded from DB/API)
+  const friendsData = [];
 
-  // Stage Voices Simulation in Room
-  const stageParticipants = [
-    { userId: 'mock-1', name: 'Sarah B.', role: 'Modérateur', badgeType: 'ADMIN', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80', isSpeaking: true, country: 'MA' },
-    { userId: 'mock-2', name: 'Youssef K.', role: 'Participant VIP', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'DZ' },
-    { userId: 'mock-3', name: 'Lina M.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'TN' },
-    { userId: 'mock-4', name: 'Mehdi R.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'FR' },
-    { userId: 'mock-5', name: 'Chloé V.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', isSpeaking: true, country: 'BE' },
-    { userId: 'mock-6', name: 'Karim T.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'FR' },
-    { userId: 'mock-7', name: 'Nadia S.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'CA' },
-    { userId: 'mock-8', name: 'Sami B.', role: 'Participant', badgeType: 'USER', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80', isSpeaking: false, country: 'CH' }
-  ];
+  // Stage Voices in Room (populated dynamically from real connected users)
+  const stageParticipants = [];
 
   // =========================================================================
   // 2. DOM ELEMENTS SELECTION
@@ -1426,23 +1411,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Pre-seeded Alexandre check in offline mode
-      if ((email.toLowerCase() === 'alexandre@wafatalk.com' || email.toLowerCase() === 'alexandre') &&
-        (password === 'wafatalk2026' || password === 'demo123456')) {
-        const alexUser = {
-          id: 'user-alexandre',
-          username: 'alexandre',
-          email: 'alexandre@wafatalk.com',
-          displayName: 'Alexandre',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-          wafaPoints: 450,
-          role: 'ADMIN',
-          status: 'ONLINE'
-        };
-        setAuthSession('local_token_alexandre', alexUser);
-        authenticateUser(alexUser, true);
-        return;
-      }
 
       showToast('Identifiants incorrects', 'coral');
       shakeElement(formLogin);
