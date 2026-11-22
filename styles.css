@@ -3010,23 +3010,37 @@ a {
   align-items: center;
   gap: 8px;
   background: var(--bg-surface);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .emoji-trigger {
   font-size: 1.1rem;
   width: 34px;
   height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border: none;
   background: transparent;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-input-bar input {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
   padding: 9px 14px;
   border-radius: var(--radius-full);
   background: var(--bg-input);
   border: 1.5px solid var(--border-subtle);
   font-size: 0.88rem;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 .chat-input-bar input:focus {
@@ -3037,9 +3051,14 @@ a {
 .btn-chat-send {
   width: 36px;
   height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
   border-radius: 50%;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Gift Shopping Modal : Coup de Cœur & Cadeaux (20 Gifts) */
@@ -4734,13 +4753,45 @@ a {
 
   .chat-input-bar {
     padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
     gap: 6px;
     background: var(--bg-surface-elevated);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    display: flex !important;
+    align-items: center;
+    overflow: hidden;
   }
 
   .chat-input-bar input {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: 0 !important;
     padding: 8px 12px;
     font-size: 16px !important;
+    text-overflow: ellipsis;
+    box-sizing: border-box !important;
+  }
+
+  .btn-chat-send {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .btn-chat-send svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
   }
 
   /* ---- 7. Modal Overlay & Dialogs Mobile Polish ---- */
@@ -4774,13 +4825,58 @@ a {
   }
 
   .dm-input-bar {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    display: flex !important;
+    align-items: center;
+    overflow: hidden;
   }
 
   .dm-input-bar input {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: 0 !important;
     font-size: 16px !important;
-    padding: 9px 14px;
+    padding: 8px 12px;
+    text-overflow: ellipsis;
+    box-sizing: border-box !important;
+  }
+
+  .btn-send-dm {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .btn-send-dm svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+
+  .emoji-trigger,
+  .dm-attach-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Compact dialog modals (Gift, Create, OTP, Terms) */
@@ -4895,6 +4991,48 @@ a {
 
   .incoming-call-actions {
     gap: 24px;
+  }
+
+  /* Conversation Input Bar Ultra-Compact Polish (<= 480px, e.g. iPhone SE) */
+  .chat-input-bar,
+  .dm-input-bar {
+    padding: 6px 8px !important;
+    padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+    gap: 5px !important;
+  }
+
+  .chat-input-bar input,
+  .dm-input-bar input {
+    padding: 7px 10px !important;
+    font-size: 15px !important;
+  }
+
+  .btn-chat-send,
+  .btn-send-dm {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+
+  .btn-chat-send svg,
+  .btn-send-dm svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .emoji-trigger,
+  .dm-attach-btn {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+  }
+
+  .emoji-trigger svg,
+  .dm-attach-btn svg {
+    width: 15px !important;
+    height: 15px !important;
   }
 }
 
@@ -5833,10 +5971,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   padding: 12px 18px;
   background: var(--bg-surface-elevated);
   border-top: 1px solid var(--border-subtle);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .dm-input-bar input {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
   background: var(--bg-input);
   border: 1.5px solid var(--border-subtle);
   border-radius: var(--radius-full);
@@ -5844,6 +5988,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text-primary);
   font-size: 0.92rem;
   transition: all var(--duration-fast);
+  text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 .dm-input-bar input:focus {
@@ -5853,13 +5999,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .btn-send-dm {
-  border-radius: 50%;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 50% !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* ========================================================================= */
