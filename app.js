@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (regUsernameHint) {
         regUsernameHint.className = 'username-rule-hint info';
-        regUsernameHint.innerHTML = `<span>ℹ️</span><span>Au moins 3 caractères requis (${val.length}/3).</span>`;
+        regUsernameHint.innerHTML = `<span>Au moins 3 caractères requis (${val.length}/3).</span>`;
       }
       return;
     }
@@ -2204,11 +2204,11 @@ document.addEventListener('DOMContentLoaded', () => {
     tabBar.id = 'friendTabsBar';
     tabBar.style.cssText = 'display:flex;gap:4px;padding:8px 10px 4px;border-bottom:1px solid var(--border);';
     tabBar.innerHTML = `
-      <button id="tabBtnFriends" class="friend-tab-btn active" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--primary);color:#fff;transition:all 0.2s;">
-        👥 Amis
+      <button id="tabBtnFriends" class="friend-tab-btn active" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--primary);color:#fff;transition:opacity 0.15s;">
+        Amis
       </button>
-      <button id="tabBtnExplore" class="friend-tab-btn" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--bg-muted, rgba(120,120,120,0.12));color:var(--text-muted);transition:all 0.2s;position:relative;">
-        🔍 Explorer
+      <button id="tabBtnExplore" class="friend-tab-btn" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--bg-muted, rgba(120,120,120,0.12));color:var(--text-muted);transition:opacity 0.15s;position:relative;">
+        Explorer
         <span id="friendReqBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.65rem;line-height:16px;text-align:center;"></span>
       </button>
     `;
@@ -2298,10 +2298,10 @@ document.addEventListener('DOMContentLoaded', () => {
       friendsList.innerHTML = '';
 
       if (myFriendsList.length === 0) {
-        friendsList.innerHTML = `<div style="padding:20px 14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
-          <div style="font-size:2rem;margin-bottom:8px;">👥</div>
-          <div style="font-weight:600;margin-bottom:4px;">Aucun ami pour l'instant</div>
-          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié !</div>
+        friendsList.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="margin:0 auto 8px;opacity:0.5;display:block;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--text-primary);">Aucun ami pour l'instant</div>
+          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié.</div>
         </div>`;
 
         // Still show pending requests if any even when no friends yet
@@ -2315,14 +2315,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show pending received requests at top if any
       if (pendingFriendRequests.length > 0) {
         const reqHeader = document.createElement('div');
-        reqHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;';
+        reqHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:600;color:var(--text-muted);';
         reqHeader.textContent = `Demandes reçues (${pendingFriendRequests.length})`;
         friendsList.appendChild(reqHeader);
 
         pendingFriendRequests.forEach(req => {
           const sender = req.sender;
           const item = document.createElement('div');
-          item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-muted, rgba(120,120,120,0.08));';
+          item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-muted);';
           item.innerHTML = `
             <img src="${sender.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender.username)}`}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
             <div style="flex:1;min-width:0;">
@@ -2330,8 +2330,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous</div>
             </div>
             <div style="display:flex;gap:4px;">
-              <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✓</button>
-              <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#ef4444;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✗</button>
+              <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Accepter</button>
+              <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Refuser</button>
             </div>
           `;
           item.querySelector('.btn-accept-req').addEventListener('click', async () => {
@@ -2345,17 +2345,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (myFriendsList.length > 0) {
           const friendsHeader = document.createElement('div');
-          friendsHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;';
+          friendsHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-top:4px;';
           friendsHeader.textContent = `Amis (${myFriendsList.length})`;
           friendsList.appendChild(friendsHeader);
         }
       }
 
       if (myFriendsList.length === 0 && pendingFriendRequests.length === 0) {
-        friendsList.innerHTML = `<div style="padding:20px 14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
-          <div style="font-size:2rem;margin-bottom:8px;">👥</div>
-          <div style="font-weight:600;margin-bottom:4px;">Aucun ami pour l'instant</div>
-          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié !</div>
+        friendsList.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="margin:0 auto 8px;opacity:0.5;display:block;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--text-primary);">Aucun ami pour l'instant</div>
+          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié.</div>
         </div>`;
         return;
       }
@@ -2385,8 +2385,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
-            <button type="button" class="friend-action-btn" title="Envoyer un message">💬</button>
-            <button type="button" class="friend-unfriend-btn" title="Retirer de la liste d'amis" style="background:transparent;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.6;transition:all 0.2s;" onmouseover="this.style.opacity=1;this.style.color='#ef4444'" onmouseout="this.style.opacity=0.6;this.style.color='var(--text-muted)'">✕</button>
+            <button type="button" class="friend-action-btn" title="Envoyer un message" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-secondary);cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </button>
+            <button type="button" class="friend-unfriend-btn" title="Retirer de la liste d'amis" style="background:transparent;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.6;transition:color 0.15s, opacity 0.15s;" onmouseover="this.style.opacity=1;this.style.color='#ef4444'" onmouseout="this.style.opacity=0.6;this.style.color='var(--text-muted)'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
         `;
         item.querySelector('.friend-item-left').addEventListener('click', () => openDirectChat(friend));
@@ -2442,16 +2446,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let actionBtn = '';
         if (u.friendStatus === 'friends') {
-          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message" style="padding:5px 10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">💬 Message</button>`;
+          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message" style="padding:5px 10px;border-radius:6px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Message</button>`;
         } else if (u.friendStatus === 'request_sent') {
-          actionBtn = `<button class="explore-action-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler la demande" style="padding:5px 10px;border-radius:8px;border:none;background:var(--bg-muted, rgba(120,120,120,0.15));color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;">⏳ Envoyée</button>`;
+          actionBtn = `<button class="explore-action-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler la demande" style="padding:5px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;">En attente</button>`;
         } else if (u.friendStatus === 'request_received') {
           actionBtn = `
-            <button class="explore-action-btn" data-action="accept" data-reqid="${u.requestId}" data-uid="${u.id}" title="Accepter" style="padding:5px 8px;border-radius:8px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✓</button>
-            <button class="explore-action-btn" data-action="reject" data-reqid="${u.requestId}" title="Refuser" style="padding:5px 8px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">✗</button>
+            <button class="explore-action-btn" data-action="accept" data-reqid="${u.requestId}" data-uid="${u.id}" title="Accepter" style="padding:5px 8px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Accepter</button>
+            <button class="explore-action-btn" data-action="reject" data-reqid="${u.requestId}" title="Refuser" style="padding:5px 8px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Refuser</button>
           `;
         } else {
-          actionBtn = `<button class="explore-action-btn" data-action="add" data-uid="${u.id}" title="Envoyer une demande d'ami" style="padding:5px 10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">➕ Ajouter</button>`;
+          actionBtn = `<button class="explore-action-btn" data-action="add" data-uid="${u.id}" title="Envoyer une demande d'ami" style="padding:5px 10px;border-radius:6px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Ajouter</button>`;
         }
 
         item.innerHTML = `
@@ -2509,21 +2513,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = '⏳ Envoyée';
+        btn.textContent = 'En attente';
         btn.style.background = 'var(--bg-secondary,#e5e7eb)';
         btn.style.color = 'var(--text-muted)';
         btn.dataset.action = 'cancel';
         btn.dataset.reqid = data.request.id;
         btn.disabled = false;
-        showToast('Demande d\'ami envoyée !', 'green');
+        showToast('Demande d\'ami envoyée.', 'green');
       } else {
         btn.disabled = false;
-        btn.textContent = '➕ Ajouter';
+        btn.textContent = 'Ajouter';
         showToast(data.message || 'Erreur.', 'coral');
       }
     } catch(e) {
       btn.disabled = false;
-      btn.textContent = '➕ Ajouter';
+      btn.textContent = 'Ajouter';
       showToast('Erreur réseau.', 'coral');
     }
   }
@@ -2539,7 +2543,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = '➕ Ajouter';
+        btn.textContent = 'Ajouter';
         btn.style.background = 'var(--primary)';
         btn.style.color = '#fff';
         btn.dataset.action = 'add';
@@ -2565,7 +2569,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Vous êtes maintenant amis avec ${sender.name || sender.displayName || sender.username} ! 🎉`, 'green');
+        showToast(`Vous êtes maintenant amis avec ${sender.name || sender.displayName || sender.username}.`, 'green');
         await renderFriends();
       } else {
         showToast(data.message || 'Erreur.', 'coral');
@@ -3503,7 +3507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         whisperBtn.className = 'stage-whisper-trigger';
         whisperBtn.dataset.userId = userId;
         whisperBtn.title = `Chuchoter en privé à ${escapeHtml(p.displayName || p.name || 'ce membre')}`;
-        whisperBtn.innerHTML = '💬';
+        whisperBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
         whisperBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           setWhisperTarget(p);
@@ -4186,7 +4190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateWhisperBannerUI();
     chatInputText?.focus();
-    showToast(`🔒 Mode message privé activé avec ${targetName} dans le salon`, 'teal');
+    showToast(`Mode message privé activé avec ${targetName} dans le salon`, 'teal');
   }
 
   function cancelWhisperTarget() {
@@ -4207,7 +4211,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (nameEl) nameEl.textContent = `@${activeWhisperTarget.name}`;
       if (chatInputText) {
         chatInputText.placeholder = `Chuchoter en privé à ${activeWhisperTarget.name}...`;
-        chatInputText.style.borderColor = '#c084fc';
+        chatInputText.style.borderColor = 'var(--teal-primary)';
       }
       if (cancelBtn && !cancelBtn.dataset.bound) {
         cancelBtn.dataset.bound = 'true';
@@ -4222,13 +4226,13 @@ document.addEventListener('DOMContentLoaded', () => {
         banner.style.display = 'none';
       }
       if (chatInputText) {
-        chatInputText.placeholder = 'Écrire un message bienveillant...';
+        chatInputText.placeholder = 'Écrire un message...';
         chatInputText.style.borderColor = '';
       }
     }
   }
 
-  // N. Real-Time Salon Chat System (Discord-Grade Scrolling & Infinite History)
+  // N. Real-Time Salon Chat System (Scrolling & Infinite History)
   function createSalonMessageElement(message) {
     const myId = state.currentUser?.id;
     const isFromMe = (message.user?.id && message.user.id === myId) || (message.userId && message.userId === myId);
@@ -4243,11 +4247,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let whisperBadgeHtml = '';
     if (isWhisper) {
+      const lockIconSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:baseline;margin-right:3px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
       if (isFromMe) {
         const toName = message.whisperToName || message.targetUser?.displayName || message.targetUser?.username || 'Membre';
-        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous et @${escapeHtml(toName)}">🔒 Chuchoté à @${escapeHtml(toName)}</span>`;
+        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous et @${escapeHtml(toName)}">${lockIconSvg}Chuchoté à @${escapeHtml(toName)}</span>`;
       } else {
-        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous deux">🔒 Vous chuchote en privé</span>`;
+        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous deux">${lockIconSvg}Chuchotement privé</span>`;
       }
     }
 
@@ -4529,15 +4534,773 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+// =========================================================================
+  // 7. INTERACTIVE GIFTING & CELEBRATION ENGINE : « COUP DE CŒUR & CADEAUX »
   // =========================================================================
-  // 7. INTERACTIVE GIFTING & CELEBRATION ENGINE
-  // =========================================================================
+
+  const GIFTS_CATALOG = [
+    {
+      id: 'coffee',
+      name: 'Café Douceur',
+      icon: '☕',
+      points: 30,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Un petit café pour commencer notre discussion du bon pied ?',
+      fx: 'steam'
+    },
+    {
+      id: 'croissant',
+      name: 'Croissant Chaud',
+      icon: '🥐',
+      points: 45,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Le petit déj virtuel le plus croustillant de WafaTalk !',
+      fx: 'steam'
+    },
+    {
+      id: 'heart',
+      name: 'Coup de Cœur',
+      icon: '💖',
+      points: 50,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'J\'ai flashé sur ton profil/ta voix, impossible de ne pas te laisser ce coup de cœur.',
+      fx: 'hearts'
+    },
+    {
+      id: 'bubble_tea',
+      name: 'Boba Tea Festif',
+      icon: '🧋',
+      points: 60,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Sucré, pétillant et plein de bonnes ondes pour égayer ta journée.',
+      fx: 'bubbles'
+    },
+    {
+      id: 'cocktail',
+      name: 'Cocktail Sunset',
+      icon: '🍹',
+      points: 75,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'À consommer sans modération en terrasse avec un coucher de soleil.',
+      fx: 'bubbles'
+    },
+    {
+      id: 'star',
+      name: 'Étoile Filante',
+      icon: '⭐',
+      points: 80,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'Fais un vœu, j\'ai l\'impression qu\'il vient déjà de se réaliser.',
+      fx: 'stardust'
+    },
+    {
+      id: 'playlist',
+      name: 'Mixtape Secrète',
+      icon: '🎵',
+      points: 90,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'Les meilleures vibes musicales à écouter ensemble dans les salons.',
+      fx: 'notes'
+    },
+    {
+      id: 'chocolates',
+      name: 'Boîte de Pralines',
+      icon: '🍫',
+      points: 100,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Une touche de douceur fondante pour adoucir tes journées.',
+      fx: 'hearts'
+    },
+    {
+      id: 'red_rose',
+      name: 'Rose Éternelle',
+      icon: '🌹',
+      points: 120,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'Classique, élégante et délicate, elle ne se fane jamais.',
+      fx: 'petals'
+    },
+    {
+      id: 'cinema_tickets',
+      name: 'Soirée Ciné Popcorn',
+      icon: '🍿',
+      points: 140,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Séance rétro et popcorn géant : on s\'installe au premier ou dernier rang ?',
+      fx: 'confetti'
+    },
+    {
+      id: 'magic_box',
+      name: 'Coffret Mystère',
+      icon: '🎁',
+      points: 150,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'À déballer pour révéler un message surprise bienveillant !',
+      fx: 'confetti'
+    },
+    {
+      id: 'rooftop_date',
+      name: 'Rendez-vous Rooftop',
+      icon: '🌃',
+      points: 180,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Une vue panoramique imprenable sur la ville nocturne, rien que nous deux.',
+      fx: 'stardust'
+    },
+    {
+      id: 'candle_dinner',
+      name: 'Dîner aux Chandelles',
+      icon: '🕯️',
+      points: 220,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Lumière tamisée, ambiance acoustique et une table réservée pour faire connaissance.',
+      fx: 'sparks'
+    },
+    {
+      id: 'museum_pass',
+      name: 'Échappée Musée & Expo',
+      icon: '🎨',
+      points: 250,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Pour refaire le monde devant les tableaux et partager nos coups de cœur artistiques.',
+      fx: 'confetti'
+    },
+    {
+      id: 'vip_crown',
+      name: 'Couronne Prestige',
+      icon: '👑',
+      points: 300,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'Pour couronner la reine ou le roi du salon, avec tous les honneurs !',
+      fx: 'sparks'
+    },
+    {
+      id: 'stargazing',
+      name: 'Nuit sous les Étoiles',
+      icon: '🔭',
+      points: 350,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Télescope, chocolat chaud et ciel dégagé pour compter les constellations.',
+      fx: 'cosmic'
+    },
+    {
+      id: 'hot_air_balloon',
+      name: 'Vol en Montgolfière',
+      icon: '🎈',
+      points: 400,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Prendre de la hauteur et s\'évader au-dessus des nuages ensemble.',
+      fx: 'confetti'
+    },
+    {
+      id: 'fireworks',
+      name: 'Grand Feu d\'Artifice',
+      icon: '🎆',
+      points: 500,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'L\'explosion de couleurs qui illumine tout le salon en direct !',
+      fx: 'fireworks'
+    },
+    {
+      id: 'luxury_ring',
+      name: 'Bague Diamant Éclat',
+      icon: '💎',
+      points: 750,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'L\'attention ultime, brillante et précieuse, pour marquer les esprits.',
+      fx: 'stardust'
+    },
+    {
+      id: 'island_trip',
+      name: 'Escapade Île Déserte',
+      icon: '🏝️',
+      points: 1000,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Billet première classe pour une plage secrète aux eaux turquoise.',
+      fx: 'fireworks'
+    }
+  ];
+
+  // Gift Shop State
+  let activeGiftTab = 'catalog'; // 'catalog' | 'favorites' | 'history'
+  let activeGiftAmbiance = 'all';
+  let activeGiftType = 'all';
+  let activeGiftBudget = 'all';
+  let giftSearchTerm = '';
+  let activePersonalizeGift = null;
+  let favoriteGiftIds = new Set(JSON.parse(localStorage.getItem('wafatalk_favorite_gifts') || '["heart","coffee","cocktail"]'));
+  let sentGiftHistory = JSON.parse(localStorage.getItem('wafatalk_sent_gifts') || '[]');
+
+  const giftsCatalogGrid = document.getElementById('giftsCatalogGrid');
+  const giftEmptyState = document.getElementById('giftEmptyState');
+  const giftHistoryList = document.getElementById('giftHistoryList');
+  const giftPersonalizeDrawer = document.getElementById('giftPersonalizeDrawer');
+  const giftModalBalance = document.getElementById('giftModalBalance');
+  const giftSearchInput = document.getElementById('giftSearchInput');
+  const giftTypeSelect = document.getElementById('giftTypeSelect');
+  const giftBudgetSelect = document.getElementById('giftBudgetSelect');
+  const btnSurpriseMe = document.getElementById('btnSurpriseMe');
+  const btnResetGiftFilters = document.getElementById('btnResetGiftFilters');
+  const btnCloseGiftDrawer = document.getElementById('btnCloseGiftDrawer');
+  const btnCancelGiftDrawer = document.getElementById('btnCancelGiftDrawer');
+  const btnConfirmSendGift = document.getElementById('btnConfirmSendGift');
+  const btnCopyAccroche = document.getElementById('btnCopyAccroche');
+  const copyAccrocheLabel = document.getElementById('copyAccrocheLabel');
+  const giftCustomNote = document.getElementById('giftCustomNote');
+  const giftCharCount = document.getElementById('giftCharCount');
+  const giftRecipientSelect = document.getElementById('giftRecipientSelect');
+  const giftAccrocheText = document.getElementById('giftAccrocheText');
+
+  function updateGiftCounters() {
+    const catalogCount = document.getElementById('giftCatalogCount');
+    const favCount = document.getElementById('giftFavCount');
+    const historyCount = document.getElementById('giftHistoryCount');
+    const catalogCounter = document.getElementById('giftCatalogCounter');
+    const favCounter = document.getElementById('giftFavCounter');
+    const historyCounter = document.getElementById('giftHistoryCounter');
+
+    if (catalogCount) catalogCount.textContent = GIFTS_CATALOG.length;
+    if (catalogCounter) catalogCounter.textContent = GIFTS_CATALOG.length;
+    if (favCount) favCount.textContent = favoriteGiftIds.size;
+    if (favCounter) favCounter.textContent = favoriteGiftIds.size;
+    if (historyCount) historyCount.textContent = sentGiftHistory.length;
+    if (historyCounter) historyCounter.textContent = sentGiftHistory.length;
+  }
+
+  function syncUserPointsDisplay() {
+    if (giftModalBalance) {
+      giftModalBalance.textContent = state.userPoints;
+    }
+    const navPoints = document.querySelectorAll('.user-points-badge span, .profile-points-val');
+    navPoints.forEach(el => el.textContent = state.userPoints);
+  }
+
+  function filterGifts() {
+    return GIFTS_CATALOG.filter(gift => {
+      // Tab filter
+      if (activeGiftTab === 'favorites' && !favoriteGiftIds.has(gift.id)) {
+        return false;
+      }
+      // Ambiance filter
+      if (activeGiftAmbiance !== 'all' && gift.ambiance !== activeGiftAmbiance) {
+        return false;
+      }
+      // Type filter
+      if (activeGiftType !== 'all' && gift.type !== activeGiftType) {
+        return false;
+      }
+      // Budget filter
+      if (activeGiftBudget === 'tier1' && gift.points >= 50) return false;
+      if (activeGiftBudget === 'tier2' && (gift.points < 50 || gift.points > 150)) return false;
+      if (activeGiftBudget === 'tier3' && (gift.points < 150 || gift.points > 300)) return false;
+      if (activeGiftBudget === 'tier4' && gift.points <= 300) return false;
+      // Search term
+      if (giftSearchTerm) {
+        const query = giftSearchTerm.toLowerCase();
+        const matchesName = gift.name.toLowerCase().includes(query);
+        const matchesAccroche = gift.accroche.toLowerCase().includes(query);
+        const matchesType = gift.typeLabel.toLowerCase().includes(query);
+        const matchesAmbiance = gift.ambianceLabel.toLowerCase().includes(query);
+        if (!matchesName && !matchesAccroche && !matchesType && !matchesAmbiance) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  function renderGiftShop() {
+    updateGiftCounters();
+    syncUserPointsDisplay();
+
+    if (activeGiftTab === 'history') {
+      if (giftsCatalogGrid) giftsCatalogGrid.classList.add('hidden');
+      if (giftEmptyState) giftEmptyState.classList.add('hidden');
+      if (giftHistoryList) giftHistoryList.classList.remove('hidden');
+      renderGiftHistory();
+      return;
+    }
+
+    if (giftHistoryList) giftHistoryList.classList.add('hidden');
+    const filtered = filterGifts();
+
+    if (filtered.length === 0) {
+      if (giftsCatalogGrid) giftsCatalogGrid.classList.add('hidden');
+      if (giftEmptyState) giftEmptyState.classList.remove('hidden');
+      const emptyTitle = document.getElementById('giftEmptyTitle');
+      const emptyDesc = document.getElementById('giftEmptyDesc');
+      if (activeGiftTab === 'favorites') {
+        if (emptyTitle) emptyTitle.textContent = 'Aucun cadeau favori';
+        if (emptyDesc) emptyDesc.textContent = 'Cliquez sur l\'étoile en haut d\'un cadeau dans le catalogue pour l\'ajouter à vos favoris.';
+      } else {
+        if (emptyTitle) emptyTitle.textContent = 'Aucun cadeau trouvé';
+        if (emptyDesc) emptyDesc.textContent = 'Essayez de modifier vos filtres ou effectuez une autre recherche.';
+      }
+      return;
+    }
+
+    if (giftEmptyState) giftEmptyState.classList.add('hidden');
+    if (giftsCatalogGrid) {
+      giftsCatalogGrid.classList.remove('hidden');
+      giftsCatalogGrid.innerHTML = filtered.map(gift => {
+        const isFav = favoriteGiftIds.has(gift.id);
+        return `
+          <div class="gift-card-item" data-id="${gift.id}">
+            <div class="gift-card-top">
+              <span class="gift-card-tag">${gift.ambianceLabel}</span>
+              <button type="button" class="gift-fav-btn ${isFav ? 'is-fav' : ''}" data-id="${gift.id}" title="${isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </button>
+            </div>
+            <div class="gift-card-main">
+              <div class="gift-card-icon-wrap">${gift.icon}</div>
+              <strong class="gift-card-title">${gift.name}</strong>
+              <p class="gift-card-accroche">« ${gift.accroche} »</p>
+            </div>
+            <div class="gift-card-bottom">
+              <span class="gift-card-cost-pill">${gift.points} pts</span>
+              <button type="button" class="btn btn-sm btn-primary gift-card-action-btn" data-action="personalize" data-id="${gift.id}">Offrir</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Attach card event listeners
+      giftsCatalogGrid.querySelectorAll('.gift-fav-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          if (favoriteGiftIds.has(id)) {
+            favoriteGiftIds.delete(id);
+          } else {
+            favoriteGiftIds.add(id);
+          }
+          localStorage.setItem('wafatalk_favorite_gifts', JSON.stringify([...favoriteGiftIds]));
+          renderGiftShop();
+        });
+      });
+
+      giftsCatalogGrid.querySelectorAll('[data-action="personalize"]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const gift = GIFTS_CATALOG.find(g => g.id === id);
+          if (gift) openPersonalizeDrawer(gift);
+        });
+      });
+
+      // Quick motion animation preview on gift icon click
+      giftsCatalogGrid.querySelectorAll('.gift-card-icon-wrap').forEach(wrap => {
+        wrap.style.cursor = 'pointer';
+        wrap.setAttribute('title', 'Cliquer pour voir l\'animation');
+        wrap.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const card = wrap.closest('.gift-card-item');
+          const id = card?.dataset.id;
+          const gift = GIFTS_CATALOG.find(g => g.id === id);
+          if (gift) {
+            triggerGiftCelebrationGraphic(gift, state.currentUser?.displayName || 'Vous', 'Aperçu', gift.accroche);
+          }
+        });
+      });
+    }
+  }
+
+  function renderGiftHistory() {
+    if (!giftHistoryList) return;
+    if (sentGiftHistory.length === 0) {
+      giftHistoryList.innerHTML = `
+        <div class="gift-empty-state">
+          <div class="gift-empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="20 12 20 22 4 22 4 12"></polyline>
+              <rect x="2" y="7" width="20" height="5"></rect>
+              <line x1="12" y1="22" x2="12" y2="7"></line>
+            </svg>
+          </div>
+          <h3 class="gift-empty-title">Aucun cadeau envoyé pour le moment</h3>
+          <p class="gift-empty-desc">Offrez une attention dans un salon ou en discussion privée pour la retrouver ici.</p>
+        </div>
+      `;
+      return;
+    }
+
+    giftHistoryList.innerHTML = sentGiftHistory.slice().reverse().map(item => `
+      <div class="gift-history-item">
+        <div class="gift-history-left">
+          <div class="gift-history-icon">${item.icon}</div>
+          <div class="gift-history-info">
+            <strong class="gift-history-name">${item.name}</strong>
+            <span class="gift-history-sub">Offert à <strong>${item.recipientName}</strong> &bull; ${item.dateStr}</span>
+            ${item.note ? `<span class="gift-history-sub" style="font-style: italic;">« ${item.note} »</span>` : ''}
+          </div>
+        </div>
+        <span class="gift-history-points">-${item.points} pts</span>
+      </div>
+    `).join('');
+  }
+
+  function openPersonalizeDrawer(gift) {
+    activePersonalizeGift = gift;
+    if (!giftPersonalizeDrawer) return;
+
+    // Populate Recipient Selector
+    if (giftRecipientSelect) {
+      giftRecipientSelect.innerHTML = '';
+      const optAll = document.createElement('option');
+      optAll.value = 'all';
+      optAll.textContent = state.currentRoom ? 'À tout le salon (Célébration collective)' : 'À mes amis';
+      giftRecipientSelect.appendChild(optAll);
+
+      // If inside salon, add participants
+      if (currentSalonRoster && currentSalonRoster.size > 0) {
+        currentSalonRoster.forEach(user => {
+          if (user.userId !== state.currentUser?.id) {
+            const opt = document.createElement('option');
+            opt.value = user.userId;
+            opt.textContent = `${user.displayName || user.username} (${user.role || 'Membre'})`;
+            giftRecipientSelect.appendChild(opt);
+          }
+        });
+      } else if (typeof activeDirectUser !== 'undefined' && activeDirectUser) {
+        const opt = document.createElement('option');
+        opt.value = activeDirectUser.id;
+        opt.textContent = activeDirectUser.name || activeDirectUser.username;
+        opt.selected = true;
+        giftRecipientSelect.appendChild(opt);
+      }
+    }
+
+    // Populate preview info
+    const ambianceEl = document.getElementById('previewCardAmbiance');
+    const iconEl = document.getElementById('previewCardIcon');
+    const nameEl = document.getElementById('previewCardName');
+    const costEl = document.getElementById('previewCardCost');
+    const confirmBtnText = document.getElementById('confirmSendGiftText');
+
+    if (ambianceEl) ambianceEl.textContent = gift.ambianceLabel;
+    if (iconEl) iconEl.textContent = gift.icon;
+    if (nameEl) nameEl.textContent = gift.name;
+    if (costEl) costEl.textContent = `${gift.points} pts d'amitié`;
+    if (confirmBtnText) confirmBtnText.textContent = `Confirmer et offrir (${gift.points} pts)`;
+
+    if (giftAccrocheText) giftAccrocheText.textContent = gift.accroche;
+    if (giftCustomNote) giftCustomNote.value = '';
+    if (giftCharCount) giftCharCount.textContent = '0';
+
+    const previewNote = document.getElementById('previewCardNote');
+    if (previewNote) previewNote.textContent = `« ${gift.accroche} »`;
+
+    const previewRecipient = document.getElementById('previewCardRecipient');
+    if (previewRecipient && giftRecipientSelect && giftRecipientSelect.options.length > 0) {
+      previewRecipient.textContent = `Destinataire : ${giftRecipientSelect.options[giftRecipientSelect.selectedIndex].text}`;
+    }
+
+    giftPersonalizeDrawer.classList.remove('hidden');
+  }
+
+  function closePersonalizeDrawer() {
+    if (giftPersonalizeDrawer) giftPersonalizeDrawer.classList.add('hidden');
+    activePersonalizeGift = null;
+  }
+
+  // Live preview update on note input
+  giftCustomNote?.addEventListener('input', () => {
+    const val = giftCustomNote.value.trim();
+    if (giftCharCount) giftCharCount.textContent = giftCustomNote.value.length;
+    const previewNote = document.getElementById('previewCardNote');
+    if (previewNote) {
+      if (val) {
+        previewNote.textContent = `« ${val} »`;
+      } else if (activePersonalizeGift) {
+        previewNote.textContent = `« ${activePersonalizeGift.accroche} »`;
+      }
+    }
+  });
+
+  giftRecipientSelect?.addEventListener('change', () => {
+    const recipientText = giftRecipientSelect.options[giftRecipientSelect.selectedIndex]?.text || '';
+    const previewRecipient = document.getElementById('previewCardRecipient');
+    if (previewRecipient) previewRecipient.textContent = `Destinataire : ${recipientText}`;
+  });
+
+  btnCopyAccroche?.addEventListener('click', () => {
+    if (!activePersonalizeGift) return;
+    navigator.clipboard?.writeText(activePersonalizeGift.accroche).then(() => {
+      if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Copié !';
+      setTimeout(() => {
+        if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Copier';
+      }, 1800);
+    }).catch(() => {
+      if (giftCustomNote) {
+        giftCustomNote.value = activePersonalizeGift.accroche;
+        giftCustomNote.dispatchEvent(new Event('input'));
+      }
+      if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Inséré !';
+      setTimeout(() => {
+        if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Copier';
+      }, 1800);
+    });
+  });
+
+  btnCancelGiftDrawer?.addEventListener('click', closePersonalizeDrawer);
+  btnCloseGiftDrawer?.addEventListener('click', closePersonalizeDrawer);
+
+  // Click on live preview card in drawer to preview motion animation immediately
+  document.getElementById('giftLivePreviewCard')?.addEventListener('click', () => {
+    if (activePersonalizeGift) {
+      const customMsg = giftCustomNote ? giftCustomNote.value.trim() : '';
+      triggerGiftCelebrationGraphic(activePersonalizeGift, state.currentUser?.displayName || 'Vous', 'Aperçu', customMsg || activePersonalizeGift.accroche);
+    }
+  });
+
+  // Confirm and Send Gift Action
+  btnConfirmSendGift?.addEventListener('click', async () => {
+    if (!activePersonalizeGift) return;
+    const gift = activePersonalizeGift;
+
+    if (state.userPoints < gift.points) {
+      // Auto-replenish for demo delight
+      state.userPoints += 1500;
+      syncUserPointsDisplay();
+      showToast(`Bonus amitié activé : +1500 WafaPoints offerts !`, 'amber');
+    }
+
+    // Deduct points
+    state.userPoints -= gift.points;
+    syncUserPointsDisplay();
+
+    const customMsg = giftCustomNote ? giftCustomNote.value.trim() : '';
+    const recipientVal = giftRecipientSelect ? giftRecipientSelect.value : 'all';
+    const recipientName = giftRecipientSelect && giftRecipientSelect.options[giftRecipientSelect.selectedIndex] ? giftRecipientSelect.options[giftRecipientSelect.selectedIndex].text : 'Tout le salon';
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    // Save to history
+    sentGiftHistory.push({
+      id: gift.id,
+      name: gift.name,
+      icon: gift.icon,
+      points: gift.points,
+      note: customMsg || gift.accroche,
+      recipientId: recipientVal,
+      recipientName: recipientName,
+      dateStr: dateStr,
+      timestamp: Date.now()
+    });
+    localStorage.setItem('wafatalk_sent_gifts', JSON.stringify(sentGiftHistory));
+    updateGiftCounters();
+
+    const noteToDisplay = customMsg || gift.accroche;
+
+    // Close drawer and shop
+    closePersonalizeDrawer();
+    closeGiftShop();
+
+    // Launch rich particle fireworks & audio chime
+    triggerGiftCelebrationGraphic(gift, state.currentUser?.displayName || 'Vous', recipientName, noteToDisplay);
+
+    showToast(`Attention offerte avec succès : ${gift.name} (${gift.points} pts) !`, 'teal');
+
+    // Send to backend if authenticated and inside salon
+    if (state.currentRoom?.id) {
+      try {
+        const token = localStorage.getItem('wafatalk_token');
+        if (token) {
+          fetch(`${API_URL}/gifts/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              salonId: state.currentRoom.id,
+              giftType: gift.id,
+              costPoints: gift.points,
+              receiverId: recipientVal !== 'all' ? recipientVal : undefined,
+              customMessage: noteToDisplay
+            })
+          }).catch(err => console.warn('Offline gift logging:', err));
+        }
+      } catch (e) {
+        console.warn('Gift API call warning:', e);
+      }
+
+      // Append rich gift celebration card in salon chat
+      if (chatMessagesScroll) {
+        const giftMsg = document.createElement('div');
+        giftMsg.className = 'chat-gift-announcement';
+        giftMsg.innerHTML = `
+          <div class="chat-gift-icon-bubble">${gift.icon}</div>
+          <div class="chat-gift-content">
+            <div class="chat-gift-headline">
+              <strong>${state.currentUser?.displayName || 'Vous'}</strong> a offert <strong>${gift.name}</strong> (${recipientName}) !
+            </div>
+            <div class="chat-gift-note">« ${noteToDisplay} »</div>
+          </div>
+        `;
+        chatMessagesScroll.appendChild(giftMsg);
+        chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+      }
+    } else if (typeof activeDirectUser !== 'undefined' && activeDirectUser && typeof directMessagesScroll !== 'undefined' && directMessagesScroll) {
+      // In Direct Chat
+      const dmMsg = document.createElement('div');
+      dmMsg.className = 'chat-gift-announcement';
+      dmMsg.innerHTML = `
+        <div class="chat-gift-icon-bubble">${gift.icon}</div>
+        <div class="chat-gift-content">
+          <div class="chat-gift-headline">
+            <strong>${state.currentUser?.displayName || 'Vous'}</strong> a offert <strong>${gift.name}</strong> !
+          </div>
+          <div class="chat-gift-note">« ${noteToDisplay} »</div>
+        </div>
+      `;
+      directMessagesScroll.appendChild(dmMsg);
+      directMessagesScroll.scrollTop = directMessagesScroll.scrollHeight;
+    }
+  });
+
+  // "Surprends-moi !" action
+  btnSurpriseMe?.addEventListener('click', () => {
+    const available = filterGifts();
+    const pool = available.length > 0 ? available : GIFTS_CATALOG;
+    const randomGift = pool[Math.floor(Math.random() * pool.length)];
+
+    // Highlight card in grid
+    renderGiftShop();
+    if (giftsCatalogGrid) {
+      const cardEl = giftsCatalogGrid.querySelector(`[data-id="${randomGift.id}"]`);
+      if (cardEl) {
+        cardEl.classList.add('is-highlighted');
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Direct to personalization drawer after brief feedback
+    setTimeout(() => {
+      openPersonalizeDrawer(randomGift);
+    }, 320);
+  });
+
+  // Filter toolbar event listeners
+  document.querySelectorAll('.gift-nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.gift-nav-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeGiftTab = tab.dataset.tab;
+      renderGiftShop();
+    });
+  });
+
+  document.querySelectorAll('.gift-ambiance-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.gift-ambiance-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeGiftAmbiance = pill.dataset.ambiance;
+      renderGiftShop();
+    });
+  });
+
+  giftSearchInput?.addEventListener('input', () => {
+    giftSearchTerm = giftSearchInput.value.trim();
+    renderGiftShop();
+  });
+
+  giftTypeSelect?.addEventListener('change', () => {
+    activeGiftType = giftTypeSelect.value;
+    renderGiftShop();
+  });
+
+  giftBudgetSelect?.addEventListener('change', () => {
+    activeGiftBudget = giftBudgetSelect.value;
+    renderGiftShop();
+  });
+
+  btnResetGiftFilters?.addEventListener('click', () => {
+    activeGiftAmbiance = 'all';
+    activeGiftType = 'all';
+    activeGiftBudget = 'all';
+    giftSearchTerm = '';
+    if (giftSearchInput) giftSearchInput.value = '';
+    if (giftTypeSelect) giftTypeSelect.value = 'all';
+    if (giftBudgetSelect) giftBudgetSelect.value = 'all';
+    document.querySelectorAll('.gift-ambiance-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.ambiance === 'all');
+    });
+    renderGiftShop();
+  });
+
   function openGiftShop() {
-    giftShopModal.classList.remove('hidden');
+    if (giftShopModal) {
+      giftShopModal.classList.remove('hidden');
+      renderGiftShop();
+    }
   }
 
   function closeGiftShop() {
-    giftShopModal.classList.add('hidden');
+    if (giftShopModal) giftShopModal.classList.add('hidden');
+    closePersonalizeDrawer();
   }
 
   btnOpenGiftShop?.addEventListener('click', openGiftShop);
@@ -4545,41 +5308,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btnModalGiftTrigger?.addEventListener('click', openGiftShop);
   btnSendCommunityGift?.addEventListener('click', openGiftShop);
   btnCloseGiftModal?.addEventListener('click', closeGiftShop);
-
-  // Send Gift Action
-  document.querySelectorAll('.btn-send-gift').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const card = e.target.closest('.gift-card-item');
-      const giftName = card.dataset.name;
-      const giftType = card.dataset.gift;
-
-      closeGiftShop();
-
-      // Launch particles & sounds
-      launchParticles(window.innerWidth / 2, window.innerHeight / 2, giftType);
-      playGiftChime();
-
-      showToast(` Cadeau envoyé : ${giftName} ! Vos amis adorent ! `, 'amber');
-
-      // If inside live salon, append celebration announcement
-      if (state.currentRoom && !liveSalonModal.classList.contains('hidden')) {
-        const giftMsg = document.createElement('div');
-        giftMsg.className = 'chat-msg';
-        giftMsg.innerHTML = `
-          <div style="font-size: 1.6rem;"></div>
-          <div class="chat-msg-body" style="background: linear-gradient(135deg, var(--amber-primary), var(--coral-primary)); color: #fff;">
-            <div class="chat-msg-author">
-              <strong>Célébration WafaTalk !</strong>
-            </div>
-            <p class="chat-msg-text"><strong>Vous</strong> avez offert un <strong>${giftName}</strong> à tout le salon ! </p>
-          </div>
-        `;
-        chatMessagesScroll.appendChild(giftMsg);
-        chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
-      }
-    });
-  });
-
 
   // =========================================================================
   // 8. CREATE SALON MODAL & PRIVACY CONFIGURATION
@@ -6076,8 +6804,637 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+
   // =========================================================================
-  // 12. CANVAS PARTICLE FX (CONFETTI & HEARTS)
+  // 12.1 BESPOKE MOTION DESIGN GIFT CELEBRATION ENGINE (ALL 20 GIFTS)
+  // =========================================================================
+
+  const GIFT_MOTION_PROFILES = {
+    coffee: {
+      themeColor: '#b45309',
+      glowColor: 'rgba(245, 158, 11, 0.45)',
+      audioFreqs: [440, 554.37, 659.25], // Warm A major
+      fx: 'steam',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Steam paths -->
+          <path class="motion-steam" style="animation: motionSteamLoop 1.6s ease-in-out infinite; animation-delay: 0s;" d="M42 36C40 30 44 26 42 20C40 14 44 10 42 6" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-linecap="round"/>
+          <path class="motion-steam" style="animation: motionSteamLoop 1.6s ease-in-out infinite; animation-delay: 0.4s;" d="M50 34C48 28 52 24 50 18C48 12 52 8 50 4" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/>
+          <path class="motion-steam" style="animation: motionSteamLoop 1.6s ease-in-out infinite; animation-delay: 0.8s;" d="M58 36C56 30 60 26 58 20C56 14 60 10 58 6" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Saucer -->
+          <ellipse cx="50" cy="85" rx="36" ry="7" fill="#0d837d" opacity="0.4"/>
+          <ellipse cx="50" cy="83" rx="34" ry="6" fill="#f8fafc"/>
+          <ellipse cx="50" cy="82" rx="28" ry="4" fill="#e2e8f0"/>
+          <!-- Cup Body -->
+          <path d="M26 44H74V64C74 74 63.2 80 50 80C36.8 80 26 74 26 64V44Z" fill="url(#coffeeCupGrad)"/>
+          <!-- Cup Inner / Coffee surface -->
+          <ellipse cx="50" cy="44" rx="24" ry="7" fill="#451a03"/>
+          <ellipse cx="50" cy="45" rx="20" ry="5" fill="#78350f"/>
+          <!-- Heart in crema -->
+          <path d="M50 46C48 43 45 44 45 46C45 48 50 51 50 51C50 51 55 48 55 46C55 44 52 43 50 46Z" fill="#fbbf24" opacity="0.8"/>
+          <!-- Handle -->
+          <path d="M72 48C79 48 84 53 84 60C84 67 79 71 72 71" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
+          <!-- Highlight -->
+          <path d="M30 48C30 58 34 68 40 72" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="coffeeCupGrad" x1="26" y1="44" x2="74" y2="80" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#ffffff"/>
+              <stop offset="1" stop-color="#e2e8f0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    croissant: {
+      themeColor: '#d97706',
+      glowColor: 'rgba(251, 191, 36, 0.45)',
+      audioFreqs: [392, 493.88, 587.33], // G major
+      fx: 'steam',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Warm aroma aura -->
+          <circle cx="50" cy="50" r="38" stroke="rgba(251,191,36,0.3)" stroke-width="2" stroke-dasharray="4 6" style="animation: motionPulseRing 2s ease-out infinite;"/>
+          <!-- Croissant body -->
+          <path d="M22 68C18 55 24 36 40 28C54 21 68 25 78 36C86 45 84 62 76 68C68 62 64 52 50 52C36 52 30 62 22 68Z" fill="url(#croissantGrad)" filter="drop-shadow(0 4px 10px rgba(180,83,9,0.3))"/>
+          <!-- Flaky folds -->
+          <path d="M38 30C46 36 48 48 46 54" stroke="#92400e" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M52 26C60 32 62 44 60 52" stroke="#92400e" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M66 32C72 38 74 48 70 56" stroke="#92400e" stroke-width="2" stroke-linecap="round"/>
+          <!-- Butter shimmer stars -->
+          <polygon points="34,22 36,26 40,26 37,29 38,33 34,30 30,33 31,29 28,26 32,26" fill="#fde047" style="animation: motionCrossFlare 1.8s ease-in-out infinite;"/>
+          <polygon points="76,24 77,27 80,27 78,29 79,32 76,30 73,32 74,29 72,27 75,27" fill="#fde047" style="animation: motionCrossFlare 1.8s ease-in-out infinite; animation-delay: 0.6s;"/>
+          <defs>
+            <linearGradient id="croissantGrad" x1="20" y1="25" x2="80" y2="70" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fbbf24"/>
+              <stop offset="0.6" stop-color="#d97706"/>
+              <stop offset="1" stop-color="#b45309"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    heart: {
+      themeColor: '#e11d48',
+      glowColor: 'rgba(244, 63, 94, 0.55)',
+      audioFreqs: [523.25, 659.25, 783.99, 1046.50],
+      fx: 'hearts',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Concentric pulse shockwaves -->
+          <path class="motion-pulse-ring" style="animation: motionPulseRing 1.4s ease-out infinite; transform-origin: 50% 50%;" d="M50 30C40 18 22 24 22 40C22 56 46 72 50 76C54 72 78 56 78 40C78 24 60 18 50 30Z" stroke="rgba(244,63,94,0.4)" stroke-width="2"/>
+          <path class="motion-pulse-ring" style="animation: motionPulseRing 1.4s ease-out infinite; animation-delay: 0.5s; transform-origin: 50% 50%;" d="M50 30C40 18 22 24 22 40C22 56 46 72 50 76C54 72 78 56 78 40C78 24 60 18 50 30Z" stroke="rgba(251,113,133,0.3)" stroke-width="1.5"/>
+          <!-- Central 3D Heart -->
+          <g style="animation: motionHeartBeating 0.85s ease-in-out infinite; transform-origin: 50% 52%;">
+            <path d="M50 30C40 16 18 22 18 42C18 60 46 78 50 82C54 78 82 60 82 42C82 22 60 16 50 30Z" fill="url(#heartGrad)" filter="drop-shadow(0 8px 18px rgba(225,29,72,0.45))"/>
+            <!-- Shimmer Highlight -->
+            <path d="M30 32C24 36 24 44 26 50C28 42 34 36 42 34" stroke="rgba(255,255,255,0.6)" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <defs>
+            <linearGradient id="heartGrad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fb7185"/>
+              <stop offset="0.4" stop-color="#f43f5e"/>
+              <stop offset="1" stop-color="#be123c"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    bubble_tea: {
+      themeColor: '#0d9488',
+      glowColor: 'rgba(20, 184, 166, 0.45)',
+      audioFreqs: [440, 523.25, 659.25, 880],
+      fx: 'bubbles',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Straw -->
+          <path d="M58 8L44 45" stroke="#f43f5e" stroke-width="7" stroke-linecap="round"/>
+          <path d="M58 8L44 45" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4"/>
+          <!-- Cup Container -->
+          <path d="M30 30H70L63 85C62.5 89 59 92 55 92H45C41 92 37.5 89 37 85L30 30Z" fill="url(#bobaTeaGrad)" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
+          <!-- Liquid surface -->
+          <ellipse cx="50" cy="36" rx="18" ry="4" fill="#fde047" opacity="0.6"/>
+          <!-- Bouncing Tapioca Pearls -->
+          <circle class="motion-boba-1" cx="44" cy="78" r="5" fill="#1e293b" style="animation: motionBobaBubble 1.2s ease-in-out infinite;"/>
+          <circle class="motion-boba-2" cx="54" cy="80" r="5.5" fill="#0f172a" style="animation: motionBobaBubble 1.2s ease-in-out infinite; animation-delay: 0.25s;"/>
+          <circle class="motion-boba-3" cx="48" cy="68" r="4.5" fill="#334155" style="animation: motionBobaBubble 1.2s ease-in-out infinite; animation-delay: 0.5s;"/>
+          <circle class="motion-boba-4" cx="58" cy="72" r="5" fill="#1e293b" style="animation: motionBobaBubble 1.2s ease-in-out infinite; animation-delay: 0.75s;"/>
+          <!-- Lid -->
+          <path d="M26 30C26 26 32 24 50 24C68 24 74 26 74 30" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="bobaTeaGrad" x1="30" y1="30" x2="70" y2="90" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fef08a"/>
+              <stop offset="0.5" stop-color="#fbbf24"/>
+              <stop offset="1" stop-color="#d97706"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    cocktail: {
+      themeColor: '#f97316',
+      glowColor: 'rgba(249, 115, 22, 0.45)',
+      audioFreqs: [587.33, 739.99, 880],
+      fx: 'bubbles',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Glass Stem & Base -->
+          <path d="M50 56V86M36 86H64" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+          <!-- Cocktail Glass Triangle -->
+          <path d="M22 26L50 56L78 26H22Z" fill="url(#cocktailSunsetGrad)" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+          <!-- Citrus Wheel -->
+          <circle cx="70" cy="24" r="10" fill="#facc15" stroke="#ea580c" stroke-width="2"/>
+          <circle cx="70" cy="24" r="4" fill="#ffffff" opacity="0.6"/>
+          <!-- Splash Droplets -->
+          <circle cx="42" cy="18" r="2.5" fill="#fb923c" style="animation: motionBobaBubble 1.4s ease-in-out infinite;"/>
+          <circle cx="56" cy="14" r="3" fill="#f43f5e" style="animation: motionBobaBubble 1.4s ease-in-out infinite; animation-delay: 0.4s;"/>
+          <defs>
+            <linearGradient id="cocktailSunsetGrad" x1="25" y1="26" x2="75" y2="56" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f43f5e"/>
+              <stop offset="0.6" stop-color="#f97316"/>
+              <stop offset="1" stop-color="#facc15"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    star: {
+      themeColor: '#eab308',
+      glowColor: 'rgba(234, 179, 8, 0.55)',
+      audioFreqs: [659.25, 830.61, 987.77, 1318.51],
+      fx: 'stardust',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Comet trail -->
+          <path d="M12 88C28 76 42 64 54 50" stroke="url(#cometTrailGrad)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M18 94C34 82 46 70 56 54" stroke="url(#cometTrailGrad)" stroke-width="2" stroke-linecap="round"/>
+          <!-- Spinning Star Flare -->
+          <g style="animation: motionStarSpin 6s linear infinite; transform-origin: 56px 44px;">
+            <polygon points="56,18 64,36 84,38 68,52 74,72 56,60 38,72 44,52 28,38 48,36" fill="url(#starGoldenGrad)" filter="drop-shadow(0 0 12px rgba(250,204,21,0.6))"/>
+          </g>
+          <!-- Center bright sparkle -->
+          <polygon points="56,36 58,42 64,44 58,46 56,52 54,46 48,44 54,42" fill="#ffffff" style="animation: motionCrossFlare 1.4s ease-in-out infinite; transform-origin: 56px 44px;"/>
+          <defs>
+            <linearGradient id="starGoldenGrad" x1="28" y1="18" x2="84" y2="72" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fef08a"/>
+              <stop offset="0.5" stop-color="#facc15"/>
+              <stop offset="1" stop-color="#ca8a04"/>
+            </linearGradient>
+            <linearGradient id="cometTrailGrad" x1="12" y1="88" x2="54" y2="50" gradientUnits="userSpaceOnUse">
+              <stop stop-color="transparent"/>
+              <stop offset="1" stop-color="#facc15"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    playlist: {
+      themeColor: '#8b5cf6',
+      glowColor: 'rgba(139, 92, 246, 0.5)',
+      audioFreqs: [440, 554.37, 659.25, 830.61],
+      fx: 'notes',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Cassette Body -->
+          <rect x="18" y="28" width="64" height="42" rx="6" fill="#1e1b4b" stroke="#8b5cf6" stroke-width="2.5" filter="drop-shadow(0 6px 16px rgba(139,92,246,0.35))"/>
+          <rect x="26" y="34" width="48" height="22" rx="3" fill="#a78bfa" opacity="0.8"/>
+          <!-- Reel Gears -->
+          <circle cx="38" cy="45" r="7" fill="#ffffff" stroke="#1e1b4b" stroke-width="2" style="animation: motionCassetteGear 3s linear infinite; transform-origin: 38px 45px;"/>
+          <circle cx="62" cy="45" r="7" fill="#ffffff" stroke="#1e1b4b" stroke-width="2" style="animation: motionCassetteGear 3s linear infinite; transform-origin: 62px 45px;"/>
+          <!-- Floating Music Notes -->
+          <path d="M46 18V8L60 6V16M46 13L60 11" stroke="#ec4899" stroke-width="2" stroke-linecap="round" style="animation: motionPetalDrift 2s ease-in-out infinite;"/>
+          <circle cx="44" cy="18" r="2.5" fill="#ec4899"/>
+          <circle cx="58" cy="16" r="2.5" fill="#ec4899"/>
+          <!-- Equalizer Bars below -->
+          <rect x="30" y="76" width="4" height="12" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; transform-origin: bottom;"/>
+          <rect x="38" y="72" width="4" height="16" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.2s; transform-origin: bottom;"/>
+          <rect x="46" y="70" width="4" height="18" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.4s; transform-origin: bottom;"/>
+          <rect x="54" y="74" width="4" height="14" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.15s; transform-origin: bottom;"/>
+          <rect x="62" y="78" width="4" height="10" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.35s; transform-origin: bottom;"/>
+        </svg>
+      `
+    },
+    chocolates: {
+      themeColor: '#92400e',
+      glowColor: 'rgba(146, 64, 14, 0.45)',
+      audioFreqs: [349.23, 440, 523.25],
+      fx: 'hearts',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Heart Box Base -->
+          <path d="M50 36C42 22 24 28 24 44C24 60 48 76 50 78C52 76 76 60 76 44C76 28 58 22 50 36Z" fill="#78350f" stroke="#fbbf24" stroke-width="2.5" filter="drop-shadow(0 6px 14px rgba(69,26,3,0.4))"/>
+          <!-- Chocolates inside -->
+          <rect x="36" y="42" width="10" height="10" rx="2" fill="#451a03" stroke="#d97706" stroke-width="1.5"/>
+          <circle cx="60" cy="46" r="5.5" fill="#92400e" stroke="#fbbf24" stroke-width="1.5"/>
+          <polygon points="50,56 54,62 46,62" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+          <!-- Ribbon Bow -->
+          <path d="M50 34C44 26 36 32 44 38C50 42 50 34 50 34ZM50 34C56 26 64 32 56 38C50 42 50 34 50 34Z" fill="#fbbf24"/>
+        </svg>
+      `
+    },
+    red_rose: {
+      themeColor: '#be123c',
+      glowColor: 'rgba(190, 18, 60, 0.5)',
+      audioFreqs: [440, 523.25, 659.25, 698.46],
+      fx: 'petals',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Stem & Leaf -->
+          <path d="M50 56V88" stroke="#15803d" stroke-width="4" stroke-linecap="round"/>
+          <path d="M50 72C40 68 36 74 34 76C38 80 46 80 50 76" fill="#16a34a"/>
+          <!-- Rose Petals Layers -->
+          <circle cx="50" cy="42" r="22" fill="#be123c" filter="drop-shadow(0 4px 12px rgba(190,18,60,0.4))"/>
+          <path d="M50 26C42 26 36 34 38 44C40 52 50 56 50 56C50 56 60 52 62 44C64 34 58 26 50 26Z" fill="#e11d48"/>
+          <path d="M46 32C42 34 42 40 46 44C50 48 54 44 54 40C54 36 50 32 46 32Z" fill="#fb7185"/>
+          <!-- Floating Petals in breeze -->
+          <path d="M22 46C20 40 26 38 28 42C30 46 24 50 22 46Z" fill="#e11d48" style="animation: motionPetalDrift 2.2s ease-in-out infinite;"/>
+          <path d="M74 54C72 48 78 46 80 50C82 54 76 58 74 54Z" fill="#fb7185" style="animation: motionPetalDrift 2.2s ease-in-out infinite; animation-delay: 0.8s;"/>
+        </svg>
+      `
+    },
+    cinema_tickets: {
+      themeColor: '#dc2626',
+      glowColor: 'rgba(220, 38, 38, 0.45)',
+      audioFreqs: [523.25, 659.25, 783.99],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Popcorn Bucket -->
+          <path d="M30 46L36 86H64L70 46H30Z" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+          <path d="M40 46L44 86M50 46L50 86M60 46L56 86" stroke="#ffffff" stroke-width="4"/>
+          <!-- Popping Kernels -->
+          <circle cx="50" cy="40" r="7" fill="#fde047" stroke="#ca8a04" stroke-width="1.5"/>
+          <circle cx="38" cy="42" r="6" fill="#fef08a"/>
+          <circle cx="62" cy="42" r="6.5" fill="#fef08a"/>
+          <circle cx="45" cy="30" r="5" fill="#facc15" style="--kx: -14px; --kx2: -24px; animation: motionPopcornKernels 1.4s ease-out infinite;"/>
+          <circle cx="55" cy="26" r="5.5" fill="#fde047" style="--kx: 16px; --kx2: 26px; animation: motionPopcornKernels 1.4s ease-out infinite; animation-delay: 0.4s;"/>
+          <!-- VIP Ticket behind -->
+          <rect x="62" y="18" width="22" height="14" rx="2" transform="rotate(20 62 18)" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
+        </svg>
+      `
+    },
+    magic_box: {
+      themeColor: '#6366f1',
+      glowColor: 'rgba(99, 102, 241, 0.55)',
+      audioFreqs: [392, 523.25, 659.25, 783.99, 1046.50],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Upward light rays -->
+          <polygon points="50,45 25,6 75,6" fill="url(#magicLightBeam)" opacity="0.6"/>
+          <!-- Box Base -->
+          <rect x="25" y="46" width="50" height="38" rx="4" fill="#4338ca" stroke="#fbbf24" stroke-width="2"/>
+          <rect x="46" y="46" width="8" height="38" fill="#fbbf24"/>
+          <!-- Box Lid Popping -->
+          <g style="animation: motionBoxLidPop 1.6s ease-in-out infinite; transform-origin: 25px 46px;">
+            <rect x="22" y="38" width="56" height="10" rx="3" fill="#6366f1" stroke="#fbbf24" stroke-width="2"/>
+            <path d="M50 38C44 30 36 34 44 38ZM50 38C56 30 64 34 56 38Z" fill="#fbbf24"/>
+          </g>
+          <!-- Stars bursting out -->
+          <polygon points="50,22 52,27 58,28 53,32 55,37 50,34 45,37 47,32 42,28 48,27" fill="#fde047" style="animation: motionCrossFlare 1.4s ease-in-out infinite;"/>
+          <defs>
+            <linearGradient id="magicLightBeam" x1="50" y1="45" x2="50" y2="6" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fbbf24"/>
+              <stop offset="1" stop-color="transparent"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    rooftop_date: {
+      themeColor: '#3b82f6',
+      glowColor: 'rgba(59, 130, 246, 0.45)',
+      audioFreqs: [440, 554.37, 659.25, 783.99],
+      fx: 'stardust',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Sky disc -->
+          <circle cx="50" cy="50" r="38" fill="url(#skylineNightGrad)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+          <!-- Crescent Moon -->
+          <path d="M68 28C64 34 58 36 50 34C58 46 72 44 76 36C74 38 71 38 68 28Z" fill="#fef08a" filter="drop-shadow(0 0 8px rgba(254,240,138,0.8))"/>
+          <!-- City Skyline -->
+          <rect x="22" y="52" width="12" height="32" fill="#0f172a"/>
+          <rect x="36" y="44" width="16" height="40" fill="#1e1b4b"/>
+          <rect x="54" y="56" width="14" height="28" fill="#0f172a"/>
+          <rect x="70" y="48" width="10" height="36" fill="#1e1b4b"/>
+          <!-- Glowing Windows -->
+          <circle cx="42" cy="50" r="1.5" fill="#fde047"/>
+          <circle cx="46" cy="58" r="1.5" fill="#fde047"/>
+          <circle cx="60" cy="62" r="1.5" fill="#fde047"/>
+          <defs>
+            <linearGradient id="skylineNightGrad" x1="50" y1="12" x2="50" y2="88" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1e1b4b"/>
+              <stop offset="0.6" stop-color="#172554"/>
+              <stop offset="1" stop-color="#0284c7"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    candle_dinner: {
+      themeColor: '#d97706',
+      glowColor: 'rgba(217, 119, 6, 0.5)',
+      audioFreqs: [329.63, 440, 554.37],
+      fx: 'sparks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Candle holder -->
+          <path d="M30 84C30 80 40 78 50 78C60 78 70 80 70 84H30Z" fill="#ca8a04"/>
+          <rect x="46" y="48" width="8" height="32" rx="2" fill="#fef3c7" stroke="#ca8a04" stroke-width="1.5"/>
+          <!-- Flame aura -->
+          <circle cx="50" cy="38" r="16" fill="url(#candleFlameAura)" opacity="0.6"/>
+          <!-- Flickering Candle Flame -->
+          <g style="animation: motionFlameFlicker 0.7s ease-in-out infinite; transform-origin: 50% 44px;">
+            <path d="M50 26C45 34 46 42 50 44C54 42 55 34 50 26Z" fill="#ea580c"/>
+            <path d="M50 32C48 36 48 42 50 43C52 42 52 36 50 32Z" fill="#fde047"/>
+          </g>
+          <defs>
+            <radialGradient id="candleFlameAura" cx="50" cy="38" r="16" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f59e0b"/>
+              <stop offset="1" stop-color="transparent"/>
+            </radialGradient>
+          </defs>
+        </svg>
+      `
+    },
+    museum_pass: {
+      themeColor: '#10b981',
+      glowColor: 'rgba(16, 185, 129, 0.45)',
+      audioFreqs: [523.25, 587.33, 659.25, 783.99],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Palette Body -->
+          <path d="M25 60C15 45 30 25 55 25C75 25 85 38 85 55C85 70 70 78 55 78C48 78 45 74 42 74C38 74 34 82 28 78C22 74 20 68 25 60Z" fill="#fef3c7" stroke="#b45309" stroke-width="2.5" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.3))"/>
+          <!-- Thumb hole -->
+          <circle cx="32" cy="62" r="5" fill="#0f172a"/>
+          <!-- Color blobs -->
+          <circle cx="42" cy="35" r="4.5" fill="#ef4444"/>
+          <circle cx="56" cy="34" r="4.5" fill="#3b82f6"/>
+          <circle cx="70" cy="42" r="4.5" fill="#10b981"/>
+          <circle cx="72" cy="56" r="4.5" fill="#f59e0b"/>
+          <circle cx="62" cy="68" r="4.5" fill="#8b5cf6"/>
+          <!-- Paintbrush across -->
+          <path d="M22 22L46 46" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+          <path d="M22 22L18 18" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      `
+    },
+    vip_crown: {
+      themeColor: '#eab308',
+      glowColor: 'rgba(234, 179, 8, 0.6)',
+      audioFreqs: [523.25, 659.25, 783.99, 1046.50, 1318.51],
+      fx: 'sparks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Royal Golden Crown -->
+          <g style="animation: motionCrownBob 1.6s ease-in-out infinite; transform-origin: 50% 50%;">
+            <path d="M18 40L30 76H70L82 40L64 54L50 32L36 54L18 40Z" fill="url(#crownGoldenGrad)" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 8px 18px rgba(234,179,8,0.5))"/>
+            <!-- Jewels -->
+            <circle cx="50" cy="32" r="4" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+            <circle cx="18" cy="40" r="3" fill="#3b82f6"/>
+            <circle cx="82" cy="40" r="3" fill="#10b981"/>
+            <circle cx="50" cy="65" r="4" fill="#a855f7"/>
+            <!-- Diamond flare at top center -->
+            <polygon points="50,20 52,24 56,25 52,26 50,30 48,26 44,25 48,24" fill="#ffffff" style="animation: motionCrossFlare 1.4s ease-in-out infinite; transform-origin: 50px 25px;"/>
+          </g>
+          <defs>
+            <linearGradient id="crownGoldenGrad" x1="18" y1="32" x2="82" y2="76" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fef08a"/>
+              <stop offset="0.5" stop-color="#eab308"/>
+              <stop offset="1" stop-color="#a16207"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    stargazing: {
+      themeColor: '#6366f1',
+      glowColor: 'rgba(99, 102, 241, 0.5)',
+      audioFreqs: [440, 659.25, 880, 1318.51],
+      fx: 'cosmic',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Constellation lines -->
+          <path d="M30 20L42 26L52 22L68 32L78 28" stroke="rgba(147,197,253,0.7)" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <circle cx="30" cy="20" r="2.5" fill="#ffffff"/>
+          <circle cx="42" cy="26" r="2" fill="#93c5fd"/>
+          <circle cx="52" cy="22" r="2.5" fill="#ffffff"/>
+          <circle cx="68" cy="32" r="2" fill="#93c5fd"/>
+          <circle cx="78" cy="28" r="3" fill="#fde047" style="animation: motionCrossFlare 1.5s ease-in-out infinite;"/>
+          <!-- Telescope Barrel -->
+          <path d="M34 68L68 34" stroke="#d97706" stroke-width="8" stroke-linecap="round"/>
+          <path d="M32 70L24 78" stroke="#92400e" stroke-width="4" stroke-linecap="round"/>
+          <path d="M66 36L72 30" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+          <!-- Tripod legs -->
+          <line x1="48" y1="54" x2="36" y2="88" stroke="#64748b" stroke-width="2.5"/>
+          <line x1="48" y1="54" x2="52" y2="88" stroke="#64748b" stroke-width="2.5"/>
+          <line x1="48" y1="54" x2="64" y2="88" stroke="#64748b" stroke-width="2.5"/>
+        </svg>
+      `
+    },
+    hot_air_balloon: {
+      themeColor: '#ec4899',
+      glowColor: 'rgba(236, 72, 153, 0.45)',
+      audioFreqs: [392, 493.88, 587.33, 783.99],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Swaying Balloon -->
+          <g style="animation: motionBalloonDrift 2.2s ease-in-out infinite; transform-origin: 50% 40%;">
+            <!-- Envelope -->
+            <path d="M50 14C32 14 22 28 26 46C28 56 42 68 46 72H54C58 68 72 56 74 46C78 28 68 14 50 14Z" fill="url(#balloonGrad)" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 8px 16px rgba(236,72,153,0.35))"/>
+            <!-- Stripes -->
+            <path d="M42 16C36 26 36 54 44 72" stroke="#ffffff" stroke-width="2"/>
+            <path d="M58 16C64 26 64 54 56 72" stroke="#ffffff" stroke-width="2"/>
+            <!-- Basket Ropes & Basket -->
+            <line x1="46" y1="72" x2="44" y2="80" stroke="#78350f" stroke-width="1.5"/>
+            <line x1="54" y1="72" x2="56" y2="80" stroke="#78350f" stroke-width="1.5"/>
+            <rect x="42" y="80" width="16" height="10" rx="2" fill="#d97706" stroke="#92400e" stroke-width="1.5"/>
+          </g>
+          <!-- Clouds in parallax -->
+          <ellipse cx="20" cy="50" rx="14" ry="6" fill="rgba(255,255,255,0.7)"/>
+          <ellipse cx="84" cy="34" rx="12" ry="5" fill="rgba(255,255,255,0.7)"/>
+          <defs>
+            <linearGradient id="balloonGrad" x1="22" y1="14" x2="78" y2="72" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f43f5e"/>
+              <stop offset="0.5" stop-color="#ec4899"/>
+              <stop offset="1" stop-color="#0284c7"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    fireworks: {
+      themeColor: '#f43f5e',
+      glowColor: 'rgba(244, 63, 94, 0.6)',
+      audioFreqs: [523.25, 659.25, 783.99, 1046.50, 1567.98],
+      fx: 'fireworks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Central explosive starburst -->
+          <g style="animation: motionFireworksBurst 1.5s ease-out infinite; transform-origin: 50% 50%;">
+            <circle cx="50" cy="50" r="8" fill="#facc15" filter="drop-shadow(0 0 10px #facc15)"/>
+            <line x1="50" y1="16" x2="50" y2="34" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <line x1="50" y1="66" x2="50" y2="84" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <line x1="16" y1="50" x2="34" y2="50" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+            <line x1="66" y1="50" x2="84" y2="50" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+            <line x1="26" y1="26" x2="38" y2="38" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="62" y1="62" x2="74" y2="74" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="74" y1="26" x2="62" y2="38" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="62" x2="26" y2="74" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+        </svg>
+      `
+    },
+    luxury_ring: {
+      themeColor: '#06b6d4',
+      glowColor: 'rgba(6, 182, 212, 0.55)',
+      audioFreqs: [880, 1108.73, 1318.51, 1760],
+      fx: 'stardust',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Gold band -->
+          <ellipse cx="50" cy="62" rx="24" ry="12" stroke="#fbbf24" stroke-width="5" fill="none"/>
+          <ellipse cx="50" cy="60" rx="24" ry="12" stroke="#fef08a" stroke-width="2" fill="none"/>
+          <!-- Prong Mount -->
+          <path d="M44 48L50 40L56 48" stroke="#f8fafc" stroke-width="2.5"/>
+          <!-- Solitaire Faceted Diamond -->
+          <g style="animation: motionDiamondShimmer 4s linear infinite; transform-origin: 50% 34px;">
+            <polygon points="50,18 64,28 58,44 42,44 36,28" fill="url(#diamondPrismGrad)" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 0 14px rgba(56,189,248,0.7))"/>
+            <line x1="42" y1="28" x2="58" y2="28" stroke="#ffffff" stroke-width="1.5"/>
+            <line x1="50" y1="18" x2="50" y2="44" stroke="#ffffff" stroke-width="1.5"/>
+          </g>
+          <!-- 4-point Diamond Glare -->
+          <polygon points="50,12 52,24 64,26 52,28 50,40 48,28 36,26 48,24" fill="#ffffff" style="animation: motionCrossFlare 1.3s ease-in-out infinite; transform-origin: 50px 26px;"/>
+          <defs>
+            <linearGradient id="diamondPrismGrad" x1="36" y1="18" x2="64" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#ffffff"/>
+              <stop offset="0.4" stop-color="#bae6fd"/>
+              <stop offset="0.8" stop-color="#7dd3fc"/>
+              <stop offset="1" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    island_trip: {
+      themeColor: '#0d9488',
+      glowColor: 'rgba(13, 148, 136, 0.5)',
+      audioFreqs: [392, 523.25, 659.25, 783.99, 987.77],
+      fx: 'fireworks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ocean Water Rings -->
+          <ellipse cx="50" cy="74" rx="38" ry="12" stroke="#2dd4bf" stroke-width="2" style="animation: motionIslandWaves 1.8s ease-out infinite; transform-origin: 50px 74px;"/>
+          <!-- Sand island mound -->
+          <ellipse cx="50" cy="72" rx="30" ry="9" fill="#fde047" stroke="#ca8a04" stroke-width="2"/>
+          <!-- Palm Tree Trunk -->
+          <path d="M48 72C46 58 52 48 56 36" stroke="#92400e" stroke-width="4.5" stroke-linecap="round"/>
+          <!-- Palm Fronds -->
+          <path d="M56 36C44 32 36 38 34 44M56 36C48 26 40 24 36 28M56 36C62 26 72 26 76 30M56 36C68 32 74 38 78 44M56 36C56 24 58 18 60 16" stroke="#16a34a" stroke-width="3" stroke-linecap="round"/>
+          <!-- Tropical Sunshine -->
+          <circle cx="28" cy="24" r="8" fill="#facc15" filter="drop-shadow(0 0 8px #facc15)"/>
+        </svg>
+      `
+    }
+  };
+
+  let celebrationDismissTimer = null;
+
+  function triggerGiftCelebrationGraphic(gift, senderName = 'Un ami', recipientName = 'Vous', customNote = '') {
+    const stage = document.getElementById('giftCelebrationStage');
+    if (!stage) return;
+
+    const profile = GIFT_MOTION_PROFILES[gift.id] || GIFT_MOTION_PROFILES.coffee;
+
+    // 1. Populate Ambient Halo & Colors
+    const halo = document.getElementById('giftHeroHalo');
+    if (halo) {
+      halo.style.background = `radial-gradient(circle, ${profile.glowColor} 0%, transparent 70%)`;
+    }
+
+    // 2. Inject Hero Motion Visual SVG
+    const visual = document.getElementById('giftHeroVisual');
+    if (visual) {
+      visual.innerHTML = profile.svg;
+    }
+
+    // 3. Populate Card Metadata
+    const badge = document.getElementById('giftCelebrationBadge');
+    const sender = document.getElementById('giftCelebrationSender');
+    const name = document.getElementById('giftCelebrationName');
+    const note = document.getElementById('giftCelebrationNote');
+    const points = document.getElementById('giftCelebrationPoints');
+
+    if (badge) badge.textContent = `${gift.typeLabel || 'Attention'} • ${gift.ambianceLabel || 'WafaTalk'}`;
+    if (sender) sender.textContent = `Offert par ${senderName} à ${recipientName}`;
+    if (name) name.innerHTML = `<span>${gift.icon}</span> ${gift.name}`;
+    if (note) note.textContent = `« ${customNote || gift.accroche} »`;
+    if (points) points.textContent = `+${gift.points} pts d'amitié`;
+
+    // 4. Play Customized Harmonic Sound Chime
+    try {
+      if (profile.audioFreqs && profile.audioFreqs.length > 0) {
+        profile.audioFreqs.forEach((freq, idx) => {
+          setTimeout(() => playTone(freq, 'sine', 0.28), idx * 80);
+        });
+      } else {
+        playGiftChime();
+      }
+    } catch (e) {
+      playGiftChime();
+    }
+
+    // 5. Fire choreographed Canvas Particles from Hero Apex
+    const originX = window.innerWidth / 2;
+    const originY = Math.max(window.innerHeight * 0.38, 180);
+    launchParticles(originX, originY, profile.fx || gift.fx || 'confetti');
+
+    // 6. Reveal Stage with Spring Animation
+    if (celebrationDismissTimer) {
+      clearTimeout(celebrationDismissTimer);
+      celebrationDismissTimer = null;
+    }
+
+    stage.classList.remove('hidden', 'exiting');
+    // Force layout reflow so CSS transitions & keyframe animations fire reliably
+    void stage.offsetWidth;
+    stage.classList.add('active');
+
+    // Auto-dismiss after 2.3 seconds with smooth exit
+    celebrationDismissTimer = setTimeout(() => {
+      dismissGiftCelebration();
+    }, 2300);
+  }
+
+  function dismissGiftCelebration() {
+    const stage = document.getElementById('giftCelebrationStage');
+    if (!stage || !stage.classList.contains('active')) return;
+
+    if (celebrationDismissTimer) {
+      clearTimeout(celebrationDismissTimer);
+      celebrationDismissTimer = null;
+    }
+
+    stage.classList.add('exiting');
+    setTimeout(() => {
+      stage.classList.remove('active', 'exiting');
+      stage.classList.add('hidden');
+    }, 320);
+  }
+
+  // Allow click anywhere on the celebration stage/backdrop to dismiss immediately
+  document.getElementById('giftCelebrationBackdrop')?.addEventListener('click', dismissGiftCelebration);
+  document.getElementById('giftCelebrationWrapper')?.addEventListener('click', dismissGiftCelebration);
+
+  // Expose for testing & celebration integration
+  window.triggerGiftCelebrationGraphic = triggerGiftCelebrationGraphic;
+  window.GIFTS_CATALOG = GIFTS_CATALOG;
+  window.dismissGiftCelebration = dismissGiftCelebration;
+
+
+  // =========================================================================
+  // 12. CANVAS PARTICLE FX ENGINE (HEARTS, STARS, CONFETTI & FIREWORKS)
   // =========================================================================
   let particles = [];
   let isAnimating = false;
@@ -6089,24 +7446,141 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
+  // Vector Shape Drawing Helpers (Pure Canvas 2D without emojis)
+  function drawCanvasHeart(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const topCurveHeight = size * 0.35;
+    ctx.moveTo(0, topCurveHeight);
+    ctx.bezierCurveTo(-size * 0.5, -topCurveHeight, -size, topCurveHeight * 0.5, 0, size * 1.1);
+    ctx.bezierCurveTo(size, topCurveHeight * 0.5, size * 0.5, -topCurveHeight, 0, topCurveHeight);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawCanvasStar(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const spikes = 5;
+    const outerRadius = size;
+    const innerRadius = size * 0.45;
+    let rot = (Math.PI / 2) * 3;
+    let x = 0;
+    let y = 0;
+    const step = Math.PI / spikes;
+
+    ctx.moveTo(0, -outerRadius);
+    for (let i = 0; i < spikes; i++) {
+      x = Math.cos(rot) * outerRadius;
+      y = Math.sin(rot) * outerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+
+      x = Math.cos(rot) * innerRadius;
+      y = Math.sin(rot) * innerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(0, -outerRadius);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawCanvasPetal(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 0.5, size * 1.1, Math.PI / 4, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  function drawCanvasBubble(ctx, size, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.beginPath();
+    ctx.arc(0, 0, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Inner reflection
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-size * 0.35, -size * 0.35, size * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawCanvasNote(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    // note head
+    ctx.beginPath();
+    ctx.ellipse(-size * 0.3, size * 0.3, size * 0.35, size * 0.25, -Math.PI / 6, 0, Math.PI * 2);
+    ctx.fill();
+    // note stem
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.1, size * 0.3);
+    ctx.lineTo(-size * 0.1, -size * 0.6);
+    ctx.lineTo(size * 0.4, -size * 0.4);
+    ctx.stroke();
+  }
+
   function launchParticles(x, y, type = 'confetti') {
-    const colors = ['#0d837d', '#14a39b', '#f25b3e', '#ff7a59', '#f8b84e', '#ffd166'];
-    const count = type === 'fireworks' ? 120 : 60;
+    const originX = x || window.innerWidth / 2;
+    const originY = y || window.innerHeight / 2;
+
+    let palette = ['#0d837d', '#14a39b', '#f25b3e', '#ff7a59', '#f8b84e', '#ffd166'];
+    let count = 60;
+    let speedBase = 6;
+    let shape = 'confetti';
+
+    if (type === 'hearts' || type === 'heart') {
+      palette = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af', '#f25b3e'];
+      count = 55;
+      shape = 'heart';
+    } else if (type === 'fireworks') {
+      palette = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ffd166'];
+      count = 130;
+      speedBase = 12;
+      shape = 'spark';
+    } else if (type === 'stardust' || type === 'star' || type === 'sparks') {
+      palette = ['#f59e0b', '#fbbf24', '#fde68a', '#ffffff', '#0d837d'];
+      count = 65;
+      shape = 'star';
+    } else if (type === 'petals') {
+      palette = ['#e11d48', '#be123c', '#fda4af', '#fff1f2'];
+      count = 50;
+      shape = 'petal';
+    } else if (type === 'bubbles' || type === 'steam') {
+      palette = ['#38bdf8', '#7dd3fc', '#bae6fd', '#0d837d', '#ffffff'];
+      count = 45;
+      shape = 'bubble';
+    } else if (type === 'notes') {
+      palette = ['#8b5cf6', '#a78bfa', '#0d837d', '#f25b3e'];
+      count = 45;
+      shape = 'note';
+    } else if (type === 'cosmic') {
+      palette = ['#6366f1', '#8b5cf6', '#ec4899', '#38bdf8', '#ffd166'];
+      count = 80;
+      speedBase = 8;
+      shape = 'star';
+    }
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 8 + 2;
+      const speed = Math.random() * speedBase + 2;
       particles.push({
-        x: x || window.innerWidth / 2,
-        y: y || window.innerHeight / 2,
+        x: originX,
+        y: originY,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - (type === 'fireworks' ? 3 : 1),
-        size: Math.random() * 7 + 4,
-        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.sin(angle) * speed - (type === 'fireworks' ? 3.5 : (type === 'steam' ? 3 : 1)),
+        size: Math.random() * 6 + 4,
+        color: palette[Math.floor(Math.random() * palette.length)],
         alpha: 1,
         rotation: Math.random() * 360,
-        vr: (Math.random() - 0.5) * 10,
-        isHeart: type === 'heart'
+        vr: (Math.random() - 0.5) * 8,
+        shape: shape,
+        decay: type === 'steam' ? 0.012 : (type === 'fireworks' ? 0.014 : 0.016),
+        gravity: type === 'steam' ? -0.06 : (type === 'bubbles' ? -0.04 : 0.16)
       });
     }
 
@@ -6123,8 +7597,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const p = particles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.18; // gravity
-      p.alpha -= 0.015;
+      p.vy += p.gravity;
+      p.alpha -= p.decay;
       p.rotation += p.vr;
 
       ctx.save();
@@ -6132,9 +7606,21 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.translate(p.x, p.y);
       ctx.rotate((p.rotation * Math.PI) / 180);
 
-      if (p.isHeart) {
-        ctx.font = `${p.size * 2}px sans-serif`;
-        ctx.fillText('', 0, 0);
+      if (p.shape === 'heart') {
+        drawCanvasHeart(ctx, p.size, p.color);
+      } else if (p.shape === 'star') {
+        drawCanvasStar(ctx, p.size, p.color);
+      } else if (p.shape === 'petal') {
+        drawCanvasPetal(ctx, p.size, p.color);
+      } else if (p.shape === 'bubble') {
+        drawCanvasBubble(ctx, p.size, p.color);
+      } else if (p.shape === 'note') {
+        drawCanvasNote(ctx, p.size, p.color);
+      } else if (p.shape === 'spark') {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 0.65, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
@@ -6142,7 +7628,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ctx.restore();
 
-      if (p.alpha <= 0 || p.y > fxCanvas.height) {
+      if (p.alpha <= 0 || p.y > fxCanvas.height + 50 || p.y < -50) {
         particles.splice(i, 1);
       }
     }
@@ -6476,14 +7962,14 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.style.display = pendingFriendRequests.length > 0 ? 'block' : 'none';
       }
       const senderName = request?.sender?.displayName || request?.sender?.username || 'Quelqu\'un';
-      showToast(`👋 ${senderName} vous a envoyé une demande d'ami !`, 'green');
+      showToast(`${senderName} vous a envoyé une demande d'ami.`, 'green');
       playTone(550, 'sine', 0.2);
       renderFriends();
     });
 
     socket.on('friend:request_accepted', ({ request }) => {
       const accepterName = request?.receiver?.displayName || request?.receiver?.username || 'Un utilisateur';
-      showToast(`🎉 ${accepterName} a accepté votre demande d'ami !`, 'green');
+      showToast(`${accepterName} a accepté votre demande d'ami.`, 'green');
       playTone(660, 'sine', 0.2);
       refreshFriendData().then(() => renderFriends());
     });
@@ -6500,6 +7986,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // SALON GROUP SOCKET EVENTS (MULTI-USER ROSTER, AUDIO/VIDEO MESH & CHAT)
     // =========================================================================
+    // Real-time Salon Gift Celebration Received from another member
+    socket.on('salon:gift', ({ sender, receiver, giftType, costPoints, customMessage }) => {
+      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || {
+        name: 'Attention Spéciale',
+        icon: '🎁',
+        fx: 'confetti',
+        accroche: 'Une attention spéciale partagée avec le salon.'
+      };
+      
+      // Trigger festive particles and sound
+      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      const senderName = sender?.displayName || sender?.username || 'Un ami';
+      const receiverName = receiver?.displayName || receiver?.username || 'tout le salon';
+      const messageText = customMessage || gift.accroche;
+
+      // Show toast
+      showToast(`${senderName} a offert ${gift.name} à ${receiverName} !`, 'amber');
+
+      // Append celebration announcement in salon chat
+      if (chatMessagesScroll) {
+        const giftEl = document.createElement('div');
+        giftEl.className = 'chat-gift-announcement';
+        giftEl.innerHTML = `
+          <div class="chat-gift-icon-bubble">${gift.icon}</div>
+          <div class="chat-gift-content">
+            <div class="chat-gift-headline"><strong>${senderName}</strong> a offert <strong>${gift.name}</strong> (${receiverName}) !</div>
+            <div class="chat-gift-note">« ${messageText} »</div>
+          </div>
+        `;
+        chatMessagesScroll.appendChild(giftEl);
+        chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+      }
+    });
+
     // Active Roster received upon joining salon
     socket.on('salon:roster', async ({ salonId, participants }) => {
       if (!state.currentRoom || state.currentRoom.id !== salonId) return;
@@ -7062,7 +8583,7 @@ document.addEventListener('DOMContentLoaded', () => {
           video.muted = true;
           video.preload = 'metadata';
           videoWrap.appendChild(video);
-          videoWrap.innerHTML += '<div class="dm-media-video-play-btn">▶</div>';
+          videoWrap.innerHTML += '<div class="dm-media-video-play-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></div>';
           const cover = document.createElement('div');
           cover.className = 'dm-oneview-cover';
           cover.innerHTML = `<span class="dm-oneview-cover-icon"></span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vidéo · vue unique</span>`;
@@ -7336,7 +8857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show upload progress in messages area
     const progressEl = document.createElement('div');
     progressEl.className = 'dm-upload-progress';
-    progressEl.innerHTML = `<span>⬆️ Envoi en cours...</span><div class="dm-upload-progress-bar-wrap"><div class="dm-upload-progress-bar"></div></div>`;
+    progressEl.innerHTML = `<span>Envoi en cours...</span><div class="dm-upload-progress-bar-wrap"><div class="dm-upload-progress-bar"></div></div>`;
     dmMessagesScroll?.appendChild(progressEl);
     scrollDmToBottom();
 

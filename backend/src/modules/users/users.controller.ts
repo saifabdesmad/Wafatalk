@@ -4,8 +4,10 @@ import { z } from 'zod';
 
 const giftSchema = z.object({
   salonId: z.string().min(1),
-  giftType: z.enum(['heart', 'star', 'crown', 'rocket', 'diamond']),
+  giftType: z.string().min(1),
   costPoints: z.number().int().positive().default(10),
+  receiverId: z.string().optional(),
+  customMessage: z.string().max(300).optional(),
 });
 
 export async function usersRoutes(fastify: FastifyInstance) {
@@ -44,7 +46,9 @@ export async function usersRoutes(fastify: FastifyInstance) {
         request.user.id,
         input.salonId,
         input.giftType,
-        input.costPoints
+        input.costPoints,
+        input.receiverId,
+        input.customMessage
       );
 
       // Broadcast gift event via Socket.IO if available
@@ -52,8 +56,10 @@ export async function usersRoutes(fastify: FastifyInstance) {
       if (io) {
         io.to(`salon:${input.salonId}`).emit('salon:gift', {
           sender: result.gift.sender,
+          receiver: (result.gift as any).receiver || null,
           giftType: input.giftType,
           costPoints: input.costPoints,
+          customMessage: input.customMessage || null,
           timestamp: result.gift.createdAt,
         });
       }

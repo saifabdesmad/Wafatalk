@@ -16,20 +16,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css?v=20261119c">
+  <link rel="stylesheet" href="styles.css?v=20261122b">
 </head>
 <body>
 
-  <!-- Background Animated Ambient Mesh & Geometric Pattern -->
+  <!-- Background Surface & Pattern Overlay -->
   <div class="ambient-background" aria-hidden="true">
-    <div class="ambient-shape shape-teal"></div>
-    <div class="ambient-shape shape-coral"></div>
-    <div class="ambient-shape shape-amber"></div>
     <div class="geometric-pattern-overlay"></div>
   </div>
 
   <!-- Particle Canvas for Gifts & Celebrations -->
   <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true"></canvas>
+
+  <!-- Motion Design Celebration Stage for Gifts -->
+  <div id="giftCelebrationStage" class="gift-celebration-stage pointer-events-none hidden" aria-live="polite">
+    <div class="gift-celebration-backdrop" id="giftCelebrationBackdrop"></div>
+    <div class="gift-celebration-wrapper" id="giftCelebrationWrapper">
+      <div class="gift-hero-halo" id="giftHeroHalo"></div>
+      <div class="gift-hero-graphic-box" id="giftHeroGraphicBox">
+        <div class="gift-hero-visual" id="giftHeroVisual"></div>
+      </div>
+      <div class="gift-celebration-banner" id="giftCelebrationBanner">
+        <div class="gift-celebration-badge-pill" id="giftCelebrationBadge">Attention Gourmande</div>
+        <div class="gift-celebration-sender" id="giftCelebrationSender">Célébration WafaTalk</div>
+        <h3 class="gift-celebration-name" id="giftCelebrationName">Café Douceur</h3>
+        <p class="gift-celebration-note" id="giftCelebrationNote">« Un petit café pour commencer notre discussion du bon pied ? »</p>
+        <div class="gift-celebration-points" id="giftCelebrationPoints">+30 pts d'amitié</div>
+      </div>
+    </div>
+  </div>
 
   <!-- ============================================================ -->
   <!-- SCREEN 1 : AUTHENTICATION / LOGIN PAGE                       -->
@@ -827,10 +842,14 @@
           <!-- In-Salon Private Whisper Banner -->
           <div class="salon-whisper-banner hidden" id="salonWhisperBanner">
             <div class="whisper-banner-left">
-              <span class="whisper-lock-icon">🔒</span>
+              <span class="whisper-lock-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
               <span class="whisper-target-desc">Chuchotement à <strong id="whisperTargetName">@Membre</strong> <span class="whisper-privacy-note">(visible uniquement par vous deux)</span></span>
             </div>
-            <button type="button" id="btnCancelWhisper" class="btn-cancel-whisper" title="Annuler le chuchotement">✕</button>
+            <button type="button" id="btnCancelWhisper" class="btn-cancel-whisper" title="Annuler le chuchotement" aria-label="Annuler le chuchotement">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
 
           <!-- Chat Input Row -->
@@ -838,7 +857,7 @@
             <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
             </button>
-            <input type="text" id="chatInputText" placeholder="Écrire un message bienveillant..." autocomplete="off" required>
+            <input type="text" id="chatInputText" placeholder="Écrire un message..." autocomplete="off" required>
             <button type="submit" class="btn btn-primary btn-chat-send" title="Envoyer">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
@@ -888,68 +907,211 @@
 
 
   <!-- ============================================================ -->
-  <!-- MODAL : GIFT SHOPPING / BOÎTE À CADEAUX WAFA                 -->
+  <!-- MODAL : BOUTIQUE « COUP DE CŒUR & CADEAUX » (20 GIFTS)       -->
   <!-- ============================================================ -->
   <div class="modal-overlay hidden" id="giftShopModal" role="dialog" aria-modal="true" aria-labelledby="giftShopTitle">
     <div class="modal-container gift-modal-container glass-panel">
+      <!-- Header -->
       <div class="gift-modal-header">
         <div class="gift-header-icon-wrap">
-          <span class="gift-head-emoji"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></span>
+          <span class="gift-head-emoji">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 12 20 22 4 22 4 12"></polyline>
+              <rect x="2" y="7" width="20" height="5"></rect>
+              <line x1="12" y1="22" x2="12" y2="7"></line>
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+            </svg>
+          </span>
         </div>
-        <div>
-          <h2 class="gift-modal-title" id="giftShopTitle">Boîte à Cadeaux WafaTalk</h2>
-          <p class="gift-modal-desc">Envoyez une attention spéciale et faites scintiller l'écran de vos amis !</p>
+        <div class="gift-header-titles">
+          <div class="gift-title-row">
+            <h2 class="gift-modal-title" id="giftShopTitle">Coup de C&oelig;ur &amp; Cadeaux</h2>
+            <div class="gift-user-points-badge" id="giftUserPointsBadge" title="Votre solde actuel de points WafaTalk">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span id="giftModalBalance">450</span> pts
+            </div>
+          </div>
+          <p class="gift-modal-desc">Offrez une attention, brisez la glace avec des accroches originales et illuminez vos rencontres !</p>
         </div>
         <button type="button" class="icon-btn modal-close-btn" id="btnCloseGiftModal" aria-label="Fermer">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
-      <div class="gift-items-grid">
-        
-        <div class="gift-card-item" data-gift="heart" data-name="Cœur WafaTalk" data-points="50">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
-          <strong class="gift-item-title">Cœur WafaTalk</strong>
-          <span class="gift-item-price">50 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="coffee" data-name="Café Douceur" data-points="30">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg></div>
-          <strong class="gift-item-title">Café Douceur</strong>
-          <span class="gift-item-price">30 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="box" data-name="Coffret Magique" data-points="150">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg></div>
-          <strong class="gift-item-title">Coffret Magique</strong>
-          <span class="gift-item-price">150 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="crown" data-name="Couronne VIP" data-points="300">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path></svg></div>
-          <strong class="gift-item-title">Couronne VIP</strong>
-          <span class="gift-item-price">300 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="star" data-name="Étoile Scintillante" data-points="80">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>
-          <strong class="gift-item-title">Étoile Scintillante</strong>
-          <span class="gift-item-price">80 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="fireworks" data-name="Feu d'Artifice" data-points="500">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg></div>
-          <strong class="gift-item-title">Feu d'Artifice</strong>
-          <span class="gift-item-price">500 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
+      <!-- Main Navigation Tabs -->
+      <div class="gift-nav-tabs-bar">
+        <button type="button" class="gift-nav-tab active" data-tab="catalog">
+          <span>Catalogue</span>
+          <span class="gift-tab-counter" id="giftCatalogCounter">20</span>
+        </button>
+        <button type="button" class="gift-nav-tab" data-tab="favorites">
+          <span>Mes Favoris</span>
+          <span class="gift-tab-counter" id="giftFavCounter">0</span>
+        </button>
+        <button type="button" class="gift-nav-tab" data-tab="history">
+          <span>Historique d'envois</span>
+          <span class="gift-tab-counter" id="giftHistoryCounter">0</span>
+        </button>
       </div>
+
+      <!-- Filter Controls Toolbar -->
+      <div class="gift-filter-toolbar" id="giftFilterToolbar">
+        <div class="gift-search-row">
+          <div class="gift-search-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="giftSearchInput" class="gift-search-input" placeholder="Rechercher un cadeau, une attention, une accroche...">
+          </div>
+          <button type="button" class="btn btn-sm btn-surprise-me" id="btnSurpriseMe" title="Sélectionne un cadeau et une accroche au hasard !">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+              <circle cx="8" cy="8" r="1.5" fill="currentColor"></circle>
+              <circle cx="16" cy="16" r="1.5" fill="currentColor"></circle>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+            </svg>
+            <span>Surprends-moi !</span>
+          </button>
+        </div>
+
+        <!-- Ambiance Pills -->
+        <div class="gift-ambiance-pills" id="giftAmbiancePills">
+          <button type="button" class="gift-ambiance-pill active" data-ambiance="all">Tous (20)</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="romantique">Romantique</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="complice">Complice &amp; Fun</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="premier_rdv">Premier RDV</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="festif">Festif &amp; Spectaculaire</button>
+        </div>
+
+        <!-- Sub-filters: Type & Budget -->
+        <div class="gift-subfilters-row">
+          <div class="gift-select-group">
+            <label for="giftTypeSelect">Type :</label>
+            <select id="giftTypeSelect" class="gift-filter-select">
+              <option value="all">Tous les types</option>
+              <option value="gourmand">Attention Gourmande</option>
+              <option value="sortie">Moment &amp; Sortie</option>
+              <option value="declaration">Déclaration Virtuelle</option>
+              <option value="objet">Objet Symbolique</option>
+            </select>
+          </div>
+
+          <div class="gift-select-group">
+            <label for="giftBudgetSelect">Budget :</label>
+            <select id="giftBudgetSelect" class="gift-filter-select">
+              <option value="all">Tous les budgets</option>
+              <option value="tier1">&lt; 50 pts (Accessible)</option>
+              <option value="tier2">50 - 150 pts (Doux)</option>
+              <option value="tier3">150 - 300 pts (Élégant)</option>
+              <option value="tier4">&gt; 300 pts (Prestige)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Dynamic Content Area (Scrollable) -->
+      <div class="gift-modal-body-scrollable">
+        <!-- 20 Gifts Grid Container (Populated dynamically by app.js) -->
+        <div class="gift-items-grid" id="giftsCatalogGrid"></div>
+
+        <!-- Empty State (No match or empty favorites/history) -->
+        <div class="gift-empty-state hidden" id="giftEmptyState">
+          <div class="gift-empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </div>
+          <h3 class="gift-empty-title" id="giftEmptyTitle">Aucun cadeau trouvé</h3>
+          <p class="gift-empty-desc" id="giftEmptyDesc">Essayez de modifier vos filtres ou effectuez une autre recherche.</p>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnResetGiftFilters">Réinitialiser les filtres</button>
+        </div>
+
+        <!-- Sent History List -->
+        <div class="gift-history-list hidden" id="giftHistoryList"></div>
+      </div>
+
+      <!-- Personalization & Live Preview Slide-in Drawer -->
+      <div class="gift-personalize-drawer hidden" id="giftPersonalizeDrawer">
+        <div class="gift-drawer-header">
+          <div class="gift-drawer-header-left">
+            <h3 class="gift-drawer-title">Personnaliser votre attention</h3>
+            <p class="gift-drawer-subtitle">Ajoutez une dédicace et prévisualisez la carte avant d'offrir.</p>
+          </div>
+          <button type="button" class="icon-btn gift-drawer-close" id="btnCloseGiftDrawer" aria-label="Fermer le tiroir">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="gift-drawer-body">
+          <!-- Recipient Selector -->
+          <div class="gift-drawer-field">
+            <label class="gift-field-label" for="giftRecipientSelect">Destinataire :</label>
+            <select id="giftRecipientSelect" class="gift-field-select">
+              <option value="room">À tout le salon (Célébration collective)</option>
+            </select>
+          </div>
+
+          <!-- Suggested Accroche (Icebreaker) with Copy Action -->
+          <div class="gift-drawer-field">
+            <div class="gift-field-label-row">
+              <label class="gift-field-label">Accroche suggérée :</label>
+              <button type="button" class="btn-copy-accroche" id="btnCopyAccroche" title="Copier l'accroche dans le presse-papier">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copyAccrocheLabel">Copier</span>
+              </button>
+            </div>
+            <div class="gift-accroche-box" id="giftAccrocheText"></div>
+          </div>
+
+          <!-- Custom Message Input -->
+          <div class="gift-drawer-field">
+            <label class="gift-field-label" for="giftCustomNote">Votre mot doux personnalisé (optionnel) :</label>
+            <textarea id="giftCustomNote" class="gift-field-textarea" rows="2" maxlength="240" placeholder="Ex: Pour te remercier pour notre échange d'hier soir..."></textarea>
+            <div class="gift-char-counter"><span id="giftCharCount">0</span>/240</div>
+          </div>
+
+          <!-- Live Card Preview -->
+          <div class="gift-drawer-preview-wrap">
+            <div class="gift-preview-label">Aperçu en direct :</div>
+            <div class="gift-live-preview-card" id="giftLivePreviewCard">
+              <div class="preview-card-badge" id="previewCardAmbiance">Romantique</div>
+              <div class="preview-card-icon" id="previewCardIcon"></div>
+              <div class="preview-card-info">
+                <h4 class="preview-card-name" id="previewCardName">Coup de Cœur</h4>
+                <div class="preview-card-cost" id="previewCardCost">50 pts d'amitié</div>
+                <p class="preview-card-note" id="previewCardNote"></p>
+                <div class="preview-card-recipient" id="previewCardRecipient">Offert à tout le salon</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gift-drawer-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelGiftDrawer">Annuler</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmSendGift">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span id="confirmSendGiftText">Confirmer et offrir</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1492,7 +1654,7 @@
         <div class="terms-modal-actions">
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <a href="terms.html" target="_blank" class="btn btn-secondary btn-sm" id="btnOpenFullTermsPage">
-              <span>CGU complètes ↗</span>
+              <span>Conditions d'utilisation</span>
             </a>
             <a href="privacy.html" target="_blank" class="btn btn-secondary btn-sm">
               <span>Politique RGPD</span>
@@ -2579,6 +2741,6 @@
   </script>
 
   <!-- Main JavaScript File -->
-  <script src="app.js?v=20261119c"></script>
+  <script src="app.js?v=20261122b"></script>
 </body>
 </html>

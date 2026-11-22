@@ -78,7 +78,7 @@ export class UsersService {
     }));
   }
 
-  static async sendGift(senderId: string, salonId: string, giftType: string, costPoints: number) {
+  static async sendGift(senderId: string, salonId: string, giftType: string, costPoints: number, receiverId?: string, customMessage?: string) {
     const sender = await prisma.user.findUnique({ where: { id: senderId } });
     if (!sender) throw new Error('Utilisateur expéditeur introuvable.');
 
@@ -99,9 +99,13 @@ export class UsersService {
           salonId,
           giftType,
           costPoints,
+          receiverId: receiverId || null,
         },
         include: {
           sender: {
+            select: { id: true, displayName: true, avatarUrl: true },
+          },
+          receiver: {
             select: { id: true, displayName: true, avatarUrl: true },
           },
         },
@@ -111,6 +115,7 @@ export class UsersService {
     return {
       newBalance: updatedSender.wafaPoints,
       gift: giftLog,
+      customMessage: customMessage || null,
     };
   }
 }
