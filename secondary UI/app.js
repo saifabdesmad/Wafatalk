@@ -1262,6 +1262,9 @@ document.addEventListener('DOMContentLoaded', () => {
       socket.disconnect();
       socket = null;
     }
+    if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+      NotificationManager.clearAllMemory();
+    }
     renderFriends();
   }
 
@@ -1329,6 +1332,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderSalons();
       renderFriends();
+      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+        NotificationManager.init();
+      }
     };
 
     if (playFx) {
@@ -6151,24 +6157,360 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // =========================================================================
-  // 9. DROPDOWNS & NAVIGATION TOGGLES
+  // 9. REAL-TIME DYNAMIC NOTIFICATION CENTER (GIFTS 1H & SEEN MESSAGES AUTO-PURGE)
   // =========================================================================
+  function formatTimeAgo(ts) {
+    if (!ts) return "À l'instant";
+    const diff = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diff < 45) return "À l'instant";
+    if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`;
+    return `Il y a ${Math.floor(diff / 86400)} j`;
+  }
+
+  const NotificationManager = {
+    notifications: [],
+    seenMessageIds: new Set(),
+    isDropdownOpen: false,
+    _timer: null,
+
+    init() {
+      this.loadNotifications();
+      this.render();
+      this.startExpiryLoop();
+    },
+
+    clearAllMemory() {
+      this.notifications = [];
+      this.seenMessageIds.clear();
+      this.render();
+    },
+
+    getStorageKey() {
+      const uid = state.currentUser?.id || 'guest';
+      return `wafatalk_notifs_${uid}`;
+    },
+
+    loadNotifications() {
+      try {
+        const raw = localStorage.getItem(this.getStorageKey());
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const now = Date.now();
+          // Filter out expired gifts (> 1 hour)
+          this.notifications = Array.isArray(parsed) ? parsed.filter(n => {
+            if (n.type === 'gift' && n.expiresAt && now > n.expiresAt) return false;
+            return true;
+          }) : [];
+        } else {
+          this.notifications = [];
+        }
+      } catch (e) {
+        this.notifications = [];
+      }
+    },
+
+    saveNotifications() {
+      try {
+        localStorage.setItem(this.getStorageKey(), JSON.stringify(this.notifications));
+      } catch (e) {}
+    },
+
+    startExpiryLoop() {
+      if (this._timer) clearInterval(this._timer);
+      this._timer = setInterval(() => {
+        const now = Date.now();
+        let changed = false;
+        this.notifications = this.notifications.filter(n => {
+          if (n.type === 'gift' && n.expiresAt && now > n.expiresAt) {
+            changed = true;
+            return false;
+          }
+          return true;
+        });
+        if (changed) {
+          this.saveNotifications();
+          this.render();
+        } else if (this.isDropdownOpen) {
+          this.render();
+        }
+      }, 20000);
+    },
+
+    addNotification({ type, title, message, avatarUrl, icon, metadata = {} }) {
+      // Deduplicate messages by messageId
+      if (metadata.messageId && this.notifications.some(n => n.metadata?.messageId === metadata.messageId)) {
+        return;
+      }
+      const now = Date.now();
+      const notif = {
+        id: 'notif_' + now + '_' + Math.random().toString(36).slice(2, 7),
+        type, // 'message' | 'gift' | 'wink' | 'system'
+        title,
+        message,
+        avatarUrl: avatarUrl || null,
+        icon: icon || (type === 'gift' ? '🎁' : type === 'wink' ? '😉' : '💬'),
+        timestamp: now,
+        // Gifts stay for 1 hour (60 minutes = 3,600,000 ms)
+        expiresAt: type === 'gift' ? (now + 60 * 60 * 1000) : null,
+        seen: false,
+        metadata,
+      };
+
+      this.notifications.unshift(notif);
+      if (this.notifications.length > 50) {
+        this.notifications = this.notifications.slice(0, 50);
+      }
+
+      this.saveNotifications();
+      this.render();
+    },
+
+    onDropdownOpen() {
+      this.isDropdownOpen = true;
+      this.loadNotifications();
+      // Mark all visible message notifications as seen for this viewing session
+      this.notifications.forEach(n => {
+        if (n.type === 'message') {
+          this.seenMessageIds.add(n.id);
+        }
+      });
+      this.render();
+    },
+
+    onDropdownClose() {
+      this.isDropdownOpen = false;
+      if (this.seenMessageIds.size > 0) {
+        // As requested: "once a message notif is seen it should be deleted"
+        this.notifications = this.notifications.filter(n => {
+          if (n.type === 'message' && this.seenMessageIds.has(n.id)) {
+            return false; // PURGE seen message notification!
+          }
+          return true;
+        });
+        this.seenMessageIds.clear();
+        this.saveNotifications();
+        this.render();
+      }
+    },
+
+    removeNotification(id) {
+      this.notifications = this.notifications.filter(n => n.id !== id);
+      this.seenMessageIds.delete(id);
+      this.saveNotifications();
+      this.render();
+    },
+
+    clearAll() {
+      this.notifications = [];
+      this.seenMessageIds.clear();
+      this.saveNotifications();
+      this.render();
+    },
+
+    clearMessagesForConversation(convOrUserId) {
+      if (!convOrUserId) return;
+      const initialLen = this.notifications.length;
+      this.notifications = this.notifications.filter(n => {
+        if (n.type === 'message') {
+          const matchConv = n.metadata?.conversationId === convOrUserId;
+          const matchSender = n.metadata?.senderId === convOrUserId || n.metadata?.friend?.id === convOrUserId;
+          if (matchConv || matchSender) return false;
+        }
+        return true;
+      });
+      if (this.notifications.length !== initialLen) {
+        this.saveNotifications();
+        this.render();
+      }
+    },
+
+    render() {
+      const badge = document.getElementById('notifBadge');
+      const headerCount = document.getElementById('notifHeaderCount');
+      const listContainer = document.getElementById('notifListContainer');
+      const btnClear = document.getElementById('btnDismissAllNotifs');
+
+      const count = this.notifications.length;
+
+      // Update Bell Badge
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      // Update Header Count Pill
+      if (headerCount) {
+        if (count > 0) {
+          headerCount.textContent = count;
+          headerCount.style.display = 'inline-block';
+        } else {
+          headerCount.style.display = 'none';
+        }
+      }
+
+      if (btnClear) {
+        btnClear.style.display = count > 0 ? 'block' : 'none';
+      }
+
+      if (!listContainer) return;
+
+      if (count === 0) {
+        listContainer.innerHTML = `
+          <div class="notif-empty-state">
+            <div class="notif-empty-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </div>
+            <p class="notif-empty-title">Aucune notification</p>
+            <span class="notif-empty-desc">Vos nouveaux messages et cadeaux apparaîtront ici</span>
+          </div>
+        `;
+        return;
+      }
+
+      const now = Date.now();
+      let html = '';
+
+      this.notifications.forEach(n => {
+        const timeAgo = formatTimeAgo(n.timestamp);
+
+        let expirySnippet = '';
+        if (n.type === 'gift' && n.expiresAt) {
+          const remainingMinutes = Math.max(1, Math.round((n.expiresAt - now) / 60000));
+          expirySnippet = `<span class="notif-gift-expiry" title="Reste visible pendant 1 heure">⏳ Expire dans ${remainingMinutes} min</span>`;
+        }
+
+        let tagClass = 'tag-msg';
+        let tagLabel = 'Message';
+        if (n.type === 'gift') {
+          tagClass = 'tag-gift';
+          tagLabel = '🎁 Cadeau (1h)';
+        } else if (n.type === 'wink') {
+          tagClass = 'tag-wink';
+          tagLabel = '😉 Clin d\'œil';
+        }
+
+        const avatarSrc = n.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+
+        html += `
+          <div class="notif-card-item notif-${n.type}" data-notif-id="${n.id}">
+            <div class="notif-card-avatar-wrap">
+              <img src="${avatarSrc}" alt="${escapeHtml(n.title)}" class="notif-card-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="notif-type-badge">${n.icon || '🔔'}</span>
+            </div>
+            <div class="notif-card-body">
+              <div class="notif-card-top-row">
+                <span class="notif-card-title">${escapeHtml(n.title)}</span>
+                <span class="notif-card-tag ${tagClass}">${tagLabel}</span>
+              </div>
+              <p class="notif-card-message">${escapeHtml(n.message)}</p>
+              <div class="notif-card-footer">
+                <span class="notif-card-time">${timeAgo}</span>
+                ${expirySnippet}
+              </div>
+            </div>
+            <button type="button" class="notif-card-btn-dismiss" title="Supprimer" data-dismiss-id="${n.id}" aria-label="Supprimer la notification">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
+
+      // Wire dismiss buttons
+      listContainer.querySelectorAll('.notif-card-btn-dismiss').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.dismissId;
+          this.removeNotification(id);
+        });
+      });
+
+      // Wire click on cards
+      listContainer.querySelectorAll('.notif-card-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.notif-card-btn-dismiss')) return;
+          const notifId = item.dataset.notifId;
+          const notif = this.notifications.find(n => n.id === notifId);
+          if (!notif) return;
+
+          if (notif.type === 'message') {
+            this.removeNotification(notifId);
+            notifDropdown?.classList.add('hidden');
+            if (notif.metadata?.friend) {
+              openDirectChat(notif.metadata.friend);
+            } else if (notif.metadata?.senderId) {
+              openDirectChat({ id: notif.metadata.senderId, displayName: notif.title, name: notif.title, username: notif.title });
+            }
+          } else if (notif.type === 'gift') {
+            // Keep gift for 1h, trigger celebration graphic!
+            notifDropdown?.classList.add('hidden');
+            if (notif.metadata?.gift) {
+              triggerGiftCelebrationGraphic(notif.metadata.gift, notif.title, 'Vous', notif.metadata.customMessage || notif.message);
+            }
+          } else if (notif.type === 'wink') {
+            this.removeNotification(notifId);
+            notifDropdown?.classList.add('hidden');
+            if (notif.metadata?.sender) {
+              openUserProfileModal(notif.metadata.sender);
+            }
+          }
+        });
+      });
+    }
+  };
+
+  // Dropdown Listeners
   btnUserMenu?.addEventListener('click', (e) => {
     e.stopPropagation();
     profileDropdown.classList.toggle('hidden');
-    notifDropdown?.classList.add('hidden');
+    if (!notifDropdown?.classList.contains('hidden')) {
+      notifDropdown?.classList.add('hidden');
+      NotificationManager.onDropdownClose();
+    }
   });
 
   btnNotifications?.addEventListener('click', (e) => {
     e.stopPropagation();
-    notifDropdown.classList.toggle('hidden');
+    const isOpening = notifDropdown.classList.contains('hidden');
     profileDropdown?.classList.add('hidden');
+    notifDropdown.classList.toggle('hidden');
+
+    if (isOpening) {
+      NotificationManager.onDropdownOpen();
+    } else {
+      NotificationManager.onDropdownClose();
+    }
+  });
+
+  const btnDismissAllNotifs = document.getElementById('btnDismissAllNotifs');
+  btnDismissAllNotifs?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    NotificationManager.clearAll();
   });
 
   document.addEventListener('click', () => {
     profileDropdown?.classList.add('hidden');
-    notifDropdown?.classList.add('hidden');
+    if (!notifDropdown?.classList.contains('hidden')) {
+      notifDropdown?.classList.add('hidden');
+      NotificationManager.onDropdownClose();
+    }
   });
+
+  // Initialize Dynamic Notification Center
+  window.NotificationManager = NotificationManager;
+  NotificationManager.init();
 
   // =========================================================================
   // 9b. CONTROLLER: MON PROFIL & STATUT + PARAMÈTRES AUDIO & COMPTE
@@ -8572,21 +8914,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle incoming direct message
     socket.on('dm:message', (message) => {
+      const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
       if (currentConversation && message.conversationId === currentConversation.id) {
-        const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
         appendDirectMessageBubble(message);
         if (!isFromMe) {
           playTone(600, 'sine', 0.1);
           socket.emit('dm:read', { conversationId: currentConversation.id });
+        }
+      } else if (!isFromMe) {
+        // Chat modal is not open for this conversation -> Add to notification center
+        if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+          NotificationManager.addNotification({
+            type: 'message',
+            title: message.sender?.displayName || message.sender?.name || message.sender?.username || 'Ami WafaTalk',
+            message: message.content || 'Nouveau message privé',
+            avatarUrl: message.sender?.avatarUrl || message.sender?.avatar || null,
+            icon: '💬',
+            metadata: {
+              messageId: message.id,
+              conversationId: message.conversationId,
+              senderId: message.sender?.id,
+              friend: message.sender,
+            }
+          });
         }
       }
     });
 
     // Handle direct message notification when modal is closed
     socket.on('dm:notification', ({ conversationId, message }) => {
+      const isFromMe = message.isFromMe || (message.sender?.id === state.currentUser?.id);
+      if (isFromMe) return;
+
       if (!currentConversation || currentConversation.id !== conversationId) {
-        showToast(` Nouveau message de ${message.sender?.displayName || 'un ami'} : "${message.content.slice(0, 30)}..."`, 'teal');
+        const senderName = message.sender?.displayName || message.sender?.name || message.sender?.username || 'un ami';
+        showToast(`💬 Nouveau message de ${senderName} : "${(message.content || '').slice(0, 30)}..."`, 'teal');
         playTone(550, 'sine', 0.15);
+
+        if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+          NotificationManager.addNotification({
+            type: 'message',
+            title: senderName,
+            message: message.content || 'Nouveau message privé',
+            avatarUrl: message.sender?.avatarUrl || message.sender?.avatar || null,
+            icon: '💬',
+            metadata: {
+              messageId: message.id,
+              conversationId: conversationId || message.conversationId,
+              senderId: message.sender?.id,
+              friend: message.sender,
+            }
+          });
+        }
       }
     });
 
@@ -8736,6 +9115,23 @@ document.addEventListener('DOMContentLoaded', () => {
       // 4. Interactive card notification with 1-click "Renvoyer"
       showWinkNotification(request);
 
+      // 5. Add to dynamic notification center
+      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+        const senderUser = request?.sender || {};
+        const senderName = senderUser.displayName || senderUser.username || 'Un ami';
+        NotificationManager.addNotification({
+          type: 'wink',
+          title: senderName,
+          message: 'Vous a envoyé un clin d\'œil complice 😉',
+          avatarUrl: senderUser.avatarUrl || senderUser.avatar || null,
+          icon: '😉',
+          metadata: {
+            requestId: request?.id,
+            sender: senderUser,
+          }
+        });
+      }
+
       renderFriends();
     });
 
@@ -8745,6 +9141,22 @@ document.addEventListener('DOMContentLoaded', () => {
       playGiftChime();
       spawnFloatingWink();
       showToast(`✨ ${accepterName} vous a renvoyé un clin d'œil ! Vous êtes maintenant amis.`, 'green');
+
+      // Add to dynamic notification center
+      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+        NotificationManager.addNotification({
+          type: 'wink',
+          title: accepterName,
+          message: 'A accepté votre clin d\'œil ! Vous êtes maintenant amis 🎉',
+          avatarUrl: request?.receiver?.avatarUrl || request?.receiver?.avatar || null,
+          icon: '🤝',
+          metadata: {
+            requestId: request?.id,
+            sender: request?.receiver,
+          }
+        });
+      }
+
       refreshFriendData().then(() => renderFriends());
     });
 
@@ -8772,6 +9184,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 1. Trigger festive graphic motion and sound on receiver end
       triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      // Add to dynamic notification center (persists for 1 hour)
+      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+        NotificationManager.addNotification({
+          type: 'gift',
+          title: senderName,
+          message: `${gift.icon} a offert ${gift.name} à ${receiverName} ! ${messageText ? `« ${messageText} »` : ''}`,
+          avatarUrl: sender?.avatarUrl || sender?.avatar || null,
+          icon: gift.icon || '🎁',
+          metadata: {
+            sender,
+            receiver,
+            gift,
+            costPoints,
+            customMessage: messageText,
+          }
+        });
+      }
 
       // 2. Playful haptic vibration
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -8809,6 +9239,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 1. Trigger full graphic motion & celebration on receiver end!
       triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      // Add to dynamic notification center (persists for 1 hour)
+      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+        NotificationManager.addNotification({
+          type: 'gift',
+          title: senderName,
+          message: `${gift.icon} vous a offert ${gift.name} ! ${messageText ? `« ${messageText} »` : ''}`,
+          avatarUrl: sender?.avatarUrl || sender?.avatar || null,
+          icon: gift.icon || '🎁',
+          metadata: {
+            sender,
+            receiver,
+            gift,
+            costPoints,
+            customMessage: messageText,
+            targetType,
+          }
+        });
+      }
 
       // 2. Playful haptic vibration
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -9311,6 +9760,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     currentDmFriend = friend;
+    if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+      NotificationManager.clearMessagesForConversation(friend.id);
+    }
     if (!directChatModal) return;
 
     // 1. Populate UI Header
@@ -9346,6 +9798,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (res.ok && data.success && data.conversation) {
         currentConversation = data.conversation;
+        if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+          NotificationManager.clearMessagesForConversation(currentConversation.id);
+        }
 
         // Join socket room
         if (socket) {
