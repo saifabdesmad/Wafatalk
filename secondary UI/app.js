@@ -34,6 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let isSalonCamActive = false;
   let salonTypingDebounceTimer = null;
 
+  // Friend Request State
+  let pendingFriendRequests = []; // received pending requests
+  let sentFriendRequests = []; // sent pending requests
+  let myFriendsList = []; // accepted friends
+  let cachedExploreUsers = []; // discover members cache
+  let currentFriendTab = 'friends'; // 'friends' | 'explore'
+  let activeWhisperTarget = null; // { id, name, username, avatar }
+
   // Chat History & Bidirectional Scrolling State (Salons & DMs)
   let salonOldestMessageId = null;
   let salonHasMoreMessages = true;
@@ -64,12 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
 
-      // 2. Cloudflare, Twilio, & Mozilla Anycast STUN
+      // 2. Cloudflare Anycast STUN
       { urls: 'stun:stun.cloudflare.com:3478' },
-      { urls: 'stun:global.stun.twilio.com:3478' },
-      { urls: 'stun:stun.services.mozilla.com' },
 
-      // 3. WafaTalk Dedicated VPS Coturn STUN & TURN Relays (Production VPS 31.70.139.221)
+      // 3. WafaTalk Dedicated Coturn STUN & TURN Relays (Production VPS 31.70.139.221 : 3478 UDP & TCP)
       { urls: 'stun:api.wafatalk.com:3478' },
       { urls: 'stun:31.70.139.221:3478' },
       {
@@ -81,21 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         username: 'wafatalk',
         credential: 'WafaTalkGlobalTurn2026!',
-      },
-      {
-        urls: 'turns:api.wafatalk.com:5349?transport=tcp',
-        username: 'wafatalk',
-        credential: 'WafaTalkGlobalTurn2026!',
-      },
-
-      // 4. Global Fallback Relays (Metered Static Auth via TLS & TCP on 443 - Traverses Strict Firewalls)
-      {
-        urls: [
-          'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
-          'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
-        ],
-        username: 'openrelayproject',
-        credential: 'openrelayprojectsecret',
       },
     ],
     iceCandidatePoolSize: 10,
@@ -120,28 +111,22 @@ document.addEventListener('DOMContentLoaded', () => {
       // Fallback to embedded high-availability RTC_CONFIG
     });
 
-  // Discord-Grade Opus Audio Optimizer: Inband Forward Error Correction (FEC), 64kbps, stereo
+  // Safe Opus Audio SDP Optimizer (adds FEC & stereo without corrupting SDP tokens or line endings)
   function enhanceSdpForDiscordQuality(sdp) {
     if (!sdp || typeof sdp !== 'string') return sdp;
-    let modified = sdp;
-    if (modified.includes('opus/48000')) {
-      modified = modified.replace(
-        /a=fmtp:(\d+)\s+([^\r\n]+)/g,
-        (match, pt, params) => {
-          if (params.includes('minptime') || params.includes('useinbandfec')) {
-            return `a=fmtp:${pt} minptime=10;useinbandfec=1;maxaveragebitrate=64000;stereo=1;sprop-stereo=1`;
+    try {
+      if (sdp.includes('opus/48000') && !sdp.includes('useinbandfec=1')) {
+        return sdp.replace(/a=fmtp:(\d+)\s+([^\r\n]+)/g, (match, pt, params) => {
+          if (!params.includes('useinbandfec=1')) {
+            return `a=fmtp:${pt} ${params};useinbandfec=1;stereo=1`;
           }
           return match;
-        }
-      );
-      if (!modified.includes('useinbandfec=1')) {
-        modified = modified.replace(
-          /(a=rtpmap:(\d+)\s+opus\/48000\/2[\r\n]+)/g,
-          '$1a=fmtp:$2 minptime=10;useinbandfec=1;maxaveragebitrate=64000;stereo=1;sprop-stereo=1\r\n'
-        );
+        });
       }
+    } catch (e) {
+      console.warn('SDP formatting fallback:', e);
     }
-    return modified;
+    return sdp;
   }
 
   // Global browser autoplay audio unlocker: un-blocks audio playback on user touch/click
@@ -250,24 +235,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Real-time Presence Tracker for connected online user IDs & usernames
   const activeOnlineUserIds = new Set();
 
-  // Seeded & Connected Friends Data with Real DB IDs & Flags (default offline until socket confirms)
-  const friendsData = [
-    { id: 'user-sarah', username: 'sarah_b', name: 'Sarah B.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80', country: 'FR' },
-    { id: 'user-youssef', username: 'youssef_k', name: 'Youssef K.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80', country: 'MA' },
-    { id: 'user-lina', username: 'lina_m', name: 'Lina M.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80', country: 'DZ' },
-    { id: 'user-karim', username: 'karim_d', name: 'Karim D.', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80', country: 'TN' },
-    { id: 'user-alexandre', username: 'alexandre', name: 'Alexandre', role: 'Hors ligne', status: 'offline', room: '', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', country: 'FR' }
-  ];
+  // Connected Friends Data (dynamically loaded from DB/API)
+  const friendsData = [];
 
-  // Stage Voices Simulation in Room
-  const stageParticipants = [
-    { name: 'Alexandre (Vous)', role: 'Hôte du salon', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Sarah B.', role: 'Modérateur', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80', isSpeaking: true },
-    { name: 'Youssef K.', role: 'Participant VIP', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Lina M.', role: 'Participant', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Mehdi R.', role: 'Participant', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80', isSpeaking: false },
-    { name: 'Chloé V.', role: 'Participant', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80', isSpeaking: true }
-  ];
+  // Stage Voices in Room (populated dynamically from real connected users)
+  const stageParticipants = [];
+
+  // Active target for profile viewing / gifting
+  let activeDirectUser = null;
 
   // =========================================================================
   // 2. DOM ELEMENTS SELECTION
@@ -926,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (regUsernameHint) {
         regUsernameHint.className = 'username-rule-hint info';
-        regUsernameHint.innerHTML = `<span>ℹ️</span><span>Au moins 3 caractères requis (${val.length}/3).</span>`;
+        regUsernameHint.innerHTML = `<span>Au moins 3 caractères requis (${val.length}/3).</span>`;
       }
       return;
     }
@@ -1257,7 +1232,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return localStorage.getItem('wafatalk_token');
   }
 
+  function getPersistentUserAvatar(user) {
+    if (!user) return null;
+    const customAvatar = (user.id && localStorage.getItem(`wafatalk_avatar_${user.id}`)) ||
+      (user.username && localStorage.getItem(`wafatalk_avatar_${user.username.toLowerCase()}`)) ||
+      (user.email && localStorage.getItem(`wafatalk_avatar_${user.email.toLowerCase()}`)) ||
+      (user.avatarUrl && !user.avatarUrl.includes('dicebear') && !user.avatarUrl.includes('photo-1535713875002') ? null : localStorage.getItem('wafatalk_last_saved_avatar'));
+    return customAvatar || null;
+  }
+
   function setAuthSession(token, user) {
+    const customAvatar = getPersistentUserAvatar(user);
+    if (customAvatar && (!user.avatarUrl || user.avatarUrl.includes('dicebear') || user.avatarUrl.includes('photo-1535713875002'))) {
+      user.avatarUrl = customAvatar;
+      user.avatar = customAvatar;
+    }
     localStorage.setItem('wafatalk_token', token);
     localStorage.setItem('wafatalk_user', JSON.stringify(user));
     state.currentUser = user;
@@ -1278,6 +1267,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Successful Login Transition to Hub
   function authenticateUser(userData, playFx = true) {
+    const customAvatar = getPersistentUserAvatar(userData);
+    if (customAvatar && (!userData.avatarUrl || userData.avatarUrl.includes('dicebear') || userData.avatarUrl.includes('photo-1535713875002'))) {
+      userData.avatarUrl = customAvatar;
+      userData.avatar = customAvatar;
+    }
     state.currentUser = userData;
     if (userData.wafaPoints !== undefined) {
       state.userPoints = userData.wafaPoints;
@@ -1285,18 +1279,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const displayName = userData.displayName || userData.name || 'Ami WafaTalk';
     const email = userData.email || '';
-    const avatar = userData.avatarUrl || userData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
+    const avatar = userData.avatarUrl || userData.avatar || customAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
 
-    if (playFx) {
-      launchParticles(window.innerWidth / 2, window.innerHeight / 2, 'confetti');
-      playTone(520, 'sine', 0.2);
-      showToast(`Bienvenue sur WafaTalk, ${displayName} !`, 'success');
-    }
-
-    // Smooth Screen Transition
-    authScreen.style.opacity = '0';
-    setTimeout(() => {
+    const finalizeUi = () => {
       authScreen.classList.remove('active');
+      authScreen.style.opacity = '0';
       hubScreen.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       hubScreen.style.opacity = '1';
@@ -1342,19 +1329,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderSalons();
       renderFriends();
-    }, 350);
+    };
+
+    if (playFx) {
+      launchParticles(window.innerWidth / 2, window.innerHeight / 2, 'confetti');
+      playTone(520, 'sine', 0.2);
+      showToast(`Bienvenue sur WafaTalk, ${displayName} !`, 'success');
+
+      authScreen.style.opacity = '0';
+      setTimeout(finalizeUi, 250);
+    } else {
+      finalizeUi();
+    }
   }
 
   // Check Existing Session on page load
   async function checkExistingSession() {
-    const token = getAuthToken();
-    if (!token) return;
+    let token = getAuthToken();
 
     // Check cached session first for instant load or offline fallback
     const cachedUserJson = localStorage.getItem('wafatalk_user');
     let cachedUser = null;
     if (cachedUserJson) {
       try { cachedUser = JSON.parse(cachedUserJson); } catch (e) { }
+    }
+
+    // Purge any residual demo or old test accounts
+    if (token === 'demo_token_alexandre_wafatalk') {
+      localStorage.removeItem('wafatalk_token');
+      token = null;
+    }
+    if (cachedUser && (
+      cachedUser.username === 'alexandre' ||
+      cachedUser.id === 'user-alexandre' ||
+      cachedUser.id === 'user_alexandre_01' ||
+      (typeof cachedUser.email === 'string' && cachedUser.email.toLowerCase().includes('alexandre')) ||
+      (typeof cachedUser.name === 'string' && cachedUser.name.toLowerCase().includes('alexandre')) ||
+      (typeof cachedUser.displayName === 'string' && cachedUser.displayName.toLowerCase().includes('alexandre'))
+    )) {
+      localStorage.removeItem('wafatalk_token');
+      localStorage.removeItem('wafatalk_user');
+      localStorage.removeItem('wafatalk_last_saved_avatar');
+      cachedUser = null;
+      token = null;
+    }
+
+    if (!token) {
+      // User is not logged in: show Auth screen and hide Hub
+      clearAuthSession();
+      if (hubScreen) {
+        hubScreen.classList.remove('active');
+        hubScreen.style.opacity = '0';
+      }
+      if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.opacity = '1';
+      }
+      return;
+    }
+
+    if (cachedUser) {
+      const customAvatar = getPersistentUserAvatar(cachedUser);
+      if (customAvatar) {
+        cachedUser.avatarUrl = customAvatar;
+        cachedUser.avatar = customAvatar;
+      }
     }
 
     try {
@@ -1364,6 +1403,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user) {
+          if (data.user.username === 'alexandre' || data.user.id === 'user-alexandre') {
+            clearAuthSession();
+            if (hubScreen) { hubScreen.classList.remove('active'); hubScreen.style.opacity = '0'; }
+            if (authScreen) { authScreen.classList.add('active'); authScreen.style.opacity = '1'; }
+            return;
+          }
+          const customAvatar = getPersistentUserAvatar(data.user);
+          if (customAvatar && (!data.user.avatarUrl || data.user.avatarUrl.includes('dicebear') || data.user.avatarUrl.includes('photo-1535713875002'))) {
+            data.user.avatarUrl = customAvatar;
+            data.user.avatar = customAvatar;
+          }
           setAuthSession(token, data.user);
           authenticateUser(data.user, false);
           return;
@@ -1371,12 +1421,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (res.status === 401) {
         clearAuthSession();
+        if (hubScreen) {
+          hubScreen.classList.remove('active');
+          hubScreen.style.opacity = '0';
+        }
+        if (authScreen) {
+          authScreen.classList.add('active');
+          authScreen.style.opacity = '1';
+        }
+        return;
+      }
+      if (cachedUser) {
+        authenticateUser(cachedUser, false);
         return;
       }
     } catch (err) {
-      // Offline / Vercel fallback: restore cached user session if present
+      // Offline fallback: restore cached user session if present
       if (cachedUser) {
         authenticateUser(cachedUser, false);
+      } else {
+        if (hubScreen) {
+          hubScreen.classList.remove('active');
+          hubScreen.style.opacity = '0';
+        }
+        if (authScreen) {
+          authScreen.classList.add('active');
+          authScreen.style.opacity = '1';
+        }
       }
     }
   }
@@ -1404,8 +1475,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user && data.token) {
-          setAuthSession(data.token, data.user);
-          authenticateUser(data.user, true);
+          const user = data.user;
+          const customAvatar = getPersistentUserAvatar(user);
+          if (customAvatar && (!user.avatarUrl || user.avatarUrl.includes('dicebear') || user.avatarUrl.includes('photo-1535713875002'))) {
+            user.avatarUrl = customAvatar;
+            user.avatar = customAvatar;
+          }
+          setAuthSession(data.token, user);
+          authenticateUser(user, true);
           return;
         }
       } else if (res.status === 401 || res.status === 400) {
@@ -1425,29 +1502,17 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       if (found) {
+        const customAvatar = getPersistentUserAvatar(found);
+        if (customAvatar) {
+          found.avatarUrl = customAvatar;
+          found.avatar = customAvatar;
+        }
         const token = `local_token_${found.id}`;
         setAuthSession(token, found);
         authenticateUser(found, true);
         return;
       }
 
-      // Pre-seeded Alexandre check in offline mode
-      if ((email.toLowerCase() === 'alexandre@wafatalk.com' || email.toLowerCase() === 'alexandre') &&
-        (password === 'wafatalk2026' || password === 'demo123456')) {
-        const alexUser = {
-          id: 'user-alexandre',
-          username: 'alexandre',
-          email: 'alexandre@wafatalk.com',
-          displayName: 'Alexandre',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-          wafaPoints: 450,
-          role: 'ADMIN',
-          status: 'ONLINE'
-        };
-        setAuthSession('local_token_alexandre', alexUser);
-        authenticateUser(alexUser, true);
-        return;
-      }
 
       showToast('Identifiants incorrects', 'coral');
       shakeElement(formLogin);
@@ -1935,8 +2000,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Connexion avec Google';
       desc.textContent = 'Accédez immédiatement à votre compte ou inscrivez-vous avec votre adresse Gmail.';
       icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.3 14.7c-.2-.7-.4-1.5-.4-2.7 0-1.1.2-2 .4-2.7L1.6 6.4C.6 8.3 0 10.1 0 12s.6 3.7 1.6 5.6l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.8-2.5 1.2-4.3 1.2-3.1 0-5.8-2.3-6.7-5.3L1.6 16C3.5 19.8 7.4 23 12 23z"/></svg>`;
-      nameEl.textContent = 'Alexandre Moreau';
-      emailEl.textContent = 'alexandre.moreau@gmail.com';
+      nameEl.textContent = 'Compte Google';
+      emailEl.textContent = 'compte.google@gmail.com';
       emailLabel.textContent = 'Votre adresse Gmail';
       emailInput.placeholder = 'votre.adresse@gmail.com';
       dividerText.textContent = 'ou entrez une autre adresse Gmail';
@@ -1944,8 +2009,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Connexion avec Apple';
       desc.textContent = 'Utilisez votre identifiant Apple ID pour vous connecter en toute confidentialité.';
       icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.92-2.88-.9.04-1.99.6-2.63 1.35-.58.65-1.09 1.73-0.96 2.76 1 .08 2.05-.48 2.67-1.23z"/></svg>`;
-      nameEl.textContent = 'Alexandre Moreau';
-      emailEl.textContent = 'alexandre.moreau@icloud.com';
+      nameEl.textContent = 'Compte Apple';
+      emailEl.textContent = 'compte.apple@icloud.com';
       emailLabel.textContent = 'Votre identifiant Apple';
       emailInput.placeholder = 'votre.nom@icloud.com';
       dividerText.textContent = 'ou entrez une autre adresse Apple ID';
@@ -1953,8 +2018,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Connexion avec Discord';
       desc.textContent = 'Rejoignez WafaTalk instantanément avec votre compte Discord.';
       icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>`;
-      nameEl.textContent = 'Alexandre (Discord)';
-      emailEl.textContent = 'alexandre#2026@discord.gg';
+      nameEl.textContent = 'Membre Discord';
+      emailEl.textContent = 'membre#2026@discord.gg';
       emailLabel.textContent = 'Votre email Discord';
       emailInput.placeholder = 'pseudo@discord.gg';
       dividerText.textContent = 'ou entrez une autre adresse Discord';
@@ -2050,8 +2115,8 @@ document.addEventListener('DOMContentLoaded', () => {
   btnChooseDefaultGoogle?.addEventListener('click', async () => {
     btnChooseDefaultGoogle.style.opacity = '0.5';
     btnChooseDefaultGoogle.style.pointerEvents = 'none';
-    const email = document.getElementById('socialAccountEmail')?.textContent || 'alexandre.moreau@gmail.com';
-    const name = document.getElementById('socialAccountName')?.textContent || 'Alexandre Moreau';
+    const email = document.getElementById('socialAccountEmail')?.textContent || 'compte.google@gmail.com';
+    const name = document.getElementById('socialAccountName')?.textContent || 'Membre WafaTalk';
     try {
       await executeSocialAuth(activeSocialProvider, email, name);
     } finally {
@@ -2078,13 +2143,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearAuthSession();
 
-    hubScreen.style.opacity = '0';
+    if (hubScreen) hubScreen.style.opacity = '0';
     setTimeout(() => {
-      hubScreen.classList.remove('active');
-      authScreen.classList.add('active');
-      authScreen.style.opacity = '1';
+      if (hubScreen) hubScreen.classList.remove('active');
+      if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.opacity = '1';
+      }
       showToast('Déconnexion effectuée. À bientôt sur WafaTalk !', 'coral');
-    }, 300);
+    }, 250);
   });
 
   // Load Salons from Backend API
@@ -2232,141 +2299,452 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Initialize friend system tabs in sidebar
+  function initFriendTabs() {
+    const container = friendsList?.parentElement;
+    if (!container || document.getElementById('friendTabsBar')) return;
+
+    const tabBar = document.createElement('div');
+    tabBar.id = 'friendTabsBar';
+    tabBar.innerHTML = `
+      <button id="tabBtnFriends" class="friend-tab-btn active" type="button" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--teal-primary, #0d837d);color:#fff;transition:all 0.15s;">
+        Amis
+      </button>
+      <button id="tabBtnExplore" class="friend-tab-btn" type="button" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--bg-muted, rgba(120,120,120,0.12));color:var(--text-secondary, #3b504e);transition:all 0.15s;position:relative;">
+        Explorer
+        <span id="friendReqBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.65rem;line-height:16px;text-align:center;"></span>
+      </button>
+    `;
+    container.insertBefore(tabBar, friendsList);
+
+    document.getElementById('tabBtnFriends').addEventListener('click', () => switchFriendTab('friends'));
+    document.getElementById('tabBtnExplore').addEventListener('click', () => switchFriendTab('explore'));
+  }
+
+  function switchFriendTab(tab) {
+    currentFriendTab = tab;
+    const btnFriends = document.getElementById('tabBtnFriends');
+    const btnExplore = document.getElementById('tabBtnExplore');
+    if (btnFriends && btnExplore) {
+      if (tab === 'friends') {
+        btnFriends.classList.add('active');
+        btnExplore.classList.remove('active');
+        btnFriends.style.background = 'var(--teal-primary, #0d837d)';
+        btnFriends.style.color = '#fff';
+        btnExplore.style.background = 'var(--bg-muted, rgba(120,120,120,0.12))';
+        btnExplore.style.color = 'var(--text-secondary, #3b504e)';
+      } else {
+        btnExplore.classList.add('active');
+        btnFriends.classList.remove('active');
+        btnExplore.style.background = 'var(--teal-primary, #0d837d)';
+        btnExplore.style.color = '#fff';
+        btnFriends.style.background = 'var(--bg-muted, rgba(120,120,120,0.12))';
+        btnFriends.style.color = 'var(--text-secondary, #3b504e)';
+      }
+    }
+    renderFriends();
+  }
+
+  // Fetch friend requests and friends from API
+  async function refreshFriendData() {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const [friendsRes, pendingRes, sentRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/friends/requests/pending`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/friends/requests/sent`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      if (friendsRes.ok) {
+        const d = await friendsRes.json();
+        if (d.success) myFriendsList = d.friends || [];
+      }
+      if (pendingRes.ok) {
+        const d = await pendingRes.json();
+        if (d.success) pendingFriendRequests = d.requests || [];
+      }
+      if (sentRes.ok) {
+        const d = await sentRes.json();
+        if (d.success) sentFriendRequests = d.requests || [];
+      }
+      // Update badge
+      const badge = document.getElementById('friendReqBadge');
+      if (badge) {
+        if (pendingFriendRequests.length > 0) {
+          badge.textContent = pendingFriendRequests.length;
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch(e) {}
+  }
+
   // Render Friends & Discoverable Users List in Sidebar
   async function renderFriends() {
     if (!friendsList) return;
 
+    initFriendTabs();
+
     const myId = state.currentUser?.id;
     const token = getAuthToken();
 
-    // 1. Fetch registered database users if authenticated
-    let allUsers = [...friendsData];
+    if (currentFriendTab === 'friends') {
+      // ── AMIS TAB ────────────────────────────────────────
+      await refreshFriendData();
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/users/discover`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.users)) {
-            data.users.forEach(u => {
-              const exists = allUsers.find(x => x.id === u.id || x.username?.toLowerCase() === u.username?.toLowerCase());
-              if (!exists) {
-                allUsers.push(u);
-              } else {
-                Object.assign(exists, u);
-              }
-            });
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch discover users:', err);
+      const onlineCount = myFriendsList.filter(u => activeOnlineUserIds.has(u.id)).length;
+      const onlineCounter = document.getElementById('onlineFriendsCount');
+      if (onlineCounter) {
+        onlineCounter.textContent = `${onlineCount} en ligne`;
+        onlineCounter.style.display = 'inline-block';
       }
-    }
+      const mobFriendsBadge = document.getElementById('mobFriendsBadge');
+      if (mobFriendsBadge) mobFriendsBadge.textContent = onlineCount;
 
-    // 2. Also merge local accounts from localStorage for offline/demo resilience
-    try {
-      const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
-      localUsers.forEach(lu => {
-        const exists = allUsers.find(x => x.id === lu.id || x.username?.toLowerCase() === lu.username?.toLowerCase());
-        if (!exists) {
-          allUsers.push({
-            id: lu.id,
-            username: lu.username,
-            name: lu.displayName || lu.username,
-            avatar: lu.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(lu.username)}`,
-            country: lu.country || 'FR',
-            status: 'online',
-            role: 'Hors ligne',
-            room: '',
-          });
+      friendsList.innerHTML = '';
+
+      if (myFriendsList.length === 0) {
+        friendsList.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="margin:0 auto 8px;opacity:0.5;display:block;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--text-primary);">Aucun ami pour l'instant</div>
+          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié.</div>
+        </div>`;
+
+        // Still show pending requests if any even when no friends yet
+        if (pendingFriendRequests.length > 0) {
+          friendsList.innerHTML = '';
+        } else {
+          return;
         }
-      });
-    } catch (e) { }
+      }
 
-    // Filter out oneself
-    const displayList = allUsers.filter(u => {
-      if (!myId) return true;
-      if (u.id === myId) return false;
-      if (state.currentUser?.username && u.username?.toLowerCase() === state.currentUser.username.toLowerCase()) return false;
-      return true;
-    });
+      // Show pending received requests at top if any
+      if (pendingFriendRequests.length > 0) {
+        const reqHeader = document.createElement('div');
+        reqHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:600;color:var(--text-muted);';
+        reqHeader.textContent = `Demandes reçues (${pendingFriendRequests.length})`;
+        friendsList.appendChild(reqHeader);
 
-    // Check active online status dynamically from WebSocket presence
-    displayList.forEach(u => {
-      const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username));
-      u._isOnline = Boolean(isOnline);
-      u.status = u._isOnline ? 'online' : 'offline';
-    });
-
-    // Sort list: Online users first, then offline users, alphabetically
-    displayList.sort((a, b) => {
-      if (a._isOnline && !b._isOnline) return -1;
-      if (!a._isOnline && b._isOnline) return 1;
-      const nameA = (a.name || a.displayName || a.username || '').toLowerCase();
-      const nameB = (b.name || b.displayName || b.username || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-
-    const onlineCount = displayList.filter(u => u._isOnline).length;
-    const onlineCounter = document.getElementById('onlineFriendsCount');
-    if (onlineCounter) {
-      onlineCounter.textContent = `${onlineCount} en ligne`;
-      onlineCounter.style.display = 'inline-block';
-    }
-    const mobFriendsBadge = document.getElementById('mobFriendsBadge');
-    if (mobFriendsBadge) {
-      mobFriendsBadge.textContent = onlineCount;
-    }
-
-    friendsList.innerHTML = '';
-
-    if (displayList.length === 0) {
-      friendsList.innerHTML = '<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">Aucun autre membre connecté.</div>';
-      return;
-    }
-
-    displayList.forEach(friend => {
-      const isOnline = friend._isOnline;
-      const statusClass = isOnline ? 'online' : 'offline';
-      const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
-      const flagTag = getFlagImgTag(friend.country, friend.country);
-      const item = document.createElement('div');
-      item.className = `friend-item ${statusClass}`;
-      item.innerHTML = `
-        <div class="friend-item-left" style="cursor: pointer; flex: 1;" title="${statusLabel} — Cliquer pour ouvrir le salon privé avec ${friend.name || friend.username}">
-          <div class="friend-avatar-wrap">
-            <img src="${friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
-            <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
-          </div>
-          <div class="friend-meta">
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <span class="friend-name">${friend.name || friend.displayName || friend.username}</span>
-              <span style="display: inline-flex; align-items: center;">${flagTag}</span>
+        pendingFriendRequests.forEach(req => {
+          const sender = req.sender;
+          const item = document.createElement('div');
+          if (sender?.id) item.dataset.userId = sender.id;
+          const customSenderAv = (sender?.id && localStorage.getItem(`wafatalk_avatar_${sender.id}`)) || sender?.avatarUrl || sender?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender?.username || 'user')}`;
+          item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-muted);';
+          item.innerHTML = `
+            <div class="pending-user-info" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${sender.displayName || sender.username}">
+              <img src="${customSenderAv}" class="friend-avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);" class="friend-name">${sender.displayName || sender.username}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous (cliquer pour voir le profil)</div>
+              </div>
             </div>
-            <span class="friend-activity ${statusClass}">
-              <span class="activity-status-dot ${statusClass}"></span>
-              ${statusLabel}
-            </span>
+            <div style="display:flex;gap:4px;">
+              <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Accepter</button>
+              <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Refuser</button>
+            </div>
+          `;
+          item.querySelector('.pending-user-info')?.addEventListener('click', () => openUserProfileModal(sender));
+          item.querySelector('.btn-accept-req').addEventListener('click', async () => {
+            await handleAcceptRequest(req.id, sender);
+          });
+          item.querySelector('.btn-reject-req').addEventListener('click', async () => {
+            await handleRejectRequest(req.id);
+          });
+          friendsList.appendChild(item);
+        });
+
+        if (myFriendsList.length > 0) {
+          const friendsHeader = document.createElement('div');
+          friendsHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-top:4px;';
+          friendsHeader.textContent = `Amis (${myFriendsList.length})`;
+          friendsList.appendChild(friendsHeader);
+        }
+      }
+
+      if (myFriendsList.length === 0 && pendingFriendRequests.length === 0) {
+        friendsList.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--text-muted);font-size:0.82rem;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="margin:0 auto 8px;opacity:0.5;display:block;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--text-primary);">Aucun ami pour l'instant</div>
+          <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié.</div>
+        </div>`;
+        return;
+      }
+
+      myFriendsList.forEach(friend => {
+        const isOnline = activeOnlineUserIds.has(friend.id);
+        const statusClass = isOnline ? 'online' : 'offline';
+        const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
+        const flagTag = getFlagImgTag(friend.country, friend.country);
+        const customFriendAv = (friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+        const item = document.createElement('div');
+        item.className = `friend-item ${statusClass}`;
+        if (friend.id) item.dataset.userId = friend.id;
+        item.innerHTML = `
+          <div class="friend-item-left" style="cursor:pointer;flex:1;" title="${statusLabel} — Cliquer pour voir la fiche profil">
+            <div class="friend-avatar-wrap">
+              <img src="${customFriendAv}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
+            </div>
+            <div class="friend-meta">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span class="friend-name">${friend.name || friend.username}</span>
+                <span style="display:inline-flex;align-items:center;">${flagTag}</span>
+              </div>
+              <span class="friend-activity ${statusClass}">
+                <span class="activity-status-dot ${statusClass}"></span>
+                ${statusLabel}
+              </span>
+            </div>
           </div>
-        </div>
-        <button type="button" class="friend-action-btn" title="Envoyer un message ou appeler">
-          
-        </button>
-      `;
-
-      // Clicking friend opens 1-on-1 private DM salon
-      item.querySelector('.friend-item-left')?.addEventListener('click', () => {
-        openDirectChat(friend);
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button type="button" class="friend-action-btn" title="Envoyer un message" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-secondary);cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </button>
+            <button type="button" class="friend-unfriend-btn" title="Retirer de la liste d'amis" style="background:transparent;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.6;transition:color 0.15s, opacity 0.15s;" onmouseover="this.style.opacity=1;this.style.color='#ef4444'" onmouseout="this.style.opacity=0.6;this.style.color='var(--text-muted)'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        `;
+        item.querySelector('.friend-item-left').addEventListener('click', () => openUserProfileModal(friend));
+        item.querySelector('.friend-action-btn').addEventListener('click', () => openDirectChat(friend));
+        item.querySelector('.friend-unfriend-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleUnfriend(friend.id, friend.name || friend.username);
+        });
+        friendsList.appendChild(item);
       });
 
-      item.querySelector('.friend-action-btn')?.addEventListener('click', () => {
-        openDirectChat(friend);
-      });
+    } else {
+      // ── EXPLORER TAB ────────────────────────────────────
+      friendsList.innerHTML = '<div style="padding:10px 14px;text-align:center;color:var(--text-muted);font-size:0.78rem;">Chargement...</div>';
 
-      friendsList.appendChild(item);
-    });
+      let exploreUsers = [];
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/friends/discover`, { headers: { 'Authorization': `Bearer ${token}` } });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) exploreUsers = data.users || [];
+          }
+        } catch(e) {}
+      }
+
+      // Filter out self
+      exploreUsers = exploreUsers.filter(u => u.id !== myId);
+
+      // Sort: request_received first, then none, then request_sent, then friends
+      const order = { request_received: 0, none: 1, request_sent: 2, friends: 3 };
+      exploreUsers.sort((a, b) => (order[a.friendStatus] ?? 1) - (order[b.friendStatus] ?? 1));
+
+      const onlineCounter = document.getElementById('onlineFriendsCount');
+      const onlineCount = exploreUsers.filter(u => activeOnlineUserIds.has(u.id)).length;
+      if (onlineCounter) {
+        onlineCounter.textContent = `${onlineCount} en ligne`;
+        onlineCounter.style.display = 'inline-block';
+      }
+
+      friendsList.innerHTML = '';
+
+      if (exploreUsers.length === 0) {
+        friendsList.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">Aucun membre à explorer.</div>';
+        return;
+      }
+
+      cachedExploreUsers = exploreUsers;
+      exploreUsers.forEach(u => {
+        const isOnline = activeOnlineUserIds.has(u.id);
+        const flagTag = getFlagImgTag(u.country, u.country);
+        const customExploreAv = (u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+        const item = document.createElement('div');
+        item.className = `friend-item ${isOnline ? 'online' : 'offline'}`;
+        if (u.id) item.dataset.userId = u.id;
+
+        let actionBtn = '';
+        if (u.friendStatus === 'friends') {
+          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message">Message</button>`;
+        } else if (u.friendStatus === 'request_sent') {
+          actionBtn = `<button class="explore-action-btn explore-wink-sent-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler le clin d'œil">😉 Envoyé</button>`;
+        } else if (u.friendStatus === 'request_received') {
+          actionBtn = `
+            <button class="explore-action-btn explore-wink-reply-btn" data-action="accept" data-reqid="${u.requestId}" data-uid="${u.id}" title="Renvoyer un clin d'œil">😉 Renvoyer</button>
+            <button class="explore-action-btn" data-action="reject" data-reqid="${u.requestId}" title="Ignorer" style="padding:5px 8px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-secondary, #3b504e);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Ignorer</button>
+          `;
+        } else {
+          actionBtn = `<button class="explore-action-btn explore-wink-btn" data-action="add" data-uid="${u.id}" title="Envoyer un clin d'œil complice">😉 Clin d'œil</button>`;
+        }
+
+        item.innerHTML = `
+          <div class="friend-item-left" style="flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${u.name || u.username}">
+            <div class="friend-avatar-wrap">
+              <img src="${customExploreAv}" alt="${u.name || u.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="friend-status-dot ${isOnline ? 'online' : 'offline'}"></span>
+            </div>
+            <div class="friend-meta">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span class="friend-name">${u.name || u.username}</span>
+                <span>${flagTag}</span>
+              </div>
+              <span class="friend-activity" style="font-size:0.72rem;color:var(--text-muted);">${u.socialStatus ? `💖 ${u.socialStatus}` : (u.role || '')}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">${actionBtn}</div>
+        `;
+
+        item.querySelector('.friend-item-left').addEventListener('click', () => openUserProfileModal(u));
+
+        // Wire up action buttons
+        item.querySelectorAll('.explore-action-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const action = btn.dataset.action;
+            const uid = btn.dataset.uid;
+            const reqid = btn.dataset.reqid;
+            if (action === 'add') {
+              await handleSendFriendRequest(uid, item, btn);
+            } else if (action === 'cancel') {
+              await handleCancelRequest(reqid, item, btn);
+            } else if (action === 'accept') {
+              await handleAcceptRequest(reqid, { id: uid, name: u.name, avatar: u.avatar, username: u.username, country: u.country });
+            } else if (action === 'reject') {
+              await handleRejectRequest(reqid);
+            } else if (action === 'chat') {
+              openDirectChat(u);
+            }
+          });
+        });
+
+        friendsList.appendChild(item);
+      });
+    }
+  }
+
+  // Friend Request Action Handlers (Clin d'œil)
+  async function handleSendFriendRequest(targetUserId, itemEl, btn) {
+    const token = getAuthToken();
+    if (!token) { showToast('Connexion requise.', 'coral'); return; }
+    try {
+      const rect = btn?.getBoundingClientRect?.();
+      spawnFloatingWink(rect ? rect.left + rect.width / 2 : undefined, rect ? rect.top : undefined);
+      playTone(784, 'sine', 0.12);
+
+      btn.disabled = true;
+      btn.textContent = '...';
+      const res = await fetch(`${API_BASE_URL}/friends/request/${targetUserId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = '😉 Envoyé';
+        btn.className = 'explore-action-btn explore-wink-sent-btn';
+        btn.dataset.action = 'cancel';
+        btn.dataset.reqid = data.request.id;
+        btn.disabled = false;
+        showToast('😉 Clin d\'œil complice envoyé !', 'teal');
+      } else {
+        btn.disabled = false;
+        btn.textContent = '😉 Clin d\'œil';
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = '😉 Clin d\'œil';
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleCancelRequest(requestId, itemEl, btn) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      btn.disabled = true;
+      const res = await fetch(`${API_BASE_URL}/friends/cancel/${requestId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = '😉 Clin d\'œil';
+        btn.className = 'explore-action-btn explore-wink-btn';
+        btn.dataset.action = 'add';
+        delete btn.dataset.reqid;
+        btn.disabled = false;
+        showToast('Clin d\'œil annulé.', 'orange');
+      } else {
+        btn.disabled = false;
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      btn.disabled = false;
+    }
+  }
+
+  async function handleAcceptRequest(requestId, sender) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/accept/${requestId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerWinkHaptic();
+        playGiftChime();
+        spawnFloatingWink();
+        const sName = sender?.name || sender?.displayName || sender?.username || 'cet utilisateur';
+        showToast(`✨ Clin d'œil renvoyé ! Vous êtes maintenant amis avec ${sName}.`, 'green');
+        await refreshFriendData();
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleRejectRequest(requestId) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/reject/${requestId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Clin d\'œil ignoré.', 'orange');
+        await refreshFriendData();
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleUnfriend(friendId, friendName) {
+    if (!confirm(`Voulez-vous vraiment retirer ${friendName} de vos amis ?`)) return;
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`${friendName} a été retiré de vos amis.`, 'orange');
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur.', 'coral');
+      }
+    } catch(e) {
+      showToast('Erreur réseau.', 'coral');
+    }
   }
 
 
@@ -2440,6 +2818,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clear previous roster & peer connections
     currentSalonRoster.clear();
+    cancelWhisperTarget();
     salonPeerConnections.forEach(pc => pc.close());
     salonPeerConnections.clear();
     salonRemoteStreams.clear();
@@ -2447,15 +2826,15 @@ document.addEventListener('DOMContentLoaded', () => {
     salonRemoteAudioElements.clear();
 
     // Register self in local roster with proper role & badge
-    const isSuper = Boolean(state.currentUser?.role === 'SUPERADMIN');
+    const isSuper = Boolean(state.currentUser?.role === 'SUPERADMIN' || state.currentUser?.role === 'ADMIN');
     const selfBadge = isOwner ? 'OWNER' : (isSuper ? 'SUPERADMIN' : 'USER');
     const selfRole = isOwner ? 'Propriétaire' : (isSuper ? 'SuperAdmin' : 'Participant');
 
     const selfUser = state.currentUser || {
       id: 'self-' + Date.now(),
-      username: 'vous',
-      displayName: 'Alexandre Moreau',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+      username: 'invite',
+      displayName: 'Invité',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
       role: selfRole,
       badgeType: selfBadge,
       country: 'FR',
@@ -2474,6 +2853,24 @@ document.addEventListener('DOMContentLoaded', () => {
       isCameraOn: false,
     });
 
+    // Offline / Standalone demo fallback: seed stage & audience participants
+    if (!socket || !socket.connected) {
+      stageParticipants.forEach((sp) => {
+        currentSalonRoster.set(sp.userId, {
+          userId: sp.userId,
+          username: sp.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          displayName: sp.name,
+          avatarUrl: sp.avatar,
+          role: sp.role,
+          badgeType: sp.badgeType || 'USER',
+          country: sp.country || 'FR',
+          isMuted: !sp.isSpeaking,
+          isSpeaking: Boolean(sp.isSpeaking),
+          isCameraOn: false,
+        });
+      });
+    }
+
     renderVoiceStage();
     initSalonChat(salon);
 
@@ -2481,13 +2878,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const salonBody = document.querySelector('.salon-modal-body');
     if (salonBody) {
       salonBody.classList.add('show-stage');
-      salonBody.classList.remove('show-chat');
+      salonBody.classList.remove('show-chat', 'show-split');
     }
     document.getElementById('tabMobileStage')?.classList.add('active');
+    document.getElementById('tabMobileSplit')?.classList.remove('active');
     document.getElementById('tabMobileChat')?.classList.remove('active');
     document.getElementById('mobileChatUnreadDot')?.classList.add('hidden');
 
     liveSalonModal.classList.remove('hidden');
+    pushAppModalState('liveSalon');
     if (btnOpenSalonBansModal) {
       if (isOwner || isSuper) {
         btnOpenSalonBansModal.classList.remove('hidden');
@@ -2498,7 +2897,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playTone(440, 'sine', 0.15);
     showToast(`Connexion au salon "${salon.name}"...`, 'teal');
 
-    // Acquire local microphone stream for voice calling
+    // Acquire local microphone stream for voice calling (with resilient synthetic fallback)
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         salonLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -2507,6 +2906,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (micErr) {
       console.warn('Microphone access denied or unavailable in salon:', micErr);
+    }
+
+    if (!salonLocalAudioTrack) {
+      salonLocalStream = createSyntheticStream(false);
+      salonLocalAudioTrack = salonLocalStream.getAudioTracks()[0];
+      setupSalonVoiceActivityDetector();
     }
 
     // Join Socket Salon Room with accessCode / inviteToken
@@ -2557,16 +2962,244 @@ document.addEventListener('DOMContentLoaded', () => {
     salonRemoteAudioElements.forEach(el => el.remove());
     salonRemoteAudioElements.clear();
     currentSalonRoster.clear();
+    cancelWhisperTarget();
 
     liveSalonModal.classList.add('hidden');
+    miniSalonWidget?.classList.add('hidden');
     salonBansModal?.classList.add('hidden');
     btnOpenSalonBansModal?.classList.add('hidden');
     state.currentRoom = null;
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
     showToast('Vous avez quitté le salon.', 'coral');
   }
 
-  btnCloseSalonModal?.addEventListener('click', closeLiveSalon);
-  btnLeaveRoom?.addEventListener('click', closeLiveSalon);
+  btnCloseSalonModal?.addEventListener('click', () => {
+    dismissWithHistory(closeLiveSalon);
+  });
+  btnLeaveRoom?.addEventListener('click', () => {
+    dismissWithHistory(closeLiveSalon);
+  });
+
+  const btnToggleSalonFullscreen = document.getElementById('btnToggleSalonFullscreen');
+  btnToggleSalonFullscreen?.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    const isFs = Boolean(document.fullscreenElement);
+    const label = btnToggleSalonFullscreen?.querySelector('.fullscreen-label');
+    if (label) {
+      label.textContent = isFs ? 'Quitter Plein écran' : 'Plein écran';
+    }
+  });
+
+  // =========================================================================
+  // FLOATING DRAGGABLE MINI SALON SYSTEM (SALON FLOTTANT / PIP)
+  // =========================================================================
+  const btnMinimizeSalon = document.getElementById('btnMinimizeSalon');
+  const miniSalonWidget = document.getElementById('miniSalonWidget');
+  const floatingSalonDragHandle = document.getElementById('floatingSalonDragHandle');
+  const miniSalonName = document.getElementById('miniSalonName');
+  const miniSalonCountNum = document.getElementById('miniSalonCountNum');
+  const miniSalonAvatars = document.getElementById('miniSalonAvatars');
+  const miniSalonStatusLabel = document.getElementById('miniSalonStatusLabel');
+  const btnRestoreSalon = document.getElementById('btnRestoreSalon');
+  const btnMiniSalonExpand = document.getElementById('btnMiniSalonExpand');
+  const btnMiniSalonToggleMic = document.getElementById('btnMiniSalonToggleMic');
+  const btnMiniSalonToggleAudio = document.getElementById('btnMiniSalonToggleAudio');
+  const btnMiniSalonLeave = document.getElementById('btnMiniSalonLeave');
+  const floatingSalonStage = document.getElementById('floatingSalonStage');
+
+  function syncMiniSalonControls() {
+    if (!miniSalonWidget) return;
+    btnMiniSalonToggleMic?.classList.toggle('muted', state.isMicMuted);
+    btnMiniSalonToggleMic?.querySelector('.mini-mic-on')?.classList.toggle('hidden', state.isMicMuted);
+    btnMiniSalonToggleMic?.querySelector('.mini-mic-off')?.classList.toggle('hidden', !state.isMicMuted);
+
+    btnMiniSalonToggleAudio?.classList.toggle('muted', state.isAudioMuted);
+    btnMiniSalonToggleAudio?.querySelector('.mini-sound-on')?.classList.toggle('hidden', state.isAudioMuted);
+    btnMiniSalonToggleAudio?.querySelector('.mini-sound-off')?.classList.toggle('hidden', !state.isAudioMuted);
+  }
+
+  function updateMiniSalonAvatars() {
+    if (!miniSalonAvatars) return;
+    miniSalonAvatars.innerHTML = '';
+
+    const list = Array.from(currentSalonRoster.values());
+    const previewList = list.slice(0, 4);
+    if (previewList.length === 0 && state.currentUser) {
+      previewList.push({
+        userId: state.currentUser.id,
+        displayName: state.currentUser.displayName || state.currentUser.name || 'Moi',
+        avatarUrl: state.currentUser.avatarUrl,
+        isSpeaking: false,
+      });
+    }
+
+    previewList.forEach((user) => {
+      const img = document.createElement('img');
+      img.className = `floating-salon-avatar${user.isSpeaking ? ' speaking' : ''}`;
+      img.dataset.userId = user.userId;
+      img.src = user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+      img.alt = user.displayName || 'Participant';
+      img.title = user.displayName || 'Participant';
+      miniSalonAvatars.appendChild(img);
+    });
+
+    if (miniSalonCountNum) {
+      miniSalonCountNum.textContent = currentSalonRoster.size || (state.currentRoom ? state.currentRoom.participantsCount : 8);
+    }
+  }
+
+  function minimizeSalonToFloating() {
+    if (!state.currentRoom) return;
+
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+
+    liveSalonModal?.classList.add('hidden');
+    miniSalonWidget?.classList.remove('hidden');
+
+    if (miniSalonName) {
+      miniSalonName.textContent = state.currentRoom.name || 'Salon Vocal';
+    }
+    if (miniSalonStatusLabel) {
+      miniSalonStatusLabel.textContent = `En direct • ${state.currentRoom.name}`;
+    }
+
+    updateMiniSalonAvatars();
+    syncMiniSalonControls();
+    showToast('Salon réduit en fenêtre volante • Déplacez-la où vous voulez !', 'teal');
+  }
+
+  function restoreSalonFullScreen() {
+    miniSalonWidget?.classList.add('hidden');
+    liveSalonModal?.classList.remove('hidden');
+    pushAppModalState('liveSalon');
+
+    // Keep full modal voice controls in sync
+    btnToggleMic?.classList.toggle('muted', state.isMicMuted);
+    btnToggleMic?.querySelector('.mic-on-icon')?.classList.toggle('hidden', state.isMicMuted);
+    btnToggleMic?.querySelector('.mic-off-icon')?.classList.toggle('hidden', !state.isMicMuted);
+    if (btnToggleMic) {
+      const lbl = btnToggleMic.querySelector('.ctrl-label');
+      if (lbl) lbl.textContent = state.isMicMuted ? 'Coupé' : 'Micro';
+    }
+
+    btnToggleAudio?.classList.toggle('muted', state.isAudioMuted);
+    if (btnToggleAudio) {
+      const lbl = btnToggleAudio.querySelector('.ctrl-label');
+      if (lbl) lbl.textContent = state.isAudioMuted ? 'Sourdine' : 'Audio HD';
+    }
+  }
+
+  // Drag and drop for Floating Salon Widget (Touch & Mouse Support)
+  function initFloatingSalonDraggable() {
+    if (!miniSalonWidget) return;
+
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialLeft = 0, initialTop = 0;
+
+    const onPointerDown = (e) => {
+      // Don't drag if user is clicking a button or interactive child
+      if (e.target.closest('button, a, input, [role="button"]')) return;
+
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = miniSalonWidget.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+
+      miniSalonWidget.style.left = `${initialLeft}px`;
+      miniSalonWidget.style.top = `${initialTop}px`;
+      miniSalonWidget.style.right = 'auto';
+      miniSalonWidget.style.bottom = 'auto';
+      miniSalonWidget.classList.add('is-dragging');
+
+      try {
+        miniSalonWidget.setPointerCapture(e.pointerId);
+      } catch (err) { }
+
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    };
+
+    const onPointerMove = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      const widgetW = miniSalonWidget.offsetWidth || 300;
+      const widgetH = miniSalonWidget.offsetHeight || 240;
+      const maxLeft = window.innerWidth - widgetW - 10;
+      const maxTop = window.innerHeight - widgetH - 10;
+
+      const newLeft = Math.max(10, Math.min(maxLeft, initialLeft + dx));
+      const newTop = Math.max(10, Math.min(maxTop, initialTop + dy));
+
+      miniSalonWidget.style.left = `${newLeft}px`;
+      miniSalonWidget.style.top = `${newTop}px`;
+    };
+
+    const onPointerUp = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      miniSalonWidget.classList.remove('is-dragging');
+
+      try {
+        miniSalonWidget.releasePointerCapture(e.pointerId);
+      } catch (err) { }
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+    };
+
+    const dragHandle = floatingSalonDragHandle || miniSalonWidget;
+    dragHandle.addEventListener('pointerdown', onPointerDown);
+  }
+
+  // Event Listeners for Mini Salon
+  btnMinimizeSalon?.addEventListener('click', () => {
+    dismissWithHistory(minimizeSalonToFloating);
+  });
+  btnRestoreSalon?.addEventListener('click', restoreSalonFullScreen);
+  btnMiniSalonExpand?.addEventListener('click', restoreSalonFullScreen);
+  floatingSalonStage?.addEventListener('click', (e) => {
+    if (!e.target.closest('button')) restoreSalonFullScreen();
+  });
+  floatingSalonDragHandle?.addEventListener('dblclick', restoreSalonFullScreen);
+
+  btnMiniSalonToggleMic?.addEventListener('click', () => {
+    btnToggleMic?.click();
+    syncMiniSalonControls();
+  });
+
+  btnMiniSalonToggleAudio?.addEventListener('click', () => {
+    btnToggleAudio?.click();
+    syncMiniSalonControls();
+  });
+
+  btnMiniSalonLeave?.addEventListener('click', () => {
+    closeLiveSalon();
+  });
+
+  initFloatingSalonDraggable();
 
   // C. Local Voice Activity Detector using Web Audio API
   function setupSalonVoiceActivityDetector() {
@@ -2795,7 +3428,7 @@ document.addEventListener('DOMContentLoaded', () => {
       !isOwner && (
         p.badgeType === 'SUPERADMIN' ||
         p.role === 'SuperAdmin' ||
-        (p.userId === myId && (state.currentUser?.role === 'SUPERADMIN'))
+        (p.userId === myId && (state.currentUser?.role === 'SUPERADMIN' || state.currentUser?.role === 'ADMIN'))
       )
     );
 
@@ -2902,6 +3535,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
             ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">️</button>` : ''}
             <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
+            <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" class="stage-video-poster" id="videoPoster_${userId}" alt="" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
@@ -2913,10 +3547,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Attach video stream with muted=true & play()
         const vidEl = card.querySelector(`#videoEl_${userId}`);
         const loadEl = card.querySelector(`#videoLoading_${userId}`);
+        const posterEl = card.querySelector(`#videoPoster_${userId}`);
         if (vidEl) {
           vidEl.muted = true;
 
-          const hideLoader = () => { if (loadEl) { loadEl.style.display = 'none'; } };
+          const hideLoader = () => {
+            if (loadEl) loadEl.style.display = 'none';
+            if (posterEl) posterEl.style.opacity = '0';
+          };
           vidEl.addEventListener('loadeddata', hideLoader, { once: true });
           vidEl.addEventListener('playing', hideLoader, { once: true });
 
@@ -2936,6 +3574,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (rx && rx.track) {
                   remoteStr = new MediaStream([rx.track]);
                   salonRemoteStreams.set(userId, remoteStr);
+                  rx.track.onunmute = () => attachStream(remoteStr);
                 }
               }
             }
@@ -2982,6 +3621,24 @@ document.addEventListener('DOMContentLoaded', () => {
         videoRoleBadge.innerHTML = `${roleInfo.icon} ${roleInfo.label}`;
       }
 
+      // Always update dynamic avatar and name if card already exists
+      const targetStageAvatar = (userId && localStorage.getItem(`wafatalk_avatar_${userId}`)) || p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png';
+      const stageAvatarEl = card.querySelector('.stage-avatar-img');
+      if (stageAvatarEl && stageAvatarEl.getAttribute('src') !== targetStageAvatar) {
+        stageAvatarEl.src = targetStageAvatar;
+      }
+      const stagePosterEl = card.querySelector(`#videoPoster_${userId}`);
+      if (stagePosterEl && stagePosterEl.getAttribute('src') !== targetStageAvatar) {
+        stagePosterEl.src = targetStageAvatar;
+      }
+      const stageNameEl = card.querySelector('.stage-user-name');
+      if (stageNameEl) {
+        const expectedName = escapeHtml(p.displayName || p.name || 'Membre');
+        if (stageNameEl.textContent !== expectedName) {
+          stageNameEl.textContent = expectedName;
+        }
+      }
+
       // Ensure admin trigger button exists if moderator privileges apply
       let triggerBtn = card.querySelector('.stage-admin-trigger');
       if (canAdminModerate && !triggerBtn) {
@@ -2994,6 +3651,38 @@ document.addEventListener('DOMContentLoaded', () => {
         card.appendChild(triggerBtn);
       } else if (!canAdminModerate && triggerBtn) {
         triggerBtn.remove();
+      }
+
+      // Ensure in-salon whisper trigger button exists on other participants
+      let whisperBtn = card.querySelector('.stage-whisper-trigger');
+      if (!isSelf && !whisperBtn) {
+        whisperBtn = document.createElement('button');
+        whisperBtn.type = 'button';
+        whisperBtn.className = 'stage-whisper-trigger';
+        whisperBtn.dataset.userId = userId;
+        whisperBtn.title = `Chuchoter en privé à ${escapeHtml(p.displayName || p.name || 'ce membre')}`;
+        whisperBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+        whisperBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setWhisperTarget(p);
+        });
+        card.appendChild(whisperBtn);
+      } else if (isSelf && whisperBtn) {
+        whisperBtn.remove();
+      }
+
+      // Clicking anywhere on the card (except admin controls) activates whisper
+      if (!isSelf) {
+        card.style.cursor = 'pointer';
+        card.title = `Cliquer pour chuchoter en privé à ${p.displayName || p.name || 'ce membre'}`;
+        card.onclick = (e) => {
+          if (e.target.closest('.stage-admin-trigger') || e.target.closest('.stage-whisper-trigger')) return;
+          setWhisperTarget(p);
+        };
+      } else {
+        card.style.cursor = 'default';
+        card.title = '';
+        card.onclick = null;
       }
 
       // Ensure mute badge reflects real-time mute state
@@ -3023,6 +3712,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const count = currentSalonRoster.size;
       chatParticipantsCount.textContent = `${count} participant${count > 1 ? 's' : ''}`;
     }
+
+    if (miniSalonWidget && !miniSalonWidget.classList.contains('hidden')) {
+      updateMiniSalonAvatars();
+    }
   }
 
   // Voice stage admin trigger click delegation
@@ -3044,6 +3737,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (card) {
       card.classList.toggle('is-speaking', isSpeaking);
     }
+    const miniAvatar = miniSalonAvatars?.querySelector(`[data-user-id="${userId}"]`);
+    if (miniAvatar) {
+      miniAvatar.classList.toggle('speaking', isSpeaking);
+    }
   }
 
   // E. Handle Salon Roster Sync from Server
@@ -3055,6 +3752,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selfInRoster = currentSalonRoster.get(myId) || (myId ? null : Array.from(currentSalonRoster.values())[0]);
 
     currentSalonRoster.clear();
+    cancelWhisperTarget();
     if (selfInRoster) {
       currentSalonRoster.set(selfInRoster.userId, selfInRoster);
     }
@@ -3107,6 +3805,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     salonRemoteStreams.delete(userId);
     currentSalonRoster.delete(userId);
+
+    if (activeWhisperTarget && activeWhisperTarget.id === userId) {
+      cancelWhisperTarget();
+      showToast(`${displayName || 'Ce participant'} a quitté le salon. Chuchotement désactivé.`, 'coral');
+    }
 
     renderVoiceStage();
     showToast(`${displayName || 'Un participant'} a quitté le salon.`, 'coral');
@@ -3182,6 +3885,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log(` [${isInitiator ? 'INIT' : 'ANSW'}] Track from ${targetUserId}:`, track.kind, track.id);
 
       if (track.kind === 'audio') {
+        const stream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([track]);
         let audioEl = salonRemoteAudioElements.get(targetUserId);
         if (!audioEl) {
           audioEl = document.createElement('audio');
@@ -3189,10 +3893,14 @@ document.addEventListener('DOMContentLoaded', () => {
           audioEl.playsInline = true;
           audioEl.setAttribute('playsinline', '');
           audioEl.muted = state.isAudioMuted;
+          audioEl.volume = 1.0;
           document.body.appendChild(audioEl);
           salonRemoteAudioElements.set(targetUserId, audioEl);
         }
-        audioEl.srcObject = new MediaStream([track]);
+        if (audioEl.srcObject !== stream) {
+          audioEl.srcObject = stream;
+        }
+        audioEl.muted = state.isAudioMuted;
         const playPromise = audioEl.play();
         if (playPromise !== undefined) {
           playPromise.catch((e) => {
@@ -3205,25 +3913,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const attachVideo = () => {
           const lEl = document.getElementById(`videoLoading_${targetUserId}`);
+          const pEl = document.getElementById(`videoPoster_${targetUserId}`);
           const vidEl = document.getElementById(`videoEl_${targetUserId}`);
           if (vidEl) {
             if (vidEl.srcObject !== stream) vidEl.srcObject = stream;
             vidEl.muted = true;
             vidEl.playsInline = true;
             vidEl.setAttribute('playsinline', '');
-            vidEl.play().catch(() => {});
-            if (lEl) lEl.style.display = 'none';
+            vidEl.play().then(() => {
+              if (lEl) lEl.style.display = 'none';
+              if (pEl) pEl.style.opacity = '0';
+            }).catch(() => {});
           } else {
             let attempts = 0;
             const poll = setInterval(() => {
               const el = document.getElementById(`videoEl_${targetUserId}`);
               const ll = document.getElementById(`videoLoading_${targetUserId}`);
+              const pp = document.getElementById(`videoPoster_${targetUserId}`);
               if (el) {
                 if (el.srcObject !== stream) el.srcObject = stream;
                 el.muted = true;
                 el.playsInline = true;
-                el.play().catch(() => {});
-                if (ll) ll.style.display = 'none';
+                el.play().then(() => {
+                  if (ll) ll.style.display = 'none';
+                  if (pp) pp.style.opacity = '0';
+                }).catch(() => {});
                 clearInterval(poll);
               } else if (++attempts > 30) {
                 clearInterval(poll);
@@ -3251,9 +3965,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log(` ICE [${targetUserId}]:`, pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
         console.warn(`ICE ${pc.iceConnectionState} with ${targetUserId} — triggering ICE restart`);
-        if (isInitiator) {
-          restartSalonIce(targetUserId, pc);
-        }
+        // Both initiator and answerer may attempt restart; guard prevents double-fire
+        restartSalonIce(targetUserId, pc);
       }
     };
 
@@ -3288,8 +4001,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Real ICE restart function for salons
   async function restartSalonIce(targetUserId, pc) {
     if (!pc || !socket || !socket.connected || !state.currentRoom) return;
+    if (pc.signalingState !== 'stable' || pc._iceRestartInFlight) return;
     try {
-      if (typeof pc.restartIce === 'function') pc.restartIce();
+      pc._iceRestartInFlight = true;
       const offer = await pc.createOffer({ iceRestart: true });
       const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
       await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
@@ -3300,6 +4014,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (e) {
       console.warn('restartSalonIce failed:', e);
+    } finally {
+      pc._iceRestartInFlight = false;
     }
   }
 
@@ -3331,9 +4047,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (signal.type === 'offer') {
       const pc = createSalonPeerConnection(senderId, false);
       try {
-        if (pc.signalingState === 'have-remote-offer') {
+        // Allow ICE restart offers even when in have-remote-offer state
+        if (pc.signalingState === 'have-remote-offer' && !signal.isIceRestart) {
           console.warn(`Already in have-remote-offer for ${senderId}, ignoring duplicate offer`);
           return;
+        }
+
+        // Polite peer handling if local offer is simultaneously in flight
+        if (pc.signalingState === 'have-local-offer') {
+          const myId = state.currentUser?.id || '';
+          if (myId < senderId) {
+            await pc.setLocalDescription({ type: 'rollback' });
+          } else if (!signal.isIceRestart) {
+            return;
+          }
+        }
+
+        // If we're in have-remote-offer and this IS an ICE restart, roll back to stable first
+        if (pc.signalingState === 'have-remote-offer') {
+          await pc.setLocalDescription({ type: 'rollback' });
         }
 
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
@@ -3365,8 +4097,12 @@ document.addEventListener('DOMContentLoaded', () => {
           socket.emit('salon:signal', {
             salonId: state.currentRoom.id,
             targetUserId: senderId,
-            signal: { type: 'answer', sdp: pc.localDescription.sdp },
+            signal: { type: 'answer', sdp: pc.localDescription.sdp, isCameraToggle: Boolean(signal.isCameraToggle) },
           });
+        }
+
+        if (signal.isCameraToggle) {
+          renderVoiceStage();
         }
       } catch (err) {
         console.warn('Error handling salon offer:', err);
@@ -3377,6 +4113,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
           await drainSalonPendingCandidates(senderId, pc);
+          if (signal.isCameraToggle) {
+            renderVoiceStage();
+          }
         } catch (err) {
           console.warn('Error setting salon answer:', err);
         }
@@ -3478,24 +4217,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = true;
 
-      // Instantly replace track on all active peer connection video senders
-      salonPeerConnections.forEach(async (pc) => {
+      // Update tracks on all active peer connections and trigger renegotiation
+      salonPeerConnections.forEach(async (pc, peerId) => {
         try {
-          const videoTransceiver = pc.getTransceivers().find(t => t.receiver?.track?.kind === 'video');
-          if (videoTransceiver) {
+          let videoTransceiver = pc.getTransceivers().find(t => t.receiver?.track?.kind === 'video');
+          if (!videoTransceiver) {
+            videoTransceiver = pc.addTransceiver(salonLocalVideoTrack, { direction: 'sendrecv' });
+          } else {
             videoTransceiver.direction = 'sendrecv';
             await videoTransceiver.sender.replaceTrack(salonLocalVideoTrack);
-          } else {
-            const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (videoSender) {
-              await videoSender.replaceTrack(salonLocalVideoTrack);
-            } else {
-              const nullVideoSender = pc.getSenders().find(s => !s.track);
-              if (nullVideoSender) await nullVideoSender.replaceTrack(salonLocalVideoTrack);
-            }
+          }
+
+          // Trigger renegotiation offer so remote peer receives live video frames instantly
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+          const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+          await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+
+          if (socket && socket.connected && state.currentRoom) {
+            socket.emit('salon:signal', {
+              salonId: state.currentRoom.id,
+              targetUserId: peerId,
+              signal: { type: 'offer', sdp: pc.localDescription.sdp, isCameraToggle: true },
+            });
           }
         } catch (e) {
-          console.warn('Error replacing video track:', e);
+          console.warn('Error renegotiating video track with ' + peerId, e);
         }
       });
 
@@ -3531,12 +4277,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const selfP = currentSalonRoster.get(myId);
       if (selfP) selfP.isCameraOn = false;
 
-      // Blank track on all peer connections
-      salonPeerConnections.forEach(async (pc) => {
+      // Blank track on all peer connections and renegotiate
+      salonPeerConnections.forEach(async (pc, peerId) => {
         try {
           const videoTransceiver = pc.getTransceivers().find(t => t.receiver && t.receiver.track && t.receiver.track.kind === 'video');
-          const videoSender = videoTransceiver ? videoTransceiver.sender : pc.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (videoSender) await videoSender.replaceTrack(null);
+          if (videoTransceiver) {
+            await videoTransceiver.sender.replaceTrack(null);
+            videoTransceiver.direction = 'recvonly';
+          }
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+          const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
+          await pc.setLocalDescription(new RTCSessionDescription({ type: 'offer', sdp: enhanced }));
+
+          if (socket && socket.connected && state.currentRoom) {
+            socket.emit('salon:signal', {
+              salonId: state.currentRoom.id,
+              targetUserId: peerId,
+              signal: { type: 'offer', sdp: pc.localDescription.sdp, isCameraToggle: true },
+            });
+          }
         } catch (e) { }
       });
 
@@ -3568,28 +4327,119 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(state.isAudioMuted ? 'Son du salon coupé' : 'Son du salon rétabli', state.isAudioMuted ? 'coral' : 'teal');
   });
 
-  // N. Real-Time Salon Chat System (Discord-Grade Scrolling & Infinite History)
+  // In-Salon Private Whisper Controller
+  function setWhisperTarget(target) {
+    if (!target) return;
+    const targetId = target.userId || target.id;
+    const myId = state.currentUser?.id;
+    if (myId && targetId === myId) return;
+
+    const targetName = target.displayName || target.name || target.username || 'Membre';
+    activeWhisperTarget = {
+      id: targetId,
+      name: targetName,
+      username: target.username || '',
+      avatar: target.avatarUrl || target.avatar || '',
+    };
+
+    updateWhisperBannerUI();
+    chatInputText?.focus();
+    showToast(`Mode message privé activé avec ${targetName} dans le salon`, 'teal');
+  }
+
+  function cancelWhisperTarget() {
+    activeWhisperTarget = null;
+    updateWhisperBannerUI();
+  }
+
+  function updateWhisperBannerUI() {
+    const banner = document.getElementById('salonWhisperBanner');
+    const nameEl = document.getElementById('whisperTargetName');
+    const cancelBtn = document.getElementById('btnCancelWhisper');
+
+    if (activeWhisperTarget) {
+      if (banner) {
+        banner.classList.remove('hidden');
+        banner.style.display = 'flex';
+      }
+      if (nameEl) nameEl.textContent = `@${activeWhisperTarget.name}`;
+      if (chatInputText) {
+        chatInputText.placeholder = `Chuchoter en privé à ${activeWhisperTarget.name}...`;
+        chatInputText.style.borderColor = 'var(--teal-primary)';
+      }
+      if (cancelBtn && !cancelBtn.dataset.bound) {
+        cancelBtn.dataset.bound = 'true';
+        cancelBtn.addEventListener('click', () => {
+          cancelWhisperTarget();
+          chatInputText?.focus();
+        });
+      }
+    } else {
+      if (banner) {
+        banner.classList.add('hidden');
+        banner.style.display = 'none';
+      }
+      if (chatInputText) {
+        chatInputText.placeholder = 'Écrire un message...';
+        chatInputText.style.borderColor = '';
+      }
+    }
+  }
+
+  // N. Real-Time Salon Chat System (Scrolling & Infinite History)
   function createSalonMessageElement(message) {
     const myId = state.currentUser?.id;
     const isFromMe = (message.user?.id && message.user.id === myId) || (message.userId && message.userId === myId);
 
+    const isWhisper = message.type === 'WHISPER' || Boolean(message.isWhisper);
     const msgEl = document.createElement('div');
-    msgEl.className = `chat-msg ${isFromMe ? 'self' : ''}`;
+    msgEl.className = `chat-msg ${isFromMe ? 'self' : ''} ${isWhisper ? 'chat-msg-whisper' : ''}`;
     if (message.id) msgEl.dataset.msgId = message.id;
+    const senderUserId = message.user?.id || message.userId || (isFromMe ? state.currentUser?.id : '');
+    if (senderUserId) msgEl.dataset.userId = senderUserId;
     const authorName = isFromMe ? 'Vous' : (message.user?.displayName || message.user?.username || 'Membre');
-    const avatar = message.user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
+    const storedSenderAvatar = senderUserId ? localStorage.getItem(`wafatalk_avatar_${senderUserId}`) : null;
+    const avatar = storedSenderAvatar || (isFromMe ? (state.currentUser?.avatarUrl || state.currentUser?.avatar) : (message.user?.avatarUrl || message.user?.avatar)) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
     const timeStr = message.time || (message.createdAt ? new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'À l\'instant');
 
+    let whisperBadgeHtml = '';
+    if (isWhisper) {
+      const lockIconSvg = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:baseline;margin-right:3px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
+      if (isFromMe) {
+        const toName = message.whisperToName || message.targetUser?.displayName || message.targetUser?.username || 'Membre';
+        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous et @${escapeHtml(toName)}">${lockIconSvg}Chuchoté à @${escapeHtml(toName)}</span>`;
+      } else {
+        whisperBadgeHtml = `<span class="whisper-badge-pill" title="Message privé visible uniquement par vous deux">${lockIconSvg}Chuchotement privé</span>`;
+      }
+    }
+
     msgEl.innerHTML = `
-      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'" style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">
       <div class="chat-msg-body">
         <div class="chat-msg-author">
-          <strong>${escapeHtml(authorName)}</strong>
+          <strong style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">${escapeHtml(authorName)}</strong>
+          ${whisperBadgeHtml}
           <span class="chat-msg-time">${timeStr}</span>
         </div>
         <p class="chat-msg-text">${escapeHtml(message.content)}</p>
       </div>
     `;
+
+    // Clicking non-self author or avatar sets them as whisper target
+    if (!isFromMe && message.user) {
+      const clickHandler = (e) => {
+        e.stopPropagation();
+        setWhisperTarget({
+          id: message.user.id || message.userId,
+          displayName: message.user.displayName,
+          username: message.user.username,
+          avatarUrl: message.user.avatarUrl,
+        });
+      };
+      msgEl.querySelector('.chat-msg-avatar')?.addEventListener('click', clickHandler);
+      msgEl.querySelector('.chat-msg-author strong')?.addEventListener('click', clickHandler);
+    }
+
     return msgEl;
   }
 
@@ -3628,7 +4478,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch existing recent messages from backend API
     try {
-      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages?limit=50`);
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/salons/${salon.id}/messages?limit=50`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
         const msgs = Array.isArray(data) ? data : (data.messages || []);
@@ -3662,7 +4515,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevScrollTop = chatMessagesScroll.scrollTop;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/messages?beforeId=${salonOldestMessageId}&limit=50`);
+      const token = getAuthToken();
+      const res = await fetch(`${API_BASE_URL}/salons/${state.currentRoom.id}/messages?beforeId=${salonOldestMessageId}&limit=50`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
       if (res.ok) {
         const data = await res.json();
         const olderMsgs = Array.isArray(data) ? data : (data.messages || []);
@@ -3779,11 +4635,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text || !state.currentRoom) return;
 
     if (socket && socket.connected) {
-      socket.emit('chat:send', {
-        salonId: state.currentRoom.id,
-        content: text,
-        type: 'TEXT',
-      });
+      if (activeWhisperTarget) {
+        socket.emit('chat:send', {
+          salonId: state.currentRoom.id,
+          content: text,
+          type: 'WHISPER',
+          targetUserId: activeWhisperTarget.id,
+        });
+      } else {
+        socket.emit('chat:send', {
+          salonId: state.currentRoom.id,
+          content: text,
+          type: 'TEXT',
+        });
+      }
       socket.emit('chat:typing', {
         salonId: state.currentRoom.id,
         isTyping: false,
@@ -3826,71 +4691,883 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+// =========================================================================
+  // 7. INTERACTIVE GIFTING & CELEBRATION ENGINE : « COUP DE CŒUR & CADEAUX »
   // =========================================================================
-  // 7. INTERACTIVE GIFTING & CELEBRATION ENGINE
-  // =========================================================================
-  function openGiftShop() {
-    giftShopModal.classList.remove('hidden');
+
+  const GIFTS_CATALOG = [
+    {
+      id: 'coffee',
+      name: 'Café Douceur',
+      icon: '☕',
+      points: 30,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Un petit café pour commencer notre discussion du bon pied ?',
+      fx: 'steam'
+    },
+    {
+      id: 'croissant',
+      name: 'Croissant Chaud',
+      icon: '🥐',
+      points: 45,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Le petit déj virtuel le plus croustillant de WafaTalk !',
+      fx: 'steam'
+    },
+    {
+      id: 'heart',
+      name: 'Coup de Cœur',
+      icon: '💖',
+      points: 50,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'J\'ai flashé sur ton profil/ta voix, impossible de ne pas te laisser ce coup de cœur.',
+      fx: 'hearts'
+    },
+    {
+      id: 'bubble_tea',
+      name: 'Boba Tea Festif',
+      icon: '🧋',
+      points: 60,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Sucré, pétillant et plein de bonnes ondes pour égayer ta journée.',
+      fx: 'bubbles'
+    },
+    {
+      id: 'cocktail',
+      name: 'Cocktail Sunset',
+      icon: '🍹',
+      points: 75,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'À consommer sans modération en terrasse avec un coucher de soleil.',
+      fx: 'bubbles'
+    },
+    {
+      id: 'star',
+      name: 'Étoile Filante',
+      icon: '⭐',
+      points: 80,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'Fais un vœu, j\'ai l\'impression qu\'il vient déjà de se réaliser.',
+      fx: 'stardust'
+    },
+    {
+      id: 'playlist',
+      name: 'Mixtape Secrète',
+      icon: '🎵',
+      points: 90,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'Les meilleures vibes musicales à écouter ensemble dans les salons.',
+      fx: 'notes'
+    },
+    {
+      id: 'chocolates',
+      name: 'Boîte de Pralines',
+      icon: '🍫',
+      points: 100,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'gourmand',
+      typeLabel: 'Attention Gourmande',
+      accroche: 'Une touche de douceur fondante pour adoucir tes journées.',
+      fx: 'hearts'
+    },
+    {
+      id: 'red_rose',
+      name: 'Rose Éternelle',
+      icon: '🌹',
+      points: 120,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'Classique, élégante et délicate, elle ne se fane jamais.',
+      fx: 'petals'
+    },
+    {
+      id: 'cinema_tickets',
+      name: 'Soirée Ciné Popcorn',
+      icon: '🍿',
+      points: 140,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Séance rétro et popcorn géant : on s\'installe au premier ou dernier rang ?',
+      fx: 'confetti'
+    },
+    {
+      id: 'magic_box',
+      name: 'Coffret Mystère',
+      icon: '🎁',
+      points: 150,
+      ambiance: 'complice',
+      ambianceLabel: 'Complice & Fun',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'À déballer pour révéler un message surprise bienveillant !',
+      fx: 'confetti'
+    },
+    {
+      id: 'rooftop_date',
+      name: 'Rendez-vous Rooftop',
+      icon: '🌃',
+      points: 180,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Une vue panoramique imprenable sur la ville nocturne, rien que nous deux.',
+      fx: 'stardust'
+    },
+    {
+      id: 'candle_dinner',
+      name: 'Dîner aux Chandelles',
+      icon: '🕯️',
+      points: 220,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Lumière tamisée, ambiance acoustique et une table réservée pour faire connaissance.',
+      fx: 'sparks'
+    },
+    {
+      id: 'museum_pass',
+      name: 'Échappée Musée & Expo',
+      icon: '🎨',
+      points: 250,
+      ambiance: 'premier_rdv',
+      ambianceLabel: 'Premier RDV',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Pour refaire le monde devant les tableaux et partager nos coups de cœur artistiques.',
+      fx: 'confetti'
+    },
+    {
+      id: 'vip_crown',
+      name: 'Couronne Prestige',
+      icon: '👑',
+      points: 300,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'Pour couronner la reine ou le roi du salon, avec tous les honneurs !',
+      fx: 'sparks'
+    },
+    {
+      id: 'stargazing',
+      name: 'Nuit sous les Étoiles',
+      icon: '🔭',
+      points: 350,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Télescope, chocolat chaud et ciel dégagé pour compter les constellations.',
+      fx: 'cosmic'
+    },
+    {
+      id: 'hot_air_balloon',
+      name: 'Vol en Montgolfière',
+      icon: '🎈',
+      points: 400,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Prendre de la hauteur et s\'évader au-dessus des nuages ensemble.',
+      fx: 'confetti'
+    },
+    {
+      id: 'fireworks',
+      name: 'Grand Feu d\'Artifice',
+      icon: '🎆',
+      points: 500,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'declaration',
+      typeLabel: 'Déclaration Virtuelle',
+      accroche: 'L\'explosion de couleurs qui illumine tout le salon en direct !',
+      fx: 'fireworks'
+    },
+    {
+      id: 'luxury_ring',
+      name: 'Bague Diamant Éclat',
+      icon: '💎',
+      points: 750,
+      ambiance: 'romantique',
+      ambianceLabel: 'Romantique',
+      type: 'objet',
+      typeLabel: 'Objet Symbolique',
+      accroche: 'L\'attention ultime, brillante et précieuse, pour marquer les esprits.',
+      fx: 'stardust'
+    },
+    {
+      id: 'island_trip',
+      name: 'Escapade Île Déserte',
+      icon: '🏝️',
+      points: 1000,
+      ambiance: 'festif',
+      ambianceLabel: 'Festif & Spectaculaire',
+      type: 'sortie',
+      typeLabel: 'Moment & Sortie',
+      accroche: 'Billet première classe pour une plage secrète aux eaux turquoise.',
+      fx: 'fireworks'
+    }
+  ];
+
+  // Gift Shop State
+  let activeGiftTab = 'catalog'; // 'catalog' | 'favorites' | 'history'
+  let activeGiftAmbiance = 'all';
+  let activeGiftType = 'all';
+  let activeGiftBudget = 'all';
+  let giftSearchTerm = '';
+  let activePersonalizeGift = null;
+  let favoriteGiftIds = new Set(JSON.parse(localStorage.getItem('wafatalk_favorite_gifts') || '["heart","coffee","cocktail"]'));
+  let sentGiftHistory = JSON.parse(localStorage.getItem('wafatalk_sent_gifts') || '[]');
+
+  const giftsCatalogGrid = document.getElementById('giftsCatalogGrid');
+  const giftEmptyState = document.getElementById('giftEmptyState');
+  const giftHistoryList = document.getElementById('giftHistoryList');
+  const giftPersonalizeDrawer = document.getElementById('giftPersonalizeDrawer');
+  const giftModalBalance = document.getElementById('giftModalBalance');
+  const giftSearchInput = document.getElementById('giftSearchInput');
+  const giftTypeSelect = document.getElementById('giftTypeSelect');
+  const giftBudgetSelect = document.getElementById('giftBudgetSelect');
+  const btnSurpriseMe = document.getElementById('btnSurpriseMe');
+  const btnResetGiftFilters = document.getElementById('btnResetGiftFilters');
+  const btnCloseGiftDrawer = document.getElementById('btnCloseGiftDrawer');
+  const btnCancelGiftDrawer = document.getElementById('btnCancelGiftDrawer');
+  const btnConfirmSendGift = document.getElementById('btnConfirmSendGift');
+  const btnCopyAccroche = document.getElementById('btnCopyAccroche');
+  const copyAccrocheLabel = document.getElementById('copyAccrocheLabel');
+  const giftCustomNote = document.getElementById('giftCustomNote');
+  const giftCharCount = document.getElementById('giftCharCount');
+  const giftRecipientSelect = document.getElementById('giftRecipientSelect');
+  const giftAccrocheText = document.getElementById('giftAccrocheText');
+
+  function updateGiftCounters() {
+    const catalogCount = document.getElementById('giftCatalogCount');
+    const favCount = document.getElementById('giftFavCount');
+    const historyCount = document.getElementById('giftHistoryCount');
+    const catalogCounter = document.getElementById('giftCatalogCounter');
+    const favCounter = document.getElementById('giftFavCounter');
+    const historyCounter = document.getElementById('giftHistoryCounter');
+
+    if (catalogCount) catalogCount.textContent = GIFTS_CATALOG.length;
+    if (catalogCounter) catalogCounter.textContent = GIFTS_CATALOG.length;
+    if (favCount) favCount.textContent = favoriteGiftIds.size;
+    if (favCounter) favCounter.textContent = favoriteGiftIds.size;
+    if (historyCount) historyCount.textContent = sentGiftHistory.length;
+    if (historyCounter) historyCounter.textContent = sentGiftHistory.length;
   }
 
-  function closeGiftShop() {
-    giftShopModal.classList.add('hidden');
+  function syncUserPointsDisplay() {
+    if (giftModalBalance) {
+      giftModalBalance.textContent = state.userPoints;
+    }
+    const navPoints = document.querySelectorAll('.user-points-badge span, .profile-points-val');
+    navPoints.forEach(el => el.textContent = state.userPoints);
   }
 
-  btnOpenGiftShop?.addEventListener('click', openGiftShop);
-  btnSidebarGiftTrigger?.addEventListener('click', openGiftShop);
-  btnModalGiftTrigger?.addEventListener('click', openGiftShop);
-  btnSendCommunityGift?.addEventListener('click', openGiftShop);
-  btnCloseGiftModal?.addEventListener('click', closeGiftShop);
+  function filterGifts() {
+    return GIFTS_CATALOG.filter(gift => {
+      // Tab filter
+      if (activeGiftTab === 'favorites' && !favoriteGiftIds.has(gift.id)) {
+        return false;
+      }
+      // Ambiance filter
+      if (activeGiftAmbiance !== 'all' && gift.ambiance !== activeGiftAmbiance) {
+        return false;
+      }
+      // Type filter
+      if (activeGiftType !== 'all' && gift.type !== activeGiftType) {
+        return false;
+      }
+      // Budget filter
+      if (activeGiftBudget === 'tier1' && gift.points >= 50) return false;
+      if (activeGiftBudget === 'tier2' && (gift.points < 50 || gift.points > 150)) return false;
+      if (activeGiftBudget === 'tier3' && (gift.points < 150 || gift.points > 300)) return false;
+      if (activeGiftBudget === 'tier4' && gift.points <= 300) return false;
+      // Search term
+      if (giftSearchTerm) {
+        const query = giftSearchTerm.toLowerCase();
+        const matchesName = gift.name.toLowerCase().includes(query);
+        const matchesAccroche = gift.accroche.toLowerCase().includes(query);
+        const matchesType = gift.typeLabel.toLowerCase().includes(query);
+        const matchesAmbiance = gift.ambianceLabel.toLowerCase().includes(query);
+        if (!matchesName && !matchesAccroche && !matchesType && !matchesAmbiance) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
 
-  // Send Gift Action
-  document.querySelectorAll('.btn-send-gift').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const card = e.target.closest('.gift-card-item');
-      const giftName = card.dataset.name;
-      const giftType = card.dataset.gift;
+  function renderGiftShop() {
+    updateGiftCounters();
+    syncUserPointsDisplay();
 
-      closeGiftShop();
+    if (activeGiftTab === 'history') {
+      if (giftsCatalogGrid) giftsCatalogGrid.classList.add('hidden');
+      if (giftEmptyState) giftEmptyState.classList.add('hidden');
+      if (giftHistoryList) giftHistoryList.classList.remove('hidden');
+      renderGiftHistory();
+      return;
+    }
 
-      // Launch particles & sounds
-      launchParticles(window.innerWidth / 2, window.innerHeight / 2, giftType);
-      playGiftChime();
+    if (giftHistoryList) giftHistoryList.classList.add('hidden');
+    const filtered = filterGifts();
 
-      showToast(` Cadeau envoyé : ${giftName} ! Vos amis adorent ! `, 'amber');
+    if (filtered.length === 0) {
+      if (giftsCatalogGrid) giftsCatalogGrid.classList.add('hidden');
+      if (giftEmptyState) giftEmptyState.classList.remove('hidden');
+      const emptyTitle = document.getElementById('giftEmptyTitle');
+      const emptyDesc = document.getElementById('giftEmptyDesc');
+      if (activeGiftTab === 'favorites') {
+        if (emptyTitle) emptyTitle.textContent = 'Aucun cadeau favori';
+        if (emptyDesc) emptyDesc.textContent = 'Cliquez sur l\'étoile en haut d\'un cadeau dans le catalogue pour l\'ajouter à vos favoris.';
+      } else {
+        if (emptyTitle) emptyTitle.textContent = 'Aucun cadeau trouvé';
+        if (emptyDesc) emptyDesc.textContent = 'Essayez de modifier vos filtres ou effectuez une autre recherche.';
+      }
+      return;
+    }
 
-      // If inside live salon, append celebration announcement
-      if (state.currentRoom && !liveSalonModal.classList.contains('hidden')) {
-        const giftMsg = document.createElement('div');
-        giftMsg.className = 'chat-msg';
-        giftMsg.innerHTML = `
-          <div style="font-size: 1.6rem;"></div>
-          <div class="chat-msg-body" style="background: linear-gradient(135deg, var(--amber-primary), var(--coral-primary)); color: #fff;">
-            <div class="chat-msg-author">
-              <strong>Célébration WafaTalk !</strong>
+    if (giftEmptyState) giftEmptyState.classList.add('hidden');
+    if (giftsCatalogGrid) {
+      giftsCatalogGrid.classList.remove('hidden');
+      giftsCatalogGrid.innerHTML = filtered.map(gift => {
+        const isFav = favoriteGiftIds.has(gift.id);
+        return `
+          <div class="gift-card-item" data-id="${gift.id}">
+            <div class="gift-card-top">
+              <span class="gift-card-tag">${gift.ambianceLabel}</span>
+              <button type="button" class="gift-fav-btn ${isFav ? 'is-fav' : ''}" data-id="${gift.id}" title="${isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </button>
             </div>
-            <p class="chat-msg-text"><strong>Vous</strong> avez offert un <strong>${giftName}</strong> à tout le salon ! </p>
+            <div class="gift-card-main">
+              <div class="gift-card-icon-wrap">${gift.icon}</div>
+              <strong class="gift-card-title">${gift.name}</strong>
+              <p class="gift-card-accroche">« ${gift.accroche} »</p>
+            </div>
+            <div class="gift-card-bottom">
+              <span class="gift-card-cost-pill">${gift.points} pts</span>
+              <button type="button" class="btn btn-sm btn-primary gift-card-action-btn" data-action="personalize" data-id="${gift.id}">Offrir</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Attach card event listeners
+      giftsCatalogGrid.querySelectorAll('.gift-fav-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          if (favoriteGiftIds.has(id)) {
+            favoriteGiftIds.delete(id);
+          } else {
+            favoriteGiftIds.add(id);
+          }
+          localStorage.setItem('wafatalk_favorite_gifts', JSON.stringify([...favoriteGiftIds]));
+          renderGiftShop();
+        });
+      });
+
+      giftsCatalogGrid.querySelectorAll('[data-action="personalize"]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const gift = GIFTS_CATALOG.find(g => g.id === id);
+          if (gift) openPersonalizeDrawer(gift);
+        });
+      });
+
+      // Quick motion animation preview on gift icon click
+      giftsCatalogGrid.querySelectorAll('.gift-card-icon-wrap').forEach(wrap => {
+        wrap.style.cursor = 'pointer';
+        wrap.setAttribute('title', 'Cliquer pour voir l\'animation');
+        wrap.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const card = wrap.closest('.gift-card-item');
+          const id = card?.dataset.id;
+          const gift = GIFTS_CATALOG.find(g => g.id === id);
+          if (gift) {
+            triggerGiftCelebrationGraphic(gift, state.currentUser?.displayName || 'Vous', 'Aperçu', gift.accroche);
+          }
+        });
+      });
+    }
+  }
+
+  function renderGiftHistory() {
+    if (!giftHistoryList) return;
+    if (sentGiftHistory.length === 0) {
+      giftHistoryList.innerHTML = `
+        <div class="gift-empty-state">
+          <div class="gift-empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="20 12 20 22 4 22 4 12"></polyline>
+              <rect x="2" y="7" width="20" height="5"></rect>
+              <line x1="12" y1="22" x2="12" y2="7"></line>
+            </svg>
+          </div>
+          <h3 class="gift-empty-title">Aucun cadeau envoyé pour le moment</h3>
+          <p class="gift-empty-desc">Offrez une attention dans un salon ou en discussion privée pour la retrouver ici.</p>
+        </div>
+      `;
+      return;
+    }
+
+    giftHistoryList.innerHTML = sentGiftHistory.slice().reverse().map(item => `
+      <div class="gift-history-item">
+        <div class="gift-history-left">
+          <div class="gift-history-icon">${item.icon}</div>
+          <div class="gift-history-info">
+            <strong class="gift-history-name">${item.name}</strong>
+            <span class="gift-history-sub">Offert à <strong>${item.recipientName}</strong> &bull; ${item.dateStr}</span>
+            ${item.note ? `<span class="gift-history-sub" style="font-style: italic;">« ${item.note} »</span>` : ''}
+          </div>
+        </div>
+        <span class="gift-history-points">-${item.points} pts</span>
+      </div>
+    `).join('');
+  }
+
+  function openPersonalizeDrawer(gift) {
+    activePersonalizeGift = gift;
+    if (!giftPersonalizeDrawer) return;
+
+    // Populate Recipient Selector
+    if (giftRecipientSelect) {
+      giftRecipientSelect.innerHTML = '';
+
+      // 1. Option: All Friends (Toujours accessible)
+      const optAllFriends = document.createElement('option');
+      optAllFriends.value = 'friends:all';
+      const friendCount = myFriendsList ? myFriendsList.length : 0;
+      optAllFriends.textContent = `✨ À tous mes amis (${friendCount > 0 ? friendCount + ' amis' : 'Célébration générale'})`;
+      giftRecipientSelect.appendChild(optAllFriends);
+
+      // 2. Option: All Salon (if inside a salon)
+      if (state.currentRoom) {
+        const optSalon = document.createElement('option');
+        optSalon.value = 'salon:all';
+        optSalon.textContent = `🎉 À tout le salon (${state.currentRoom.name || 'Célébration collective'})`;
+        optSalon.selected = true; // default when inside a salon
+        giftRecipientSelect.appendChild(optSalon);
+      }
+
+      // 3. Optgroup: Choisir un ami en particulier
+      if (myFriendsList && myFriendsList.length > 0) {
+        const optgroupFriends = document.createElement('optgroup');
+        optgroupFriends.label = '— Choisir parmi mes amis —';
+        myFriendsList.forEach(friend => {
+          const opt = document.createElement('option');
+          opt.value = `friend:${friend.id}`;
+          opt.textContent = `👤 ${friend.name || friend.username} ${friend.country ? `(${friend.country})` : ''}`;
+          if (activeDirectUser && (activeDirectUser.id === friend.id || activeDirectUser.username === friend.username)) {
+            opt.selected = true;
+          }
+          optgroupFriends.appendChild(opt);
+        });
+        giftRecipientSelect.appendChild(optgroupFriends);
+      }
+
+      // 4. Optgroup: Membres du salon (if inside salon)
+      if (currentSalonRoster && currentSalonRoster.size > 0) {
+        const optgroupSalon = document.createElement('optgroup');
+        optgroupSalon.label = '— Membres présents dans ce salon —';
+        currentSalonRoster.forEach(user => {
+          if (user.userId !== state.currentUser?.id) {
+            const opt = document.createElement('option');
+            opt.value = `salon_user:${user.userId}`;
+            opt.textContent = `🎙️ ${user.displayName || user.username} (${user.role || 'Membre'})`;
+            optgroupSalon.appendChild(opt);
+          }
+        });
+        giftRecipientSelect.appendChild(optgroupSalon);
+      } else if (typeof activeDirectUser !== 'undefined' && activeDirectUser) {
+        // If chatting directly with someone not yet in myFriendsList
+        const exists = Array.from(giftRecipientSelect.options).some(o => o.value === `friend:${activeDirectUser.id}`);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = `friend:${activeDirectUser.id}`;
+          opt.textContent = `👤 ${activeDirectUser.name || activeDirectUser.username}`;
+          opt.selected = true;
+          giftRecipientSelect.appendChild(opt);
+        }
+      }
+    }
+
+    // Populate preview info
+    const ambianceEl = document.getElementById('previewCardAmbiance');
+    const iconEl = document.getElementById('previewCardIcon');
+    const nameEl = document.getElementById('previewCardName');
+    const costEl = document.getElementById('previewCardCost');
+    const confirmBtnText = document.getElementById('confirmSendGiftText');
+
+    if (ambianceEl) ambianceEl.textContent = gift.ambianceLabel;
+    if (iconEl) iconEl.textContent = gift.icon;
+    if (nameEl) nameEl.textContent = gift.name;
+    if (costEl) costEl.textContent = `${gift.points} pts d'amitié`;
+    if (confirmBtnText) confirmBtnText.textContent = `Confirmer et offrir (${gift.points} pts)`;
+
+    if (giftAccrocheText) giftAccrocheText.textContent = gift.accroche;
+    if (giftCustomNote) giftCustomNote.value = '';
+    if (giftCharCount) giftCharCount.textContent = '0';
+
+    const previewNote = document.getElementById('previewCardNote');
+    if (previewNote) previewNote.textContent = `« ${gift.accroche} »`;
+
+    const previewRecipient = document.getElementById('previewCardRecipient');
+    if (previewRecipient && giftRecipientSelect && giftRecipientSelect.options.length > 0) {
+      previewRecipient.textContent = `Destinataire : ${giftRecipientSelect.options[giftRecipientSelect.selectedIndex].text}`;
+    }
+
+    giftPersonalizeDrawer.classList.remove('hidden');
+  }
+
+  function closePersonalizeDrawer() {
+    if (giftPersonalizeDrawer) giftPersonalizeDrawer.classList.add('hidden');
+    activePersonalizeGift = null;
+  }
+
+  // Live preview update on note input
+  giftCustomNote?.addEventListener('input', () => {
+    const val = giftCustomNote.value.trim();
+    if (giftCharCount) giftCharCount.textContent = giftCustomNote.value.length;
+    const previewNote = document.getElementById('previewCardNote');
+    if (previewNote) {
+      if (val) {
+        previewNote.textContent = `« ${val} »`;
+      } else if (activePersonalizeGift) {
+        previewNote.textContent = `« ${activePersonalizeGift.accroche} »`;
+      }
+    }
+  });
+
+  giftRecipientSelect?.addEventListener('change', () => {
+    const recipientText = giftRecipientSelect.options[giftRecipientSelect.selectedIndex]?.text || '';
+    const previewRecipient = document.getElementById('previewCardRecipient');
+    if (previewRecipient) previewRecipient.textContent = `Destinataire : ${recipientText}`;
+  });
+
+  btnCopyAccroche?.addEventListener('click', () => {
+    if (!activePersonalizeGift) return;
+    navigator.clipboard?.writeText(activePersonalizeGift.accroche).then(() => {
+      if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Copié !';
+      setTimeout(() => {
+        if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Copier';
+      }, 1800);
+    }).catch(() => {
+      if (giftCustomNote) {
+        giftCustomNote.value = activePersonalizeGift.accroche;
+        giftCustomNote.dispatchEvent(new Event('input'));
+      }
+      if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Inséré !';
+      setTimeout(() => {
+        if (copyAccrocheLabel) copyAccrocheLabel.textContent = 'Copier';
+      }, 1800);
+    });
+  });
+
+  btnCancelGiftDrawer?.addEventListener('click', closePersonalizeDrawer);
+  btnCloseGiftDrawer?.addEventListener('click', closePersonalizeDrawer);
+
+  // Click on live preview card in drawer to preview motion animation immediately
+  document.getElementById('giftLivePreviewCard')?.addEventListener('click', () => {
+    if (activePersonalizeGift) {
+      const customMsg = giftCustomNote ? giftCustomNote.value.trim() : '';
+      triggerGiftCelebrationGraphic(activePersonalizeGift, state.currentUser?.displayName || 'Vous', 'Aperçu', customMsg || activePersonalizeGift.accroche);
+    }
+  });
+
+  // Confirm and Send Gift Action
+  btnConfirmSendGift?.addEventListener('click', async () => {
+    if (!activePersonalizeGift) return;
+    const gift = activePersonalizeGift;
+
+    if (state.userPoints < gift.points) {
+      // Auto-replenish for demo delight
+      state.userPoints += 1500;
+      syncUserPointsDisplay();
+      showToast(`Bonus amitié activé : +1500 WafaPoints offerts !`, 'amber');
+    }
+
+    // Deduct points
+    state.userPoints -= gift.points;
+    syncUserPointsDisplay();
+
+    const customMsg = giftCustomNote ? giftCustomNote.value.trim() : '';
+    const recipientVal = giftRecipientSelect ? giftRecipientSelect.value : 'friends:all';
+    const rawRecipientName = giftRecipientSelect && giftRecipientSelect.options[giftRecipientSelect.selectedIndex] ? giftRecipientSelect.options[giftRecipientSelect.selectedIndex].text : 'Tous mes amis';
+    // Clean emojis from recipient name for nice display in celebration badges
+    const recipientName = rawRecipientName.replace(/^[^\w\s\u00C0-\u017F]+/, '').trim() || rawRecipientName;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    // Save to history
+    sentGiftHistory.push({
+      id: gift.id,
+      name: gift.name,
+      icon: gift.icon,
+      points: gift.points,
+      note: customMsg || gift.accroche,
+      recipientId: recipientVal,
+      recipientName: recipientName,
+      dateStr: dateStr,
+      timestamp: Date.now()
+    });
+    localStorage.setItem('wafatalk_sent_gifts', JSON.stringify(sentGiftHistory));
+    updateGiftCounters();
+
+    const noteToDisplay = customMsg || gift.accroche;
+
+    // Close drawer and shop
+    closePersonalizeDrawer();
+    closeGiftShop();
+
+    // 1. Launch rich celebration graphic motion immediately on sender's device
+    triggerGiftCelebrationGraphic(gift, state.currentUser?.displayName || 'Vous', recipientName, noteToDisplay);
+
+    showToast(`Attention offerte avec succès : ${gift.name} (${gift.points} pts) ! ✨`, 'teal');
+
+    // 2. Resolve targetType & targetUserId for Socket & REST transmission
+    let targetType = 'all_friends';
+    let targetUserId = undefined;
+
+    if (recipientVal === 'salon:all') {
+      targetType = 'salon';
+    } else if (recipientVal === 'friends:all' || recipientVal === 'all') {
+      targetType = 'all_friends';
+    } else if (recipientVal.startsWith('friend:')) {
+      targetType = 'friend';
+      targetUserId = recipientVal.replace('friend:', '');
+    } else if (recipientVal.startsWith('salon_user:')) {
+      targetType = 'salon';
+      targetUserId = recipientVal.replace('salon_user:', '');
+    } else if (state.currentRoom) {
+      targetType = 'salon';
+      targetUserId = recipientVal !== 'all' ? recipientVal : undefined;
+    } else if (recipientVal && recipientVal !== 'all') {
+      targetType = 'friend';
+      targetUserId = recipientVal;
+    }
+
+    // 3. Emit real-time WebSocket gift event so the receiver(s) get the graphic animation!
+    if (socket && socket.connected) {
+      socket.emit('gift:send', {
+        giftType: gift.id,
+        targetType: targetType,
+        salonId: state.currentRoom?.id,
+        receiverId: targetUserId,
+        customMessage: noteToDisplay,
+        costPoints: gift.points
+      });
+    }
+
+    // 4. Send to backend REST API if inside salon and authenticated
+    if (state.currentRoom?.id) {
+      try {
+        const token = getAuthToken();
+        if (token) {
+          fetch(`${API_BASE_URL}/gifts/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              salonId: state.currentRoom.id,
+              giftType: gift.id,
+              costPoints: gift.points,
+              receiverId: targetUserId,
+              customMessage: noteToDisplay
+            })
+          }).catch(err => console.warn('Offline gift logging:', err));
+        }
+      } catch (e) {
+        console.warn('Gift API call warning:', e);
+      }
+
+      // Append rich gift celebration card in salon chat
+      if (chatMessagesScroll) {
+        const giftMsg = document.createElement('div');
+        giftMsg.className = 'chat-gift-announcement';
+        giftMsg.innerHTML = `
+          <div class="chat-gift-icon-bubble">${gift.icon}</div>
+          <div class="chat-gift-content">
+            <div class="chat-gift-headline">
+              <strong>${escapeHtml(state.currentUser?.displayName || 'Vous')}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> (${escapeHtml(recipientName)}) !
+            </div>
+            <div class="chat-gift-note">« ${escapeHtml(noteToDisplay)} »</div>
           </div>
         `;
         chatMessagesScroll.appendChild(giftMsg);
         chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
       }
+    } else if (currentDmFriend && (currentDmFriend.id === targetUserId || targetType === 'friend')) {
+      // In Direct Chat
+      if (dmMessagesScroll) {
+        const dmMsg = document.createElement('div');
+        dmMsg.className = 'chat-gift-announcement';
+        dmMsg.innerHTML = `
+          <div class="chat-gift-icon-bubble">${gift.icon}</div>
+          <div class="chat-gift-content">
+            <div class="chat-gift-headline">
+              <strong>${escapeHtml(state.currentUser?.displayName || 'Vous')}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> !
+            </div>
+            <div class="chat-gift-note">« ${escapeHtml(noteToDisplay)} »</div>
+          </div>
+        `;
+        dmMessagesScroll.appendChild(dmMsg);
+        dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
+      }
+    }
+  });
+
+  // "Surprends-moi !" action
+  btnSurpriseMe?.addEventListener('click', () => {
+    const available = filterGifts();
+    const pool = available.length > 0 ? available : GIFTS_CATALOG;
+    const randomGift = pool[Math.floor(Math.random() * pool.length)];
+
+    // Highlight card in grid
+    renderGiftShop();
+    if (giftsCatalogGrid) {
+      const cardEl = giftsCatalogGrid.querySelector(`[data-id="${randomGift.id}"]`);
+      if (cardEl) {
+        cardEl.classList.add('is-highlighted');
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Direct to personalization drawer after brief feedback
+    setTimeout(() => {
+      openPersonalizeDrawer(randomGift);
+    }, 320);
+  });
+
+  // Filter toolbar event listeners
+  document.querySelectorAll('.gift-nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.gift-nav-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeGiftTab = tab.dataset.tab;
+      renderGiftShop();
     });
   });
 
+  document.querySelectorAll('.gift-ambiance-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.gift-ambiance-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeGiftAmbiance = pill.dataset.ambiance;
+      renderGiftShop();
+    });
+  });
+
+  giftSearchInput?.addEventListener('input', () => {
+    giftSearchTerm = giftSearchInput.value.trim();
+    renderGiftShop();
+  });
+
+  giftTypeSelect?.addEventListener('change', () => {
+    activeGiftType = giftTypeSelect.value;
+    renderGiftShop();
+  });
+
+  giftBudgetSelect?.addEventListener('change', () => {
+    activeGiftBudget = giftBudgetSelect.value;
+    renderGiftShop();
+  });
+
+  btnResetGiftFilters?.addEventListener('click', () => {
+    activeGiftAmbiance = 'all';
+    activeGiftType = 'all';
+    activeGiftBudget = 'all';
+    giftSearchTerm = '';
+    if (giftSearchInput) giftSearchInput.value = '';
+    if (giftTypeSelect) giftTypeSelect.value = 'all';
+    if (giftBudgetSelect) giftBudgetSelect.value = 'all';
+    document.querySelectorAll('.gift-ambiance-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.ambiance === 'all');
+    });
+    renderGiftShop();
+  });
+
+  function openGiftShop() {
+    if (giftShopModal) {
+      giftShopModal.classList.remove('hidden');
+      pushAppModalState('giftShop');
+      renderGiftShop();
+    }
+  }
+
+  function closeGiftShop() {
+    if (giftShopModal) giftShopModal.classList.add('hidden');
+    closePersonalizeDrawer();
+  }
+
+  btnOpenGiftShop?.addEventListener('click', openGiftShop);
+  btnSidebarGiftTrigger?.addEventListener('click', openGiftShop);
+  btnModalGiftTrigger?.addEventListener('click', openGiftShop);
+  document.getElementById('btnChatGiftTrigger')?.addEventListener('click', openGiftShop);
+  btnSendCommunityGift?.addEventListener('click', openGiftShop);
+  btnCloseGiftModal?.addEventListener('click', () => {
+    dismissWithHistory(closeGiftShop);
+  });
+  giftShopModal?.addEventListener('click', (e) => {
+    if (e.target === giftShopModal) dismissWithHistory(closeGiftShop);
+  });
 
   // =========================================================================
   // 8. CREATE SALON MODAL & PRIVACY CONFIGURATION
   // =========================================================================
   btnOpenCreateSalon?.addEventListener('click', () => {
     createSalonModal?.classList.remove('hidden');
+    pushAppModalState('createSalon');
   });
 
   function closeCreateModal() {
     createSalonModal?.classList.add('hidden');
   }
 
-  btnCloseCreateModal?.addEventListener('click', closeCreateModal);
-  btnCancelCreate?.addEventListener('click', closeCreateModal);
+  btnCloseCreateModal?.addEventListener('click', () => {
+    dismissWithHistory(closeCreateModal);
+  });
+  btnCancelCreate?.addEventListener('click', () => {
+    dismissWithHistory(closeCreateModal);
+  });
+  createSalonModal?.addEventListener('click', (e) => {
+    if (e.target === createSalonModal) dismissWithHistory(closeCreateModal);
+  });
 
   // Public vs Private tile selection in Create Modal
   tilePublicSalon?.addEventListener('click', () => {
@@ -4519,7 +6196,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = state.currentUser || {};
     const displayName = user.displayName || user.name || user.username || 'Ami WafaTalk';
     const username = user.username || 'utilisateur';
-    const avatar = user.avatarUrl || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80';
+    const savedAvatar = getPersistentUserAvatar(user);
+    const avatar = user.avatarUrl || user.avatar || savedAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80';
     const bio = user.bio || '';
     const country = user.country || 'France';
     const status = (user.status || 'ONLINE').toUpperCase();
@@ -4536,6 +6214,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileBioInput) profileBioInput.value = bio;
     if (profileBioCounter) profileBioCounter.textContent = `${bio.length}/160`;
     if (profileMoodInput) profileMoodInput.value = mood;
+    const profileSocialStatusSelect = document.getElementById('profileSocialStatusSelect');
+    if (profileSocialStatusSelect) profileSocialStatusSelect.value = user.socialStatus || 'Célibataire';
+    const profileInterestsInput = document.getElementById('profileInterestsInput');
+    if (profileInterestsInput) profileInterestsInput.value = user.interests || 'Chill, Musique, Discussion';
     if (profileCountrySelect) {
       // Find matching country option by value or text
       const opts = Array.from(profileCountrySelect.options);
@@ -4559,6 +6241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePresetSelectionUI(avatar);
 
     profileStatusModal.classList.remove('hidden');
+    pushAppModalState('profileStatus');
   }
 
   function closeProfileStatusModal() {
@@ -4609,8 +6292,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Local Image File Upload -> Base64
-  avatarFileInput?.addEventListener('change', (e) => {
+  // Helper: crop and optimize image file to a crisp 256x256 square avatar (~25-40KB)
+  function optimizeAvatarFile(file, targetSize = 256) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(e.target.result);
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            const minSide = Math.min(img.width, img.height);
+            const sx = (img.width - minSide) / 2;
+            const sy = (img.height - minSide) / 2;
+
+            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, targetSize, targetSize);
+            const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
+            resolve(optimizedBase64);
+          } catch (err) {
+            resolve(e.target.result);
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Local Image File Upload -> Optimized Base64
+  avatarFileInput?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -4619,23 +6338,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (file.size > 3 * 1024 * 1024) {
-      showToast('L\'image dépasse 3 Mo. Veuillez choisir une photo plus légère.', 'coral');
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('L\'image dépasse 15 Mo. Veuillez choisir une photo plus légère.', 'coral');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const base64Url = evt.target?.result;
-      if (base64Url) {
-        activeProfileAvatar = base64Url;
-        if (profileAvatarPreview) profileAvatarPreview.src = base64Url;
-        if (profileAvatarUrlInput) profileAvatarUrlInput.value = '';
-        updatePresetSelectionUI('');
-        showToast('Photo prête ! Cliquez sur « Enregistrer » pour confirmer.', 'teal');
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      showToast('Optimisation de la photo...', 'teal');
+      const optimizedAvatar = await optimizeAvatarFile(file, 256);
+      activeProfileAvatar = optimizedAvatar;
+      if (profileAvatarPreview) profileAvatarPreview.src = optimizedAvatar;
+      if (profileAvatarUrlInput) profileAvatarUrlInput.value = '';
+      updatePresetSelectionUI('');
+      showToast('Photo prête ! Cliquez sur « Enregistrer » pour sauvegarder.', 'teal');
+    } catch (err) {
+      console.warn('Avatar processing error:', err);
+      showToast('Erreur lors du traitement de l\'image.', 'coral');
+    }
   });
 
   // Presence Cards Click
@@ -4679,14 +6398,27 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Capture URL input if pasted
+    const urlInputVal = profileAvatarUrlInput?.value.trim();
+    if (urlInputVal && (urlInputVal.startsWith('http://') || urlInputVal.startsWith('https://') || urlInputVal.startsWith('data:'))) {
+      activeProfileAvatar = urlInputVal;
+    }
+
     btnSaveProfileModal.disabled = true;
     profileSaveSpinner?.classList.remove('hidden');
+
+    const profileSocialStatusSelect = document.getElementById('profileSocialStatusSelect');
+    const socialStatus = profileSocialStatusSelect ? profileSocialStatusSelect.value : 'Célibataire';
+    const profileInterestsInput = document.getElementById('profileInterestsInput');
+    const interests = profileInterestsInput ? profileInterestsInput.value.trim() : 'Chill, Musique, Discussion';
 
     const updatePayload = {
       displayName,
       avatarUrl: activeProfileAvatar,
       bio,
       country,
+      socialStatus,
+      interests,
       status: activePresenceStatus,
     };
 
@@ -4719,10 +6451,38 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
 
-      // Synchronize App State
+      // Synchronize App State & Avatar across sessions
       updatedUser.mood = mood;
+      const finalAvatar = updatedUser.avatarUrl || activeProfileAvatar || state.currentUser?.avatarUrl || state.currentUser?.avatar;
+      if (finalAvatar) {
+        updatedUser.avatarUrl = finalAvatar;
+        updatedUser.avatar = finalAvatar;
+        if (state.currentUser?.id) localStorage.setItem(`wafatalk_avatar_${state.currentUser.id}`, finalAvatar);
+        if (state.currentUser?.username) localStorage.setItem(`wafatalk_avatar_${state.currentUser.username.toLowerCase()}`, finalAvatar);
+        if (state.currentUser?.email) localStorage.setItem(`wafatalk_avatar_${state.currentUser.email.toLowerCase()}`, finalAvatar);
+        localStorage.setItem('wafatalk_last_saved_avatar', finalAvatar);
+      }
+
       state.currentUser = { ...state.currentUser, ...updatedUser };
       localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+
+      // Update persistent local users list so avatar survives logout & re-login
+      try {
+        const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
+        const idx = localUsers.findIndex(u =>
+          (u.id && u.id === state.currentUser?.id) ||
+          (u.email && state.currentUser?.email && u.email.toLowerCase() === state.currentUser.email.toLowerCase()) ||
+          (u.username && state.currentUser?.username && u.username.toLowerCase() === state.currentUser.username.toLowerCase())
+        );
+        if (idx !== -1) {
+          localUsers[idx] = { ...localUsers[idx], ...updatedUser, avatarUrl: finalAvatar, avatar: finalAvatar };
+        } else if (state.currentUser) {
+          localUsers.push({ ...state.currentUser, ...updatedUser, avatarUrl: finalAvatar, avatar: finalAvatar });
+        }
+        localStorage.setItem('wafatalk_local_users', JSON.stringify(localUsers));
+      } catch (e) {
+        console.warn('Could not sync to wafatalk_local_users:', e);
+      }
 
       // Update Nav Bar & Header Elements Instantly
       const navUserName = document.getElementById('navUserName');
@@ -4736,8 +6496,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (navUserName) navUserName.textContent = displayName.split(' ')[0];
       if (heroUserGreeting) heroUserGreeting.textContent = displayName.split(' ')[0];
-      if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
-      if (mobNavUserAvatar) mobNavUserAvatar.src = activeProfileAvatar;
+      if (navUserAvatar) navUserAvatar.src = finalAvatar;
+      if (mobNavUserAvatar) mobNavUserAvatar.src = finalAvatar;
+      if (profileAvatarPreview) profileAvatarPreview.src = finalAvatar;
       if (menuFullName) menuFullName.textContent = displayName;
       if (menuCountryName) menuCountryName.textContent = country;
 
@@ -4754,29 +6515,100 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navUserCountryFlag) navUserCountryFlag.innerHTML = flagImgTag;
       if (menuCountryFlag) menuCountryFlag.innerHTML = flagImgTag;
 
-      // Broadcast presence update via Socket if connected
+      // Broadcast presence and profile update via Socket if connected
       if (socket && socket.connected) {
         socket.emit('presence:set_status', {
           status: activePresenceStatus.toLowerCase(),
           mood: mood,
         });
+        socket.emit('user:profile_update', {
+          avatarUrl: finalAvatar,
+          displayName: displayName,
+          country: country,
+          bio: bio,
+          status: activePresenceStatus.toLowerCase(),
+          socialStatus: socialStatus,
+        });
       }
 
-      showToast('Profil et statut mis à jour avec succès ! ', 'success');
+      // Propagate avatar change instantly across entire client interface
+      applyUserAvatarUpdateAcrossUI({
+        userId: state.currentUser?.id,
+        displayName: displayName,
+        avatarUrl: finalAvatar,
+        country: country,
+        status: activePresenceStatus.toLowerCase(),
+        bio: bio,
+        socialStatus: socialStatus,
+      });
+
+      showToast('Profil et photo enregistrés avec succès ! ✨', 'success');
       playTone(520, 'sine', 0.2);
       closeProfileStatusModal();
     } catch (err) {
       console.warn('Profile update error:', err);
-      // Fallback: save to local state anyway
-      state.currentUser = { ...(state.currentUser || {}), ...updatePayload, mood };
+      // Fallback: save to local state and persistent storage anyway
+      const finalAvatar = activeProfileAvatar || state.currentUser?.avatarUrl || state.currentUser?.avatar;
+      if (finalAvatar) {
+        if (state.currentUser?.id) localStorage.setItem(`wafatalk_avatar_${state.currentUser.id}`, finalAvatar);
+        if (state.currentUser?.username) localStorage.setItem(`wafatalk_avatar_${state.currentUser.username.toLowerCase()}`, finalAvatar);
+        if (state.currentUser?.email) localStorage.setItem(`wafatalk_avatar_${state.currentUser.email.toLowerCase()}`, finalAvatar);
+        localStorage.setItem('wafatalk_last_saved_avatar', finalAvatar);
+      }
+
+      const localFallbackUser = { ...(state.currentUser || {}), ...updatePayload, mood, avatarUrl: finalAvatar, avatar: finalAvatar };
+      state.currentUser = localFallbackUser;
       localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+
+      try {
+        const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
+        const idx = localUsers.findIndex(u =>
+          (u.id && u.id === state.currentUser?.id) ||
+          (u.email && state.currentUser?.email && u.email.toLowerCase() === state.currentUser.email.toLowerCase()) ||
+          (u.username && state.currentUser?.username && u.username.toLowerCase() === state.currentUser.username.toLowerCase())
+        );
+        if (idx !== -1) {
+          localUsers[idx] = { ...localUsers[idx], ...localFallbackUser };
+        } else if (state.currentUser) {
+          localUsers.push(localFallbackUser);
+        }
+        localStorage.setItem('wafatalk_local_users', JSON.stringify(localUsers));
+      } catch (e) {}
+
+      if (socket && socket.connected) {
+        socket.emit('presence:set_status', {
+          status: activePresenceStatus.toLowerCase(),
+          mood: mood,
+        });
+        socket.emit('user:profile_update', {
+          avatarUrl: finalAvatar,
+          displayName: displayName,
+          country: country,
+          bio: bio,
+          status: activePresenceStatus.toLowerCase(),
+          socialStatus: socialStatus,
+        });
+      }
+
+      applyUserAvatarUpdateAcrossUI({
+        userId: state.currentUser?.id,
+        displayName: displayName,
+        avatarUrl: finalAvatar,
+        country: country,
+        status: activePresenceStatus.toLowerCase(),
+        bio: bio,
+        socialStatus: socialStatus,
+      });
 
       const navUserName = document.getElementById('navUserName');
       if (navUserName) navUserName.textContent = displayName.split(' ')[0];
       const navUserAvatar = document.getElementById('navUserAvatar');
-      if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
+      if (navUserAvatar) navUserAvatar.src = finalAvatar;
+      const mobNavUserAvatar = document.getElementById('mobNavUserAvatar');
+      if (mobNavUserAvatar) mobNavUserAvatar.src = finalAvatar;
+      if (profileAvatarPreview) profileAvatarPreview.src = finalAvatar;
 
-      showToast('Profil mis à jour en local avec succès ! ', 'teal');
+      showToast('Profil et photo enregistrés avec succès ! ✨', 'teal');
       closeProfileStatusModal();
     } finally {
       btnSaveProfileModal.disabled = false;
@@ -4791,11 +6623,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openProfileStatusModal();
   });
 
-  btnCloseProfileModal?.addEventListener('click', closeProfileStatusModal);
-  btnCancelProfileModal?.addEventListener('click', closeProfileStatusModal);
+  btnCloseProfileModal?.addEventListener('click', () => {
+    dismissWithHistory(closeProfileStatusModal);
+  });
+  btnCancelProfileModal?.addEventListener('click', () => {
+    dismissWithHistory(closeProfileStatusModal);
+  });
 
   profileStatusModal?.addEventListener('click', (e) => {
-    if (e.target === profileStatusModal) closeProfileStatusModal();
+    if (e.target === profileStatusModal) dismissWithHistory(closeProfileStatusModal);
   });
 
 
@@ -4866,8 +6702,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Populate Account Info
     const user = state.currentUser || {};
-    if (settingsUserEmail) settingsUserEmail.textContent = user.email || 'alexandre@wafatalk.com';
-    if (settingsUserId) settingsUserId.textContent = user.id || 'usr_wafatalk_demo';
+    if (settingsUserEmail) settingsUserEmail.textContent = user.email || 'Non renseigné';
+    if (settingsUserId) settingsUserId.textContent = user.id || 'N/A';
 
     // Populate Audio Preferences from LocalStorage
     loadAudioSettings();
@@ -4887,6 +6723,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passwordUpdateFeedback) passwordUpdateFeedback.className = 'modal-feedback-alert hidden';
 
     settingsModal.classList.remove('hidden');
+    pushAppModalState('settings');
   }
 
   function closeSettingsModal() {
@@ -5274,11 +7111,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openSettingsModal('tabPaneAudio');
   });
 
-  btnCloseSettingsModal?.addEventListener('click', closeSettingsModal);
-  btnDoneSettingsModal?.addEventListener('click', closeSettingsModal);
+  btnCloseSettingsModal?.addEventListener('click', () => {
+    dismissWithHistory(closeSettingsModal);
+  });
+  btnDoneSettingsModal?.addEventListener('click', () => {
+    dismissWithHistory(closeSettingsModal);
+  });
 
   settingsModal?.addEventListener('click', (e) => {
-    if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === settingsModal) dismissWithHistory(closeSettingsModal);
   });
 
   // Escape Key Closes Modals
@@ -5372,9 +7213,755 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { }
   }
 
+  // Haptic feedback for Clin d'œil (playful, friendly pulse)
+  function triggerWinkHaptic() {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        // Playful double-buzz wink rhythm: short ping (70ms), brief rest (50ms), warm soft buzz (130ms)
+        navigator.vibrate([70, 50, 130]);
+      }
+    } catch (err) {}
+  }
+
+  // Playful, cheerful two-tone chime for Clin d'œil (Web Audio API)
+  function playWinkChime() {
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      // Note 1: Playful upward slide (D5 -> F#5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now);
+      osc1.frequency.exponentialRampToValueAtTime(739.99, now + 0.12);
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.16);
+
+      // Note 2: Bright, crystal-clear wink sparkle (A5 -> D6)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(880, now + 0.10);
+      osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.24);
+      gain2.gain.setValueAtTime(0.14, now + 0.10);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.10);
+      osc2.stop(now + 0.36);
+    } catch (err) {}
+  }
+
+  // Spawns a floating 😉 particle on screen (interactive visual feedback)
+  function spawnFloatingWink(clientX, clientY) {
+    try {
+      const particle = document.createElement('div');
+      particle.className = 'floating-wink-particle';
+      particle.textContent = '😉';
+      const x = clientX ?? (window.innerWidth / 2);
+      const y = clientY ?? (window.innerHeight / 2);
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      document.body.appendChild(particle);
+      setTimeout(() => particle.remove(), 950);
+    } catch (e) {}
+  }
+
+  // Interactive Clin d'œil Notification with 1-click "Renvoyer"
+  function showWinkNotification(request) {
+    try {
+      const existing = document.getElementById('activeWinkToast');
+      if (existing) existing.remove();
+
+      const sender = request?.sender || {};
+      const senderName = sender.displayName || sender.username || 'Un membre';
+      const senderAvatar = sender.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+
+      const card = document.createElement('div');
+      card.id = 'activeWinkToast';
+      card.className = 'wink-toast-card';
+      card.innerHTML = `
+        <img src="${senderAvatar}" alt="${senderName}" class="wink-toast-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+        <div class="wink-toast-content">
+          <div class="wink-toast-title">
+            <span>😉 Clin d'œil reçu !</span>
+          </div>
+          <div class="wink-toast-desc">
+            <strong>${senderName}</strong> vous a envoyé un clin d'œil complice.
+          </div>
+          <div class="wink-toast-actions">
+            <button type="button" class="wink-toast-btn-accept" id="btnWinkToastAccept">
+              😉 Renvoyer le clin d'œil
+            </button>
+            <button type="button" class="wink-toast-btn-dismiss" id="btnWinkToastDismiss">
+              Plus tard
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(card);
+
+      const dismiss = () => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(16px)';
+        card.style.transition = 'all 0.25s ease';
+        setTimeout(() => card.remove(), 260);
+      };
+
+      card.querySelector('#btnWinkToastAccept')?.addEventListener('click', async () => {
+        dismiss();
+        spawnFloatingWink();
+        await handleAcceptRequest(request.id, sender);
+      });
+
+      card.querySelector('#btnWinkToastDismiss')?.addEventListener('click', dismiss);
+
+      // Auto dismiss after 10s if untouched
+      setTimeout(() => {
+        if (document.body.contains(card)) dismiss();
+      }, 10000);
+    } catch (e) {}
+  }
+
+
 
   // =========================================================================
-  // 12. CANVAS PARTICLE FX (CONFETTI & HEARTS)
+  // 12.1 BESPOKE MOTION DESIGN GIFT CELEBRATION ENGINE (ALL 20 GIFTS)
+  // =========================================================================
+
+  const GIFT_MOTION_PROFILES = {
+    coffee: {
+      themeColor: '#b45309',
+      glowColor: 'rgba(245, 158, 11, 0.45)',
+      audioFreqs: [440, 554.37, 659.25], // Warm A major
+      fx: 'steam',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Steam paths -->
+          <path class="motion-steam" style="animation: motionSteamLoop 1.6s ease-in-out infinite; animation-delay: 0s;" d="M42 36C40 30 44 26 42 20C40 14 44 10 42 6" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-linecap="round"/>
+          <path class="motion-steam" style="animation: motionSteamLoop 1.6s ease-in-out infinite; animation-delay: 0.4s;" d="M50 34C48 28 52 24 50 18C48 12 52 8 50 4" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/>
+          <path class="motion-steam" style="animation: motionSteamLoop 1.6s ease-in-out infinite; animation-delay: 0.8s;" d="M58 36C56 30 60 26 58 20C56 14 60 10 58 6" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Saucer -->
+          <ellipse cx="50" cy="85" rx="36" ry="7" fill="#0d837d" opacity="0.4"/>
+          <ellipse cx="50" cy="83" rx="34" ry="6" fill="#f8fafc"/>
+          <ellipse cx="50" cy="82" rx="28" ry="4" fill="#e2e8f0"/>
+          <!-- Cup Body -->
+          <path d="M26 44H74V64C74 74 63.2 80 50 80C36.8 80 26 74 26 64V44Z" fill="url(#coffeeCupGrad)"/>
+          <!-- Cup Inner / Coffee surface -->
+          <ellipse cx="50" cy="44" rx="24" ry="7" fill="#451a03"/>
+          <ellipse cx="50" cy="45" rx="20" ry="5" fill="#78350f"/>
+          <!-- Heart in crema -->
+          <path d="M50 46C48 43 45 44 45 46C45 48 50 51 50 51C50 51 55 48 55 46C55 44 52 43 50 46Z" fill="#fbbf24" opacity="0.8"/>
+          <!-- Handle -->
+          <path d="M72 48C79 48 84 53 84 60C84 67 79 71 72 71" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
+          <!-- Highlight -->
+          <path d="M30 48C30 58 34 68 40 72" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="coffeeCupGrad" x1="26" y1="44" x2="74" y2="80" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#ffffff"/>
+              <stop offset="1" stop-color="#e2e8f0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    croissant: {
+      themeColor: '#d97706',
+      glowColor: 'rgba(251, 191, 36, 0.45)',
+      audioFreqs: [392, 493.88, 587.33], // G major
+      fx: 'steam',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Warm aroma aura -->
+          <circle cx="50" cy="50" r="38" stroke="rgba(251,191,36,0.3)" stroke-width="2" stroke-dasharray="4 6" style="animation: motionPulseRing 2s ease-out infinite;"/>
+          <!-- Croissant body -->
+          <path d="M22 68C18 55 24 36 40 28C54 21 68 25 78 36C86 45 84 62 76 68C68 62 64 52 50 52C36 52 30 62 22 68Z" fill="url(#croissantGrad)" filter="drop-shadow(0 4px 10px rgba(180,83,9,0.3))"/>
+          <!-- Flaky folds -->
+          <path d="M38 30C46 36 48 48 46 54" stroke="#92400e" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M52 26C60 32 62 44 60 52" stroke="#92400e" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M66 32C72 38 74 48 70 56" stroke="#92400e" stroke-width="2" stroke-linecap="round"/>
+          <!-- Butter shimmer stars -->
+          <polygon points="34,22 36,26 40,26 37,29 38,33 34,30 30,33 31,29 28,26 32,26" fill="#fde047" style="animation: motionCrossFlare 1.8s ease-in-out infinite;"/>
+          <polygon points="76,24 77,27 80,27 78,29 79,32 76,30 73,32 74,29 72,27 75,27" fill="#fde047" style="animation: motionCrossFlare 1.8s ease-in-out infinite; animation-delay: 0.6s;"/>
+          <defs>
+            <linearGradient id="croissantGrad" x1="20" y1="25" x2="80" y2="70" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fbbf24"/>
+              <stop offset="0.6" stop-color="#d97706"/>
+              <stop offset="1" stop-color="#b45309"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    heart: {
+      themeColor: '#e11d48',
+      glowColor: 'rgba(244, 63, 94, 0.55)',
+      audioFreqs: [523.25, 659.25, 783.99, 1046.50],
+      fx: 'hearts',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Concentric pulse shockwaves -->
+          <path class="motion-pulse-ring" style="animation: motionPulseRing 1.4s ease-out infinite; transform-origin: 50% 50%;" d="M50 30C40 18 22 24 22 40C22 56 46 72 50 76C54 72 78 56 78 40C78 24 60 18 50 30Z" stroke="rgba(244,63,94,0.4)" stroke-width="2"/>
+          <path class="motion-pulse-ring" style="animation: motionPulseRing 1.4s ease-out infinite; animation-delay: 0.5s; transform-origin: 50% 50%;" d="M50 30C40 18 22 24 22 40C22 56 46 72 50 76C54 72 78 56 78 40C78 24 60 18 50 30Z" stroke="rgba(251,113,133,0.3)" stroke-width="1.5"/>
+          <!-- Central 3D Heart -->
+          <g style="animation: motionHeartBeating 0.85s ease-in-out infinite; transform-origin: 50% 52%;">
+            <path d="M50 30C40 16 18 22 18 42C18 60 46 78 50 82C54 78 82 60 82 42C82 22 60 16 50 30Z" fill="url(#heartGrad)" filter="drop-shadow(0 8px 18px rgba(225,29,72,0.45))"/>
+            <!-- Shimmer Highlight -->
+            <path d="M30 32C24 36 24 44 26 50C28 42 34 36 42 34" stroke="rgba(255,255,255,0.6)" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <defs>
+            <linearGradient id="heartGrad" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fb7185"/>
+              <stop offset="0.4" stop-color="#f43f5e"/>
+              <stop offset="1" stop-color="#be123c"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    bubble_tea: {
+      themeColor: '#0d9488',
+      glowColor: 'rgba(20, 184, 166, 0.45)',
+      audioFreqs: [440, 523.25, 659.25, 880],
+      fx: 'bubbles',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Straw -->
+          <path d="M58 8L44 45" stroke="#f43f5e" stroke-width="7" stroke-linecap="round"/>
+          <path d="M58 8L44 45" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4"/>
+          <!-- Cup Container -->
+          <path d="M30 30H70L63 85C62.5 89 59 92 55 92H45C41 92 37.5 89 37 85L30 30Z" fill="url(#bobaTeaGrad)" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
+          <!-- Liquid surface -->
+          <ellipse cx="50" cy="36" rx="18" ry="4" fill="#fde047" opacity="0.6"/>
+          <!-- Bouncing Tapioca Pearls -->
+          <circle class="motion-boba-1" cx="44" cy="78" r="5" fill="#1e293b" style="animation: motionBobaBubble 1.2s ease-in-out infinite;"/>
+          <circle class="motion-boba-2" cx="54" cy="80" r="5.5" fill="#0f172a" style="animation: motionBobaBubble 1.2s ease-in-out infinite; animation-delay: 0.25s;"/>
+          <circle class="motion-boba-3" cx="48" cy="68" r="4.5" fill="#334155" style="animation: motionBobaBubble 1.2s ease-in-out infinite; animation-delay: 0.5s;"/>
+          <circle class="motion-boba-4" cx="58" cy="72" r="5" fill="#1e293b" style="animation: motionBobaBubble 1.2s ease-in-out infinite; animation-delay: 0.75s;"/>
+          <!-- Lid -->
+          <path d="M26 30C26 26 32 24 50 24C68 24 74 26 74 30" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="bobaTeaGrad" x1="30" y1="30" x2="70" y2="90" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fef08a"/>
+              <stop offset="0.5" stop-color="#fbbf24"/>
+              <stop offset="1" stop-color="#d97706"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    cocktail: {
+      themeColor: '#f97316',
+      glowColor: 'rgba(249, 115, 22, 0.45)',
+      audioFreqs: [587.33, 739.99, 880],
+      fx: 'bubbles',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Glass Stem & Base -->
+          <path d="M50 56V86M36 86H64" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+          <!-- Cocktail Glass Triangle -->
+          <path d="M22 26L50 56L78 26H22Z" fill="url(#cocktailSunsetGrad)" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+          <!-- Citrus Wheel -->
+          <circle cx="70" cy="24" r="10" fill="#facc15" stroke="#ea580c" stroke-width="2"/>
+          <circle cx="70" cy="24" r="4" fill="#ffffff" opacity="0.6"/>
+          <!-- Splash Droplets -->
+          <circle cx="42" cy="18" r="2.5" fill="#fb923c" style="animation: motionBobaBubble 1.4s ease-in-out infinite;"/>
+          <circle cx="56" cy="14" r="3" fill="#f43f5e" style="animation: motionBobaBubble 1.4s ease-in-out infinite; animation-delay: 0.4s;"/>
+          <defs>
+            <linearGradient id="cocktailSunsetGrad" x1="25" y1="26" x2="75" y2="56" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f43f5e"/>
+              <stop offset="0.6" stop-color="#f97316"/>
+              <stop offset="1" stop-color="#facc15"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    star: {
+      themeColor: '#eab308',
+      glowColor: 'rgba(234, 179, 8, 0.55)',
+      audioFreqs: [659.25, 830.61, 987.77, 1318.51],
+      fx: 'stardust',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Comet trail -->
+          <path d="M12 88C28 76 42 64 54 50" stroke="url(#cometTrailGrad)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M18 94C34 82 46 70 56 54" stroke="url(#cometTrailGrad)" stroke-width="2" stroke-linecap="round"/>
+          <!-- Spinning Star Flare -->
+          <g style="animation: motionStarSpin 6s linear infinite; transform-origin: 56px 44px;">
+            <polygon points="56,18 64,36 84,38 68,52 74,72 56,60 38,72 44,52 28,38 48,36" fill="url(#starGoldenGrad)" filter="drop-shadow(0 0 12px rgba(250,204,21,0.6))"/>
+          </g>
+          <!-- Center bright sparkle -->
+          <polygon points="56,36 58,42 64,44 58,46 56,52 54,46 48,44 54,42" fill="#ffffff" style="animation: motionCrossFlare 1.4s ease-in-out infinite; transform-origin: 56px 44px;"/>
+          <defs>
+            <linearGradient id="starGoldenGrad" x1="28" y1="18" x2="84" y2="72" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fef08a"/>
+              <stop offset="0.5" stop-color="#facc15"/>
+              <stop offset="1" stop-color="#ca8a04"/>
+            </linearGradient>
+            <linearGradient id="cometTrailGrad" x1="12" y1="88" x2="54" y2="50" gradientUnits="userSpaceOnUse">
+              <stop stop-color="transparent"/>
+              <stop offset="1" stop-color="#facc15"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    playlist: {
+      themeColor: '#8b5cf6',
+      glowColor: 'rgba(139, 92, 246, 0.5)',
+      audioFreqs: [440, 554.37, 659.25, 830.61],
+      fx: 'notes',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Cassette Body -->
+          <rect x="18" y="28" width="64" height="42" rx="6" fill="#1e1b4b" stroke="#8b5cf6" stroke-width="2.5" filter="drop-shadow(0 6px 16px rgba(139,92,246,0.35))"/>
+          <rect x="26" y="34" width="48" height="22" rx="3" fill="#a78bfa" opacity="0.8"/>
+          <!-- Reel Gears -->
+          <circle cx="38" cy="45" r="7" fill="#ffffff" stroke="#1e1b4b" stroke-width="2" style="animation: motionCassetteGear 3s linear infinite; transform-origin: 38px 45px;"/>
+          <circle cx="62" cy="45" r="7" fill="#ffffff" stroke="#1e1b4b" stroke-width="2" style="animation: motionCassetteGear 3s linear infinite; transform-origin: 62px 45px;"/>
+          <!-- Floating Music Notes -->
+          <path d="M46 18V8L60 6V16M46 13L60 11" stroke="#ec4899" stroke-width="2" stroke-linecap="round" style="animation: motionPetalDrift 2s ease-in-out infinite;"/>
+          <circle cx="44" cy="18" r="2.5" fill="#ec4899"/>
+          <circle cx="58" cy="16" r="2.5" fill="#ec4899"/>
+          <!-- Equalizer Bars below -->
+          <rect x="30" y="76" width="4" height="12" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; transform-origin: bottom;"/>
+          <rect x="38" y="72" width="4" height="16" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.2s; transform-origin: bottom;"/>
+          <rect x="46" y="70" width="4" height="18" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.4s; transform-origin: bottom;"/>
+          <rect x="54" y="74" width="4" height="14" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.15s; transform-origin: bottom;"/>
+          <rect x="62" y="78" width="4" height="10" rx="2" fill="#06b6d4" style="animation: motionEqBar 0.8s ease-in-out infinite alternate; animation-delay: 0.35s; transform-origin: bottom;"/>
+        </svg>
+      `
+    },
+    chocolates: {
+      themeColor: '#92400e',
+      glowColor: 'rgba(146, 64, 14, 0.45)',
+      audioFreqs: [349.23, 440, 523.25],
+      fx: 'hearts',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Heart Box Base -->
+          <path d="M50 36C42 22 24 28 24 44C24 60 48 76 50 78C52 76 76 60 76 44C76 28 58 22 50 36Z" fill="#78350f" stroke="#fbbf24" stroke-width="2.5" filter="drop-shadow(0 6px 14px rgba(69,26,3,0.4))"/>
+          <!-- Chocolates inside -->
+          <rect x="36" y="42" width="10" height="10" rx="2" fill="#451a03" stroke="#d97706" stroke-width="1.5"/>
+          <circle cx="60" cy="46" r="5.5" fill="#92400e" stroke="#fbbf24" stroke-width="1.5"/>
+          <polygon points="50,56 54,62 46,62" fill="#fef3c7" stroke="#b45309" stroke-width="1.5"/>
+          <!-- Ribbon Bow -->
+          <path d="M50 34C44 26 36 32 44 38C50 42 50 34 50 34ZM50 34C56 26 64 32 56 38C50 42 50 34 50 34Z" fill="#fbbf24"/>
+        </svg>
+      `
+    },
+    red_rose: {
+      themeColor: '#be123c',
+      glowColor: 'rgba(190, 18, 60, 0.5)',
+      audioFreqs: [440, 523.25, 659.25, 698.46],
+      fx: 'petals',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Stem & Leaf -->
+          <path d="M50 56V88" stroke="#15803d" stroke-width="4" stroke-linecap="round"/>
+          <path d="M50 72C40 68 36 74 34 76C38 80 46 80 50 76" fill="#16a34a"/>
+          <!-- Rose Petals Layers -->
+          <circle cx="50" cy="42" r="22" fill="#be123c" filter="drop-shadow(0 4px 12px rgba(190,18,60,0.4))"/>
+          <path d="M50 26C42 26 36 34 38 44C40 52 50 56 50 56C50 56 60 52 62 44C64 34 58 26 50 26Z" fill="#e11d48"/>
+          <path d="M46 32C42 34 42 40 46 44C50 48 54 44 54 40C54 36 50 32 46 32Z" fill="#fb7185"/>
+          <!-- Floating Petals in breeze -->
+          <path d="M22 46C20 40 26 38 28 42C30 46 24 50 22 46Z" fill="#e11d48" style="animation: motionPetalDrift 2.2s ease-in-out infinite;"/>
+          <path d="M74 54C72 48 78 46 80 50C82 54 76 58 74 54Z" fill="#fb7185" style="animation: motionPetalDrift 2.2s ease-in-out infinite; animation-delay: 0.8s;"/>
+        </svg>
+      `
+    },
+    cinema_tickets: {
+      themeColor: '#dc2626',
+      glowColor: 'rgba(220, 38, 38, 0.45)',
+      audioFreqs: [523.25, 659.25, 783.99],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Popcorn Bucket -->
+          <path d="M30 46L36 86H64L70 46H30Z" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+          <path d="M40 46L44 86M50 46L50 86M60 46L56 86" stroke="#ffffff" stroke-width="4"/>
+          <!-- Popping Kernels -->
+          <circle cx="50" cy="40" r="7" fill="#fde047" stroke="#ca8a04" stroke-width="1.5"/>
+          <circle cx="38" cy="42" r="6" fill="#fef08a"/>
+          <circle cx="62" cy="42" r="6.5" fill="#fef08a"/>
+          <circle cx="45" cy="30" r="5" fill="#facc15" style="--kx: -14px; --kx2: -24px; animation: motionPopcornKernels 1.4s ease-out infinite;"/>
+          <circle cx="55" cy="26" r="5.5" fill="#fde047" style="--kx: 16px; --kx2: 26px; animation: motionPopcornKernels 1.4s ease-out infinite; animation-delay: 0.4s;"/>
+          <!-- VIP Ticket behind -->
+          <rect x="62" y="18" width="22" height="14" rx="2" transform="rotate(20 62 18)" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"/>
+        </svg>
+      `
+    },
+    magic_box: {
+      themeColor: '#6366f1',
+      glowColor: 'rgba(99, 102, 241, 0.55)',
+      audioFreqs: [392, 523.25, 659.25, 783.99, 1046.50],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Upward light rays -->
+          <polygon points="50,45 25,6 75,6" fill="url(#magicLightBeam)" opacity="0.6"/>
+          <!-- Box Base -->
+          <rect x="25" y="46" width="50" height="38" rx="4" fill="#4338ca" stroke="#fbbf24" stroke-width="2"/>
+          <rect x="46" y="46" width="8" height="38" fill="#fbbf24"/>
+          <!-- Box Lid Popping -->
+          <g style="animation: motionBoxLidPop 1.6s ease-in-out infinite; transform-origin: 25px 46px;">
+            <rect x="22" y="38" width="56" height="10" rx="3" fill="#6366f1" stroke="#fbbf24" stroke-width="2"/>
+            <path d="M50 38C44 30 36 34 44 38ZM50 38C56 30 64 34 56 38Z" fill="#fbbf24"/>
+          </g>
+          <!-- Stars bursting out -->
+          <polygon points="50,22 52,27 58,28 53,32 55,37 50,34 45,37 47,32 42,28 48,27" fill="#fde047" style="animation: motionCrossFlare 1.4s ease-in-out infinite;"/>
+          <defs>
+            <linearGradient id="magicLightBeam" x1="50" y1="45" x2="50" y2="6" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fbbf24"/>
+              <stop offset="1" stop-color="transparent"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    rooftop_date: {
+      themeColor: '#3b82f6',
+      glowColor: 'rgba(59, 130, 246, 0.45)',
+      audioFreqs: [440, 554.37, 659.25, 783.99],
+      fx: 'stardust',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Sky disc -->
+          <circle cx="50" cy="50" r="38" fill="url(#skylineNightGrad)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+          <!-- Crescent Moon -->
+          <path d="M68 28C64 34 58 36 50 34C58 46 72 44 76 36C74 38 71 38 68 28Z" fill="#fef08a" filter="drop-shadow(0 0 8px rgba(254,240,138,0.8))"/>
+          <!-- City Skyline -->
+          <rect x="22" y="52" width="12" height="32" fill="#0f172a"/>
+          <rect x="36" y="44" width="16" height="40" fill="#1e1b4b"/>
+          <rect x="54" y="56" width="14" height="28" fill="#0f172a"/>
+          <rect x="70" y="48" width="10" height="36" fill="#1e1b4b"/>
+          <!-- Glowing Windows -->
+          <circle cx="42" cy="50" r="1.5" fill="#fde047"/>
+          <circle cx="46" cy="58" r="1.5" fill="#fde047"/>
+          <circle cx="60" cy="62" r="1.5" fill="#fde047"/>
+          <defs>
+            <linearGradient id="skylineNightGrad" x1="50" y1="12" x2="50" y2="88" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1e1b4b"/>
+              <stop offset="0.6" stop-color="#172554"/>
+              <stop offset="1" stop-color="#0284c7"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    candle_dinner: {
+      themeColor: '#d97706',
+      glowColor: 'rgba(217, 119, 6, 0.5)',
+      audioFreqs: [329.63, 440, 554.37],
+      fx: 'sparks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Candle holder -->
+          <path d="M30 84C30 80 40 78 50 78C60 78 70 80 70 84H30Z" fill="#ca8a04"/>
+          <rect x="46" y="48" width="8" height="32" rx="2" fill="#fef3c7" stroke="#ca8a04" stroke-width="1.5"/>
+          <!-- Flame aura -->
+          <circle cx="50" cy="38" r="16" fill="url(#candleFlameAura)" opacity="0.6"/>
+          <!-- Flickering Candle Flame -->
+          <g style="animation: motionFlameFlicker 0.7s ease-in-out infinite; transform-origin: 50% 44px;">
+            <path d="M50 26C45 34 46 42 50 44C54 42 55 34 50 26Z" fill="#ea580c"/>
+            <path d="M50 32C48 36 48 42 50 43C52 42 52 36 50 32Z" fill="#fde047"/>
+          </g>
+          <defs>
+            <radialGradient id="candleFlameAura" cx="50" cy="38" r="16" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f59e0b"/>
+              <stop offset="1" stop-color="transparent"/>
+            </radialGradient>
+          </defs>
+        </svg>
+      `
+    },
+    museum_pass: {
+      themeColor: '#10b981',
+      glowColor: 'rgba(16, 185, 129, 0.45)',
+      audioFreqs: [523.25, 587.33, 659.25, 783.99],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Palette Body -->
+          <path d="M25 60C15 45 30 25 55 25C75 25 85 38 85 55C85 70 70 78 55 78C48 78 45 74 42 74C38 74 34 82 28 78C22 74 20 68 25 60Z" fill="#fef3c7" stroke="#b45309" stroke-width="2.5" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.3))"/>
+          <!-- Thumb hole -->
+          <circle cx="32" cy="62" r="5" fill="#0f172a"/>
+          <!-- Color blobs -->
+          <circle cx="42" cy="35" r="4.5" fill="#ef4444"/>
+          <circle cx="56" cy="34" r="4.5" fill="#3b82f6"/>
+          <circle cx="70" cy="42" r="4.5" fill="#10b981"/>
+          <circle cx="72" cy="56" r="4.5" fill="#f59e0b"/>
+          <circle cx="62" cy="68" r="4.5" fill="#8b5cf6"/>
+          <!-- Paintbrush across -->
+          <path d="M22 22L46 46" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>
+          <path d="M22 22L18 18" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      `
+    },
+    vip_crown: {
+      themeColor: '#eab308',
+      glowColor: 'rgba(234, 179, 8, 0.6)',
+      audioFreqs: [523.25, 659.25, 783.99, 1046.50, 1318.51],
+      fx: 'sparks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Royal Golden Crown -->
+          <g style="animation: motionCrownBob 1.6s ease-in-out infinite; transform-origin: 50% 50%;">
+            <path d="M18 40L30 76H70L82 40L64 54L50 32L36 54L18 40Z" fill="url(#crownGoldenGrad)" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 8px 18px rgba(234,179,8,0.5))"/>
+            <!-- Jewels -->
+            <circle cx="50" cy="32" r="4" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+            <circle cx="18" cy="40" r="3" fill="#3b82f6"/>
+            <circle cx="82" cy="40" r="3" fill="#10b981"/>
+            <circle cx="50" cy="65" r="4" fill="#a855f7"/>
+            <!-- Diamond flare at top center -->
+            <polygon points="50,20 52,24 56,25 52,26 50,30 48,26 44,25 48,24" fill="#ffffff" style="animation: motionCrossFlare 1.4s ease-in-out infinite; transform-origin: 50px 25px;"/>
+          </g>
+          <defs>
+            <linearGradient id="crownGoldenGrad" x1="18" y1="32" x2="82" y2="76" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fef08a"/>
+              <stop offset="0.5" stop-color="#eab308"/>
+              <stop offset="1" stop-color="#a16207"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    stargazing: {
+      themeColor: '#6366f1',
+      glowColor: 'rgba(99, 102, 241, 0.5)',
+      audioFreqs: [440, 659.25, 880, 1318.51],
+      fx: 'cosmic',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Constellation lines -->
+          <path d="M30 20L42 26L52 22L68 32L78 28" stroke="rgba(147,197,253,0.7)" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <circle cx="30" cy="20" r="2.5" fill="#ffffff"/>
+          <circle cx="42" cy="26" r="2" fill="#93c5fd"/>
+          <circle cx="52" cy="22" r="2.5" fill="#ffffff"/>
+          <circle cx="68" cy="32" r="2" fill="#93c5fd"/>
+          <circle cx="78" cy="28" r="3" fill="#fde047" style="animation: motionCrossFlare 1.5s ease-in-out infinite;"/>
+          <!-- Telescope Barrel -->
+          <path d="M34 68L68 34" stroke="#d97706" stroke-width="8" stroke-linecap="round"/>
+          <path d="M32 70L24 78" stroke="#92400e" stroke-width="4" stroke-linecap="round"/>
+          <path d="M66 36L72 30" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+          <!-- Tripod legs -->
+          <line x1="48" y1="54" x2="36" y2="88" stroke="#64748b" stroke-width="2.5"/>
+          <line x1="48" y1="54" x2="52" y2="88" stroke="#64748b" stroke-width="2.5"/>
+          <line x1="48" y1="54" x2="64" y2="88" stroke="#64748b" stroke-width="2.5"/>
+        </svg>
+      `
+    },
+    hot_air_balloon: {
+      themeColor: '#ec4899',
+      glowColor: 'rgba(236, 72, 153, 0.45)',
+      audioFreqs: [392, 493.88, 587.33, 783.99],
+      fx: 'confetti',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Swaying Balloon -->
+          <g style="animation: motionBalloonDrift 2.2s ease-in-out infinite; transform-origin: 50% 40%;">
+            <!-- Envelope -->
+            <path d="M50 14C32 14 22 28 26 46C28 56 42 68 46 72H54C58 68 72 56 74 46C78 28 68 14 50 14Z" fill="url(#balloonGrad)" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 8px 16px rgba(236,72,153,0.35))"/>
+            <!-- Stripes -->
+            <path d="M42 16C36 26 36 54 44 72" stroke="#ffffff" stroke-width="2"/>
+            <path d="M58 16C64 26 64 54 56 72" stroke="#ffffff" stroke-width="2"/>
+            <!-- Basket Ropes & Basket -->
+            <line x1="46" y1="72" x2="44" y2="80" stroke="#78350f" stroke-width="1.5"/>
+            <line x1="54" y1="72" x2="56" y2="80" stroke="#78350f" stroke-width="1.5"/>
+            <rect x="42" y="80" width="16" height="10" rx="2" fill="#d97706" stroke="#92400e" stroke-width="1.5"/>
+          </g>
+          <!-- Clouds in parallax -->
+          <ellipse cx="20" cy="50" rx="14" ry="6" fill="rgba(255,255,255,0.7)"/>
+          <ellipse cx="84" cy="34" rx="12" ry="5" fill="rgba(255,255,255,0.7)"/>
+          <defs>
+            <linearGradient id="balloonGrad" x1="22" y1="14" x2="78" y2="72" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f43f5e"/>
+              <stop offset="0.5" stop-color="#ec4899"/>
+              <stop offset="1" stop-color="#0284c7"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    fireworks: {
+      themeColor: '#f43f5e',
+      glowColor: 'rgba(244, 63, 94, 0.6)',
+      audioFreqs: [523.25, 659.25, 783.99, 1046.50, 1567.98],
+      fx: 'fireworks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Central explosive starburst -->
+          <g style="animation: motionFireworksBurst 1.5s ease-out infinite; transform-origin: 50% 50%;">
+            <circle cx="50" cy="50" r="8" fill="#facc15" filter="drop-shadow(0 0 10px #facc15)"/>
+            <line x1="50" y1="16" x2="50" y2="34" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <line x1="50" y1="66" x2="50" y2="84" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            <line x1="16" y1="50" x2="34" y2="50" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+            <line x1="66" y1="50" x2="84" y2="50" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+            <line x1="26" y1="26" x2="38" y2="38" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="62" y1="62" x2="74" y2="74" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="74" y1="26" x2="62" y2="38" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="62" x2="26" y2="74" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+        </svg>
+      `
+    },
+    luxury_ring: {
+      themeColor: '#06b6d4',
+      glowColor: 'rgba(6, 182, 212, 0.55)',
+      audioFreqs: [880, 1108.73, 1318.51, 1760],
+      fx: 'stardust',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Gold band -->
+          <ellipse cx="50" cy="62" rx="24" ry="12" stroke="#fbbf24" stroke-width="5" fill="none"/>
+          <ellipse cx="50" cy="60" rx="24" ry="12" stroke="#fef08a" stroke-width="2" fill="none"/>
+          <!-- Prong Mount -->
+          <path d="M44 48L50 40L56 48" stroke="#f8fafc" stroke-width="2.5"/>
+          <!-- Solitaire Faceted Diamond -->
+          <g style="animation: motionDiamondShimmer 4s linear infinite; transform-origin: 50% 34px;">
+            <polygon points="50,18 64,28 58,44 42,44 36,28" fill="url(#diamondPrismGrad)" stroke="#ffffff" stroke-width="2" filter="drop-shadow(0 0 14px rgba(56,189,248,0.7))"/>
+            <line x1="42" y1="28" x2="58" y2="28" stroke="#ffffff" stroke-width="1.5"/>
+            <line x1="50" y1="18" x2="50" y2="44" stroke="#ffffff" stroke-width="1.5"/>
+          </g>
+          <!-- 4-point Diamond Glare -->
+          <polygon points="50,12 52,24 64,26 52,28 50,40 48,28 36,26 48,24" fill="#ffffff" style="animation: motionCrossFlare 1.3s ease-in-out infinite; transform-origin: 50px 26px;"/>
+          <defs>
+            <linearGradient id="diamondPrismGrad" x1="36" y1="18" x2="64" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#ffffff"/>
+              <stop offset="0.4" stop-color="#bae6fd"/>
+              <stop offset="0.8" stop-color="#7dd3fc"/>
+              <stop offset="1" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `
+    },
+    island_trip: {
+      themeColor: '#0d9488',
+      glowColor: 'rgba(13, 148, 136, 0.5)',
+      audioFreqs: [392, 523.25, 659.25, 783.99, 987.77],
+      fx: 'fireworks',
+      svg: `
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Ocean Water Rings -->
+          <ellipse cx="50" cy="74" rx="38" ry="12" stroke="#2dd4bf" stroke-width="2" style="animation: motionIslandWaves 1.8s ease-out infinite; transform-origin: 50px 74px;"/>
+          <!-- Sand island mound -->
+          <ellipse cx="50" cy="72" rx="30" ry="9" fill="#fde047" stroke="#ca8a04" stroke-width="2"/>
+          <!-- Palm Tree Trunk -->
+          <path d="M48 72C46 58 52 48 56 36" stroke="#92400e" stroke-width="4.5" stroke-linecap="round"/>
+          <!-- Palm Fronds -->
+          <path d="M56 36C44 32 36 38 34 44M56 36C48 26 40 24 36 28M56 36C62 26 72 26 76 30M56 36C68 32 74 38 78 44M56 36C56 24 58 18 60 16" stroke="#16a34a" stroke-width="3" stroke-linecap="round"/>
+          <!-- Tropical Sunshine -->
+          <circle cx="28" cy="24" r="8" fill="#facc15" filter="drop-shadow(0 0 8px #facc15)"/>
+        </svg>
+      `
+    }
+  };
+
+  let celebrationDismissTimer = null;
+
+  function triggerGiftCelebrationGraphic(gift, senderName = 'Un ami', recipientName = 'Vous', customNote = '') {
+    const stage = document.getElementById('giftCelebrationStage');
+    if (!stage) return;
+
+    const profile = GIFT_MOTION_PROFILES[gift.id] || GIFT_MOTION_PROFILES.coffee;
+
+    // 1. Populate Ambient Halo & Colors
+    const halo = document.getElementById('giftHeroHalo');
+    if (halo) {
+      halo.style.background = `radial-gradient(circle, ${profile.glowColor} 0%, transparent 70%)`;
+    }
+
+    // 2. Inject Hero Motion Visual SVG
+    const visual = document.getElementById('giftHeroVisual');
+    if (visual) {
+      visual.innerHTML = profile.svg;
+    }
+
+    // 3. Populate Card Metadata
+    const badge = document.getElementById('giftCelebrationBadge');
+    const sender = document.getElementById('giftCelebrationSender');
+    const name = document.getElementById('giftCelebrationName');
+    const note = document.getElementById('giftCelebrationNote');
+    const points = document.getElementById('giftCelebrationPoints');
+
+    if (badge) badge.textContent = `${gift.typeLabel || 'Attention'} • ${gift.ambianceLabel || 'WafaTalk'}`;
+    if (sender) sender.textContent = `Offert par ${senderName} à ${recipientName}`;
+    if (name) name.innerHTML = `<span>${gift.icon}</span> ${gift.name}`;
+    if (note) note.textContent = `« ${customNote || gift.accroche} »`;
+    if (points) points.textContent = `+${gift.points} pts d'amitié`;
+
+    // 4. Play Customized Harmonic Sound Chime
+    try {
+      if (profile.audioFreqs && profile.audioFreqs.length > 0) {
+        profile.audioFreqs.forEach((freq, idx) => {
+          setTimeout(() => playTone(freq, 'sine', 0.28), idx * 80);
+        });
+      } else {
+        playGiftChime();
+      }
+    } catch (e) {
+      playGiftChime();
+    }
+
+    // 5. Fire choreographed Canvas Particles from Hero Apex
+    const originX = window.innerWidth / 2;
+    const originY = Math.max(window.innerHeight * 0.38, 180);
+    launchParticles(originX, originY, profile.fx || gift.fx || 'confetti');
+
+    // 6. Reveal Stage with Spring Animation
+    if (celebrationDismissTimer) {
+      clearTimeout(celebrationDismissTimer);
+      celebrationDismissTimer = null;
+    }
+
+    stage.classList.remove('hidden', 'exiting');
+    // Force layout reflow so CSS transitions & keyframe animations fire reliably
+    void stage.offsetWidth;
+    stage.classList.add('active');
+
+    // Auto-dismiss after 2.3 seconds with smooth exit
+    celebrationDismissTimer = setTimeout(() => {
+      dismissGiftCelebration();
+    }, 2300);
+  }
+
+  function dismissGiftCelebration() {
+    const stage = document.getElementById('giftCelebrationStage');
+    if (!stage || !stage.classList.contains('active')) return;
+
+    if (celebrationDismissTimer) {
+      clearTimeout(celebrationDismissTimer);
+      celebrationDismissTimer = null;
+    }
+
+    stage.classList.add('exiting');
+    setTimeout(() => {
+      stage.classList.remove('active', 'exiting');
+      stage.classList.add('hidden');
+    }, 320);
+  }
+
+  // Allow click anywhere on the celebration stage/backdrop to dismiss immediately
+  document.getElementById('giftCelebrationBackdrop')?.addEventListener('click', dismissGiftCelebration);
+  document.getElementById('giftCelebrationWrapper')?.addEventListener('click', dismissGiftCelebration);
+
+  // Expose for testing & celebration integration
+  window.triggerGiftCelebrationGraphic = triggerGiftCelebrationGraphic;
+  window.GIFTS_CATALOG = GIFTS_CATALOG;
+  window.dismissGiftCelebration = dismissGiftCelebration;
+
+
+  // =========================================================================
+  // 12. CANVAS PARTICLE FX ENGINE (HEARTS, STARS, CONFETTI & FIREWORKS)
   // =========================================================================
   let particles = [];
   let isAnimating = false;
@@ -5386,24 +7973,141 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
+  // Vector Shape Drawing Helpers (Pure Canvas 2D without emojis)
+  function drawCanvasHeart(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const topCurveHeight = size * 0.35;
+    ctx.moveTo(0, topCurveHeight);
+    ctx.bezierCurveTo(-size * 0.5, -topCurveHeight, -size, topCurveHeight * 0.5, 0, size * 1.1);
+    ctx.bezierCurveTo(size, topCurveHeight * 0.5, size * 0.5, -topCurveHeight, 0, topCurveHeight);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawCanvasStar(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const spikes = 5;
+    const outerRadius = size;
+    const innerRadius = size * 0.45;
+    let rot = (Math.PI / 2) * 3;
+    let x = 0;
+    let y = 0;
+    const step = Math.PI / spikes;
+
+    ctx.moveTo(0, -outerRadius);
+    for (let i = 0; i < spikes; i++) {
+      x = Math.cos(rot) * outerRadius;
+      y = Math.sin(rot) * outerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+
+      x = Math.cos(rot) * innerRadius;
+      y = Math.sin(rot) * innerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(0, -outerRadius);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawCanvasPetal(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size * 0.5, size * 1.1, Math.PI / 4, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  function drawCanvasBubble(ctx, size, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.beginPath();
+    ctx.arc(0, 0, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Inner reflection
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-size * 0.35, -size * 0.35, size * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawCanvasNote(ctx, size, color) {
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    // note head
+    ctx.beginPath();
+    ctx.ellipse(-size * 0.3, size * 0.3, size * 0.35, size * 0.25, -Math.PI / 6, 0, Math.PI * 2);
+    ctx.fill();
+    // note stem
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.1, size * 0.3);
+    ctx.lineTo(-size * 0.1, -size * 0.6);
+    ctx.lineTo(size * 0.4, -size * 0.4);
+    ctx.stroke();
+  }
+
   function launchParticles(x, y, type = 'confetti') {
-    const colors = ['#0d837d', '#14a39b', '#f25b3e', '#ff7a59', '#f8b84e', '#ffd166'];
-    const count = type === 'fireworks' ? 120 : 60;
+    const originX = x || window.innerWidth / 2;
+    const originY = y || window.innerHeight / 2;
+
+    let palette = ['#0d837d', '#14a39b', '#f25b3e', '#ff7a59', '#f8b84e', '#ffd166'];
+    let count = 60;
+    let speedBase = 6;
+    let shape = 'confetti';
+
+    if (type === 'hearts' || type === 'heart') {
+      palette = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af', '#f25b3e'];
+      count = 55;
+      shape = 'heart';
+    } else if (type === 'fireworks') {
+      palette = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ffd166'];
+      count = 130;
+      speedBase = 12;
+      shape = 'spark';
+    } else if (type === 'stardust' || type === 'star' || type === 'sparks') {
+      palette = ['#f59e0b', '#fbbf24', '#fde68a', '#ffffff', '#0d837d'];
+      count = 65;
+      shape = 'star';
+    } else if (type === 'petals') {
+      palette = ['#e11d48', '#be123c', '#fda4af', '#fff1f2'];
+      count = 50;
+      shape = 'petal';
+    } else if (type === 'bubbles' || type === 'steam') {
+      palette = ['#38bdf8', '#7dd3fc', '#bae6fd', '#0d837d', '#ffffff'];
+      count = 45;
+      shape = 'bubble';
+    } else if (type === 'notes') {
+      palette = ['#8b5cf6', '#a78bfa', '#0d837d', '#f25b3e'];
+      count = 45;
+      shape = 'note';
+    } else if (type === 'cosmic') {
+      palette = ['#6366f1', '#8b5cf6', '#ec4899', '#38bdf8', '#ffd166'];
+      count = 80;
+      speedBase = 8;
+      shape = 'star';
+    }
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 8 + 2;
+      const speed = Math.random() * speedBase + 2;
       particles.push({
-        x: x || window.innerWidth / 2,
-        y: y || window.innerHeight / 2,
+        x: originX,
+        y: originY,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - (type === 'fireworks' ? 3 : 1),
-        size: Math.random() * 7 + 4,
-        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.sin(angle) * speed - (type === 'fireworks' ? 3.5 : (type === 'steam' ? 3 : 1)),
+        size: Math.random() * 6 + 4,
+        color: palette[Math.floor(Math.random() * palette.length)],
         alpha: 1,
         rotation: Math.random() * 360,
-        vr: (Math.random() - 0.5) * 10,
-        isHeart: type === 'heart'
+        vr: (Math.random() - 0.5) * 8,
+        shape: shape,
+        decay: type === 'steam' ? 0.012 : (type === 'fireworks' ? 0.014 : 0.016),
+        gravity: type === 'steam' ? -0.06 : (type === 'bubbles' ? -0.04 : 0.16)
       });
     }
 
@@ -5420,8 +8124,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const p = particles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.18; // gravity
-      p.alpha -= 0.015;
+      p.vy += p.gravity;
+      p.alpha -= p.decay;
       p.rotation += p.vr;
 
       ctx.save();
@@ -5429,9 +8133,21 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.translate(p.x, p.y);
       ctx.rotate((p.rotation * Math.PI) / 180);
 
-      if (p.isHeart) {
-        ctx.font = `${p.size * 2}px sans-serif`;
-        ctx.fillText('', 0, 0);
+      if (p.shape === 'heart') {
+        drawCanvasHeart(ctx, p.size, p.color);
+      } else if (p.shape === 'star') {
+        drawCanvasStar(ctx, p.size, p.color);
+      } else if (p.shape === 'petal') {
+        drawCanvasPetal(ctx, p.size, p.color);
+      } else if (p.shape === 'bubble') {
+        drawCanvasBubble(ctx, p.size, p.color);
+      } else if (p.shape === 'note') {
+        drawCanvasNote(ctx, p.size, p.color);
+      } else if (p.shape === 'spark') {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 0.65, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
@@ -5439,7 +8155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ctx.restore();
 
-      if (p.alpha <= 0 || p.y > fxCanvas.height) {
+      if (p.alpha <= 0 || p.y > fxCanvas.height + 50 || p.y < -50) {
         particles.splice(i, 1);
       }
     }
@@ -5573,6 +8289,229 @@ document.addEventListener('DOMContentLoaded', () => {
   // (Salon Real-time Media & Mesh State declared at top-level)
 
   // =========================================================================
+  // REAL-TIME AVATAR & PROFILE PROPAGATION CONTROLLER
+  // =========================================================================
+  function applyUserAvatarUpdateAcrossUI(data) {
+    if (!data || !data.userId) return;
+    const uid = data.userId;
+    const newAvatar = data.avatarUrl;
+    const newName = data.displayName;
+    const newCountry = data.country;
+    const newStatus = data.status;
+    const newBio = data.bio;
+    const newSocialStatus = data.socialStatus;
+
+    // 1. Persist in local storage so subsequent views and reloads use it immediately
+    if (newAvatar) {
+      localStorage.setItem(`wafatalk_avatar_${uid}`, newAvatar);
+    }
+    if (newName) {
+      localStorage.setItem(`wafatalk_name_${uid}`, newName);
+    }
+
+    // 2. If it's the current user themselves
+    const isMe = state.currentUser && (state.currentUser.id === uid || state.currentUser.username === uid);
+    if (isMe) {
+      if (newAvatar) {
+        state.currentUser.avatarUrl = newAvatar;
+        state.currentUser.avatar = newAvatar;
+        localStorage.setItem('wafatalk_last_saved_avatar', newAvatar);
+        const navUserAvatar = document.getElementById('navUserAvatar');
+        const mobNavUserAvatar = document.getElementById('mobNavUserAvatar');
+        const profileAvatarPreview = document.getElementById('profileAvatarPreview');
+        if (navUserAvatar) navUserAvatar.src = newAvatar;
+        if (mobNavUserAvatar) mobNavUserAvatar.src = newAvatar;
+        if (profileAvatarPreview) profileAvatarPreview.src = newAvatar;
+      }
+      if (newName) {
+        state.currentUser.displayName = newName;
+        const navUserName = document.getElementById('navUserName');
+        const heroUserGreeting = document.getElementById('heroUserGreeting');
+        const menuFullName = document.getElementById('menuFullName');
+        if (navUserName) navUserName.textContent = newName.split(' ')[0];
+        if (heroUserGreeting) heroUserGreeting.textContent = newName.split(' ')[0];
+        if (menuFullName) menuFullName.textContent = newName;
+      }
+      if (newBio) state.currentUser.bio = newBio;
+      if (newSocialStatus) state.currentUser.socialStatus = newSocialStatus;
+      if (newCountry) {
+        state.currentUser.country = newCountry;
+        const menuCountryName = document.getElementById('menuCountryName');
+        if (menuCountryName) menuCountryName.textContent = newCountry;
+      }
+      localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+    }
+
+    // 3. Update in Friends List (myFriendsList)
+    let friendListUpdated = false;
+    if (Array.isArray(myFriendsList)) {
+      myFriendsList.forEach(f => {
+        if (f.id === uid || f.userId === uid || (f.username && f.username === uid)) {
+          if (newAvatar) { f.avatar = newAvatar; f.avatarUrl = newAvatar; }
+          if (newName) { f.name = newName; f.displayName = newName; }
+          if (newCountry) f.country = newCountry;
+          if (newBio) f.bio = newBio;
+          if (newSocialStatus) f.socialStatus = newSocialStatus;
+          friendListUpdated = true;
+        }
+      });
+    }
+
+    // 4. Update in Explorer Cached Members (cachedExploreUsers)
+    if (Array.isArray(cachedExploreUsers)) {
+      cachedExploreUsers.forEach(u => {
+        if (u.id === uid || (u.username && u.username === uid)) {
+          if (newAvatar) { u.avatar = newAvatar; u.avatarUrl = newAvatar; }
+          if (newName) { u.name = newName; u.displayName = newName; }
+          if (newCountry) u.country = newCountry;
+          if (newBio) u.bio = newBio;
+          if (newSocialStatus) u.socialStatus = newSocialStatus;
+          friendListUpdated = true;
+        }
+      });
+    }
+
+    // 5. Update in Pending & Sent Requests
+    if (Array.isArray(pendingFriendRequests)) {
+      pendingFriendRequests.forEach(r => {
+        if (r.sender && (r.sender.id === uid || r.sender.username === uid)) {
+          if (newAvatar) { r.sender.avatarUrl = newAvatar; r.sender.avatar = newAvatar; }
+          if (newName) r.sender.displayName = newName;
+          friendListUpdated = true;
+        }
+      });
+    }
+    if (Array.isArray(sentFriendRequests)) {
+      sentFriendRequests.forEach(r => {
+        if (r.receiver && (r.receiver.id === uid || r.receiver.username === uid)) {
+          if (newAvatar) { r.receiver.avatarUrl = newAvatar; r.receiver.avatar = newAvatar; }
+          if (newName) r.receiver.displayName = newName;
+          friendListUpdated = true;
+        }
+      });
+    }
+
+    // 6. Update direct DOM elements in friends or explore list
+    document.querySelectorAll(`.friend-item[data-user-id="${uid}"]`).forEach(item => {
+      const avImg = item.querySelector('.friend-avatar');
+      if (avImg && newAvatar) avImg.src = newAvatar;
+      const nameEl = item.querySelector('.friend-name');
+      if (nameEl && newName) nameEl.textContent = newName;
+      if (newSocialStatus) {
+        const actEl = item.querySelector('.friend-activity');
+        if (actEl && !actEl.classList.contains('online') && !actEl.classList.contains('offline')) {
+          actEl.textContent = `💖 ${newSocialStatus}`;
+        }
+      }
+    });
+
+    // 7. Update in Active Salon Roster (currentSalonRoster) and Voice Stage Grid
+    if (currentSalonRoster && currentSalonRoster.has(uid)) {
+      const p = currentSalonRoster.get(uid);
+      if (p) {
+        if (newAvatar) { p.avatarUrl = newAvatar; p.avatar = newAvatar; }
+        if (newName) p.displayName = isMe ? (newName + ' (Vous)') : newName;
+        if (newCountry) p.country = newCountry;
+      }
+      if (typeof renderVoiceStage === 'function') {
+        renderVoiceStage();
+      }
+    }
+
+    // Direct DOM update on active voice stage cards for this user
+    if (newAvatar) {
+      const stageAvatarEl = document.querySelector(`#stageUser_${uid} .stage-avatar-img`);
+      if (stageAvatarEl) stageAvatarEl.src = newAvatar;
+      const stagePosterEl = document.querySelector(`#videoPoster_${uid}`);
+      if (stagePosterEl) stagePosterEl.src = newAvatar;
+    }
+    if (newName) {
+      const stageNameEl = document.querySelector(`#stageUser_${uid} .stage-user-name`);
+      if (stageNameEl) stageNameEl.textContent = isMe ? (newName + ' (Vous)') : newName;
+    }
+
+    // 8. Update all Salon Chat message avatars from this user in active salon
+    if (newAvatar) {
+      document.querySelectorAll(`.chat-msg[data-user-id="${uid}"] .chat-msg-avatar`).forEach(img => {
+        img.src = newAvatar;
+      });
+    }
+
+    // 9. Update Active Direct Chat (DM) modal if open with this friend
+    if (currentDmFriend && (currentDmFriend.id === uid || currentDmFriend.username === uid)) {
+      if (newAvatar) {
+        currentDmFriend.avatar = newAvatar;
+        currentDmFriend.avatarUrl = newAvatar;
+        const dmFriendAvatar = document.getElementById('dmFriendAvatar');
+        if (dmFriendAvatar) dmFriendAvatar.src = newAvatar;
+      }
+      if (newName) {
+        currentDmFriend.name = newName;
+        currentDmFriend.displayName = newName;
+        const dmFriendName = document.getElementById('dmFriendName');
+        if (dmFriendName) dmFriendName.textContent = newName;
+      }
+    }
+
+    // 10. Update Active User Profile Modal if currently inspecting this user
+    if (currentInspectedUser && (currentInspectedUser.id === uid || currentInspectedUser.username === uid)) {
+      if (newAvatar) {
+        currentInspectedUser.avatar = newAvatar;
+        currentInspectedUser.avatarUrl = newAvatar;
+        const userProfileAvatar = document.getElementById('userProfileAvatar');
+        if (userProfileAvatar) userProfileAvatar.src = newAvatar;
+      }
+      if (newName) {
+        currentInspectedUser.name = newName;
+        currentInspectedUser.displayName = newName;
+        const userProfileName = document.getElementById('userProfileName');
+        if (userProfileName) userProfileName.textContent = newName;
+      }
+      if (newBio) {
+        currentInspectedUser.bio = newBio;
+        const userProfileBio = document.getElementById('userProfileBio');
+        if (userProfileBio) userProfileBio.textContent = newBio;
+      }
+      if (newSocialStatus) {
+        currentInspectedUser.socialStatus = newSocialStatus;
+        const userProfileSocialStatus = document.getElementById('userProfileSocialStatus');
+        if (userProfileSocialStatus && typeof formatSocialStatusText === 'function') {
+          userProfileSocialStatus.textContent = formatSocialStatusText(newSocialStatus);
+        }
+      }
+    }
+
+    // 11. Update Active Call avatar if on call with this user
+    if (currentCallSession && currentCallSession.peer && (currentCallSession.peer.id === uid || currentCallSession.peer.name === uid)) {
+      if (newAvatar) {
+        currentCallSession.peer.avatar = newAvatar;
+        const peerAudioAvatar = document.getElementById('peerAudioAvatar');
+        if (peerAudioAvatar) peerAudioAvatar.src = newAvatar;
+        const remotePlaceholderAvatar = document.getElementById('remotePlaceholderAvatar');
+        if (remotePlaceholderAvatar) remotePlaceholderAvatar.src = newAvatar;
+        const activeCallPeerAvatar = document.getElementById('activeCallPeerAvatar');
+        if (activeCallPeerAvatar) activeCallPeerAvatar.src = newAvatar;
+        const miniCallAvatar = document.getElementById('miniCallAvatar');
+        if (miniCallAvatar) miniCallAvatar.src = newAvatar;
+      }
+      if (newName) {
+        currentCallSession.peer.name = newName;
+        const peerAudioName = document.getElementById('peerAudioName');
+        if (peerAudioName) peerAudioName.textContent = newName;
+        const activeCallPeerName = document.getElementById('activeCallPeerName');
+        if (activeCallPeerName) activeCallPeerName.textContent = newName;
+        const miniCallName = document.getElementById('miniCallName');
+        if (miniCallName) miniCallName.textContent = newName;
+      }
+    }
+
+    // 12. Update Mini Floating Salon Widget
+    if (typeof updateMiniSalonAvatars === 'function') {
+      updateMiniSalonAvatars();
+    }
+  }
+
+  // =========================================================================
   // SOCKET.IO CLIENT INITIALIZATION & ROUTING
   // =========================================================================
   function initSocketConnection(token) {
@@ -5597,7 +8536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeOnlineUserIds.add(state.currentUser.username);
       }
       socket.emit('presence:request_all');
-      renderFriends();
+      refreshFriendData().then(() => renderFriends());
     });
 
     // Real-time snapshot of all currently online users upon connection
@@ -5762,6 +8701,41 @@ document.addEventListener('DOMContentLoaded', () => {
       renderFriends();
     });
 
+    // Real-time friend request events (Clin d'œil complice)
+    socket.on('friend:request_received', ({ request }) => {
+      if (request && !pendingFriendRequests.some(r => r.id === request.id)) {
+        pendingFriendRequests.unshift(request);
+      }
+      const badge = document.getElementById('friendReqBadge');
+      if (badge) {
+        badge.textContent = `😉 ${pendingFriendRequests.length}`;
+        badge.style.display = pendingFriendRequests.length > 0 ? 'block' : 'none';
+      }
+
+      // 1. Playful Haptic Vibration for receiver
+      triggerWinkHaptic();
+
+      // 2. Playful Chime sound
+      playWinkChime();
+
+      // 3. Floating wink animation
+      spawnFloatingWink();
+
+      // 4. Interactive card notification with 1-click "Renvoyer"
+      showWinkNotification(request);
+
+      renderFriends();
+    });
+
+    socket.on('friend:request_accepted', ({ request }) => {
+      const accepterName = request?.receiver?.displayName || request?.receiver?.username || 'Un utilisateur';
+      triggerWinkHaptic();
+      playGiftChime();
+      spawnFloatingWink();
+      showToast(`✨ ${accepterName} vous a renvoyé un clin d'œil ! Vous êtes maintenant amis.`, 'green');
+      refreshFriendData().then(() => renderFriends());
+    });
+
     socket.on('disconnect', () => {
       console.log(' Socket disconnected from WafaTalk Gateway');
       activeOnlineUserIds.clear();
@@ -5774,6 +8748,90 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // SALON GROUP SOCKET EVENTS (MULTI-USER ROSTER, AUDIO/VIDEO MESH & CHAT)
     // =========================================================================
+    // Real-time Salon Gift Celebration Received from another member
+    socket.on('salon:gift', ({ sender, receiver, giftType, costPoints, customMessage }) => {
+      // Don't duplicate if sender is ourself (sender already saw celebration immediately on send)
+      if (sender && state.currentUser && sender.id === state.currentUser.id) return;
+
+      const senderName = sender?.displayName || sender?.username || 'Un ami';
+      const receiverName = receiver?.displayName || receiver?.username || 'tout le salon';
+      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || GIFTS_CATALOG[0];
+      const messageText = customMessage || gift.accroche;
+
+      // 1. Trigger festive graphic motion and sound on receiver end
+      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      // 2. Playful haptic vibration
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([100, 60, 160]); } catch (e) {}
+      }
+
+      // 3. Show toast
+      showToast(`🎁 ${senderName} a offert ${gift.name} à ${receiverName} !`, 'amber');
+
+      // 4. Append celebration announcement in salon chat
+      if (chatMessagesScroll) {
+        const giftEl = document.createElement('div');
+        giftEl.className = 'chat-gift-announcement';
+        giftEl.innerHTML = `
+          <div class="chat-gift-icon-bubble">${gift.icon}</div>
+          <div class="chat-gift-content">
+            <div class="chat-gift-headline"><strong>${escapeHtml(senderName)}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> (${escapeHtml(receiverName)}) !</div>
+            <div class="chat-gift-note">« ${escapeHtml(messageText)} »</div>
+          </div>
+        `;
+        chatMessagesScroll.appendChild(giftEl);
+        chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+      }
+    });
+
+    // Real-time Direct Gift Received from a Friend or "Tous mes amis"
+    socket.on('gift:received', ({ sender, receiver, giftType, costPoints, customMessage, targetType }) => {
+      // Don't duplicate if sender is ourself
+      if (sender && state.currentUser && sender.id === state.currentUser.id) return;
+
+      const senderName = sender?.displayName || sender?.username || 'Un ami';
+      const receiverName = receiver?.displayName || receiver?.username || (state.currentUser?.displayName || 'Vous');
+      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || GIFTS_CATALOG[0];
+      const messageText = customMessage || gift.accroche;
+
+      // 1. Trigger full graphic motion & celebration on receiver end!
+      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      // 2. Playful haptic vibration
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([100, 60, 160]); } catch (e) {}
+      }
+
+      // 3. Festive Toast Notification
+      const label = targetType === 'all_friends'
+        ? `✨ ${senderName} a envoyé ${gift.name} à tous ses amis (dont vous) !`
+        : `🎁 ${senderName} vous a offert ${gift.name} !`;
+      showToast(label, 'amber');
+
+      // 4. If DM with this sender is open, append celebration card
+      if (currentDmFriend && (currentDmFriend.id === sender.id || currentDmFriend.username === sender.username)) {
+        if (dmMessagesScroll) {
+          const dmGiftEl = document.createElement('div');
+          dmGiftEl.className = 'chat-gift-announcement';
+          dmGiftEl.innerHTML = `
+            <div class="chat-gift-icon-bubble">${gift.icon}</div>
+            <div class="chat-gift-content">
+              <div class="chat-gift-headline"><strong>${escapeHtml(senderName)}</strong> vous a offert <strong>${escapeHtml(gift.name)}</strong> !</div>
+              <div class="chat-gift-note">« ${escapeHtml(messageText)} »</div>
+            </div>
+          `;
+          dmMessagesScroll.appendChild(dmGiftEl);
+          dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
+        }
+      }
+
+      // 5. Update user points & counters
+      state.userPoints += (costPoints || 10);
+      syncUserPointsDisplay();
+      updateGiftCounters();
+    });
+
     // Active Roster received upon joining salon
     socket.on('salon:roster', async ({ salonId, participants }) => {
       if (!state.currentRoom || state.currentRoom.id !== salonId) return;
@@ -5927,12 +8985,314 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(message || `Votre rôle a changé : ${role}`, badgeType === 'ADMIN' ? 'teal' : 'coral');
       }
     });
+
+    // Real-time User Profile & Avatar Update Broadcast across WafaTalk
+    socket.on('user:profile_updated', (data) => {
+      if (!data || !data.userId) return;
+      applyUserAvatarUpdateAcrossUI(data);
+    });
+
+    // Real-time Salon Participant updated (avatar, role, name)
+    socket.on('salon:participant_updated', ({ salonId, participant }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId || !participant) return;
+      if (currentSalonRoster) {
+        currentSalonRoster.set(participant.userId, participant);
+        renderVoiceStage();
+      }
+    });
+  }
+
+  // =========================================================================
+  // 14.3 FICHE PROFIL UTILISATEUR & DESCRIPTION (MODAL)
+  // =========================================================================
+  const userProfileModal = document.getElementById('userProfileModal');
+  const btnCloseUserProfileModal = document.getElementById('btnCloseUserProfileModal');
+  const userProfileAvatar = document.getElementById('userProfileAvatar');
+  const userProfileStatusDot = document.getElementById('userProfileStatusDot');
+  const userProfileName = document.getElementById('userProfileName');
+  const userProfileFlag = document.getElementById('userProfileFlag');
+  const userProfileRole = document.getElementById('userProfileRole');
+  const userProfileUsername = document.getElementById('userProfileUsername');
+  const userProfileOnlineStatus = document.getElementById('userProfileOnlineStatus');
+  const userProfileSocialStatus = document.getElementById('userProfileSocialStatus');
+  const userProfileBio = document.getElementById('userProfileBio');
+  const userProfileInterests = document.getElementById('userProfileInterests');
+  const userProfilePoints = document.getElementById('userProfilePoints');
+  const userProfileGifts = document.getElementById('userProfileGifts');
+  const userProfileMemberSince = document.getElementById('userProfileMemberSince');
+  const userProfileAge = document.getElementById('userProfileAge');
+  const userProfileAgeBox = document.getElementById('userProfileAgeBox');
+  const userProfileSalonBox = document.getElementById('userProfileSalonBox');
+  const userProfileSalonName = document.getElementById('userProfileSalonName');
+  const btnJoinProfileUserSalon = document.getElementById('btnJoinProfileUserSalon');
+  const btnProfileSendWink = document.getElementById('btnProfileSendWink');
+  const btnProfileStartChat = document.getElementById('btnProfileStartChat');
+  const btnProfileSendGift = document.getElementById('btnProfileSendGift');
+
+  let currentInspectedUser = null;
+
+  function closeUserProfileModal() {
+    if (userProfileModal) {
+      userProfileModal.classList.add('hidden');
+    }
+  }
+
+  btnCloseUserProfileModal?.addEventListener('click', () => {
+    dismissWithHistory(closeUserProfileModal);
+  });
+  userProfileModal?.addEventListener('click', (e) => {
+    if (e.target === userProfileModal) dismissWithHistory(closeUserProfileModal);
+  });
+
+  function formatSocialStatusText(status) {
+    if (!status) return '💖 Célibataire';
+    const s = String(status).trim();
+    if (s.toLowerCase().includes('célibataire') || s.toLowerCase().includes('celibataire')) {
+      return s.startsWith('💖') || s.startsWith('✨') ? s : `💖 ${s}`;
+    }
+    if (s.toLowerCase().includes('couple')) {
+      return s.startsWith('💍') || s.startsWith('❤️') ? s : `💍 ${s}`;
+    }
+    if (s.toLowerCase().includes('cœur') || s.toLowerCase().includes('coeur')) {
+      return s.startsWith('💘') || s.startsWith('✨') ? s : `💘 ${s}`;
+    }
+    if (s.toLowerCase().includes('compliqué') || s.toLowerCase().includes('complique')) {
+      return s.startsWith('🌪️') ? s : `🌪️ ${s}`;
+    }
+    if (s.toLowerCase().includes('marié') || s.toLowerCase().includes('marie')) {
+      return s.startsWith('👰') ? s : `👰 ${s}`;
+    }
+    if (s.toLowerCase().includes('ami')) {
+      return s.startsWith('🤝') ? s : `🤝 ${s}`;
+    }
+    return `✨ ${s}`;
+  }
+
+  async function openUserProfileModal(userOrUserId) {
+    if (!userOrUserId || !userProfileModal) return;
+
+    let targetId = typeof userOrUserId === 'object' ? userOrUserId.id : userOrUserId;
+    let initialUser = typeof userOrUserId === 'object' ? userOrUserId : {};
+    currentInspectedUser = initialUser;
+
+    // Populate modal elements
+    function populateModalUI(userData) {
+      currentInspectedUser = { ...currentInspectedUser, ...userData };
+      const u = currentInspectedUser;
+      const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username)) || u.status === 'online' || Boolean(u._isOnline);
+
+      if (userProfileAvatar) {
+        const customModalAv = (u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username || 'user')}`;
+        userProfileAvatar.src = customModalAv;
+      }
+      if (userProfileStatusDot) {
+        userProfileStatusDot.className = `user-profile-status-indicator ${isOnline ? 'online' : ''}`;
+      }
+      if (userProfileName) {
+        userProfileName.textContent = u.name || u.displayName || u.username || 'Membre WafaTalk';
+      }
+      if (userProfileFlag) {
+        userProfileFlag.innerHTML = getFlagImgTag(u.country, u.country);
+      }
+      if (userProfileRole) {
+        userProfileRole.textContent = u.role === 'ADMIN' ? 'Fondateur' : u.role === 'MODERATOR' ? 'Modérateur' : (u.role || 'Membre');
+      }
+      if (userProfileUsername) {
+        userProfileUsername.textContent = `@${u.username || 'membre'}`;
+      }
+      if (userProfileOnlineStatus) {
+        userProfileOnlineStatus.className = `user-profile-online-badge ${isOnline ? 'online' : 'offline'}`;
+        userProfileOnlineStatus.textContent = isOnline ? '🟢 En ligne' : '⚪ Hors ligne';
+      }
+      if (userProfileSocialStatus) {
+        userProfileSocialStatus.textContent = formatSocialStatusText(u.socialStatus);
+      }
+      if (userProfileBio) {
+        userProfileBio.textContent = u.bio || "Partage sa bonne humeur et discute dans les salons vocaux et textuels de WafaTalk ✨";
+      }
+
+      // Interests tags
+      if (userProfileInterests) {
+        userProfileInterests.innerHTML = '';
+        let list = [];
+        if (Array.isArray(u.interests)) {
+          list = u.interests;
+        } else if (typeof u.interests === 'string') {
+          list = u.interests.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if (list.length === 0) list = ['Discussion & Café', 'Gaming', 'Musique'];
+        const tagIcons = ['☕', '🎮', '🎵', '💬', '✨', '🌍', '🎬', '🎧', '✈️', '🎨'];
+        list.forEach((item, idx) => {
+          const tag = document.createElement('span');
+          tag.className = 'user-profile-tag';
+          const icon = tagIcons[idx % tagIcons.length];
+          tag.textContent = `${icon} ${item}`;
+          userProfileInterests.appendChild(tag);
+        });
+      }
+
+      // Points & Gifts stats
+      if (userProfilePoints) {
+        userProfilePoints.textContent = (u.wafaPoints ?? u.points ?? 150).toLocaleString();
+      }
+      if (userProfileGifts) {
+        userProfileGifts.textContent = (u.giftsCount ?? u.receivedGiftsCount ?? 0).toLocaleString();
+      }
+
+      // Member since date
+      if (userProfileMemberSince) {
+        if (u.createdAt) {
+          const d = new Date(u.createdAt);
+          if (!isNaN(d.getTime())) {
+            const m = d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+            userProfileMemberSince.textContent = m.charAt(0).toUpperCase() + m.slice(1);
+          } else {
+            userProfileMemberSince.textContent = 'Nov. 2026';
+          }
+        } else {
+          userProfileMemberSince.textContent = 'Nov. 2026';
+        }
+      }
+
+      // Age calculation
+      if (userProfileAgeBox) {
+        if (u.birthDate) {
+          const age = calculateAge(u.birthDate);
+          if (age >= 13 && age < 120) {
+            if (userProfileAge) userProfileAge.textContent = `${age} ans`;
+            userProfileAgeBox.style.display = 'flex';
+          } else {
+            userProfileAgeBox.style.display = 'none';
+          }
+        } else {
+          userProfileAgeBox.style.display = 'none';
+        }
+      }
+
+      // Current Salon activity
+      if (userProfileSalonBox) {
+        if (u.currentSalon && u.currentSalon.name) {
+          userProfileSalonBox.classList.remove('hidden');
+          if (userProfileSalonName) userProfileSalonName.textContent = u.currentSalon.name;
+          if (btnJoinProfileUserSalon) {
+            btnJoinProfileUserSalon.onclick = () => {
+              closeUserProfileModal();
+              openLiveSalon(u.currentSalon);
+            };
+          }
+        } else {
+          userProfileSalonBox.classList.add('hidden');
+        }
+      }
+
+      // Buttons configuration
+      const isFriend = u.friendStatus === 'friends' || myFriendsList.some(f => f.id === u.id || (f.username && u.username && f.username.toLowerCase() === u.username.toLowerCase()));
+
+      if (btnProfileSendWink) {
+        if (isFriend) {
+          btnProfileSendWink.innerHTML = '<span>🤝 Amis</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = true;
+          btnProfileSendWink.onclick = null;
+        } else if (u.friendStatus === 'request_sent') {
+          btnProfileSendWink.innerHTML = '<span>😉 Clin d\'œil envoyé</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            if (u.requestId) {
+              await handleCancelRequest(u.requestId, null, btnProfileSendWink);
+              u.friendStatus = 'none';
+              populateModalUI({ friendStatus: 'none', requestId: null });
+            } else {
+              showToast('Clin d\'œil déjà envoyé, en attente de réponse !', 'teal');
+            }
+          };
+        } else if (u.friendStatus === 'request_received') {
+          btnProfileSendWink.innerHTML = '<span>😉 Renvoyer le clin d\'œil</span>';
+          btnProfileSendWink.className = 'btn btn-teal';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            await handleAcceptRequest(u.requestId, u);
+            u.friendStatus = 'friends';
+            populateModalUI({ friendStatus: 'friends' });
+          };
+        } else {
+          btnProfileSendWink.innerHTML = '<span>😉 Clin d\'œil complice</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            await handleSendFriendRequest(u.id, null, btnProfileSendWink);
+            u.friendStatus = 'request_sent';
+            populateModalUI({ friendStatus: 'request_sent' });
+          };
+        }
+      }
+
+      if (btnProfileStartChat) {
+        btnProfileStartChat.onclick = () => {
+          if (isFriend) {
+            closeUserProfileModal();
+            openDirectChat(u);
+          } else {
+            showToast('Envoyez d\'abord un clin d\'œil complice pour devenir amis et discuter en privé ! 😉', 'teal');
+            if (btnProfileSendWink) {
+              btnProfileSendWink.classList.add('pulse-highlight');
+              setTimeout(() => btnProfileSendWink?.classList.remove('pulse-highlight'), 1200);
+            }
+          }
+        };
+      }
+
+      if (btnProfileSendGift) {
+        btnProfileSendGift.onclick = () => {
+          closeUserProfileModal();
+          activeDirectUser = u;
+          openGiftShop();
+        };
+      }
+    }
+
+    // Immediately display initial data
+    populateModalUI(initialUser);
+    userProfileModal.classList.remove('hidden');
+    pushAppModalState('userProfile');
+
+    // Fetch full enriched profile from backend API if available
+    if (targetId) {
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/friends/profile/${targetId}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.profile) {
+            if (data.profile.avatarUrl && targetId) {
+              localStorage.setItem(`wafatalk_avatar_${targetId}`, data.profile.avatarUrl);
+            }
+            populateModalUI(data.profile);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch rich user profile:', err);
+      }
+    }
   }
 
   // =========================================================================
   // 1-ON-1 DIRECT CHAT CONTROLLER
   // =========================================================================
   async function openDirectChat(friend) {
+    if (!friend) return;
+
+    // Check if user is logged in and whether they are accepted friends (or in active call with peer)
+    const isFriend = myFriendsList.some(f => f.id === friend.id || (f.username && friend.username && f.username.toLowerCase() === friend.username.toLowerCase()));
+    const isInCallWithPeer = currentCallSession && currentCallSession.peer && (currentCallSession.peer.id === friend.id || currentCallSession.peer.name === friend.name || currentCallSession.peer.name === friend.username);
+    if (state.currentUser?.id && !isFriend && !isInCallWithPeer) {
+      showToast('Vous devez être amis pour ouvrir une conversation privée.', 'coral');
+      return;
+    }
+
     currentDmFriend = friend;
     if (!directChatModal) return;
 
@@ -5943,7 +9303,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const isOnline = activeOnlineUserIds.has(friend.id) || (friend.username && activeOnlineUserIds.has(friend.username)) || Boolean(friend._isOnline);
     updateDmFriendStatusUI(isOnline);
 
+    const dmProfileWrap = document.getElementById('dmFriendProfileWrap');
+    if (dmProfileWrap) {
+      dmProfileWrap.onclick = () => {
+        if (currentDmFriend) openUserProfileModal(currentDmFriend);
+      };
+    }
+
     directChatModal.classList.remove('hidden');
+    pushAppModalState('directChat');
     dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><p>Chargement du salon privé...</p></div>';
 
     // 2. Fetch or Create Conversation via Backend API
@@ -5970,13 +9338,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load messages history
         await loadConversationMessages(currentConversation.id);
       } else {
+        directChatModal.classList.add('hidden');
         showToast(data.message || 'Impossible d\'ouvrir la conversation.', 'coral');
+        return;
       }
     } catch (err) {
-      console.warn('Fallback local conversation:', err);
-      // Offline fallback
-      currentConversation = { id: `local-conv-${friend.id}` };
-      dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"></span><p>Début de votre discussion privée sécurisée. Dites bonjour ! </p></div>';
+      console.warn('Erreur ouverture conversation:', err);
+      directChatModal.classList.add('hidden');
+      showToast('Impossible d\'ouvrir la conversation. Connexion ou amitié requise.', 'coral');
+      return;
     }
 
     dmTextInput?.focus();
@@ -6325,7 +9695,7 @@ document.addEventListener('DOMContentLoaded', () => {
           video.muted = true;
           video.preload = 'metadata';
           videoWrap.appendChild(video);
-          videoWrap.innerHTML += '<div class="dm-media-video-play-btn">▶</div>';
+          videoWrap.innerHTML += '<div class="dm-media-video-play-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></div>';
           const cover = document.createElement('div');
           cover.className = 'dm-oneview-cover';
           cover.innerHTML = `<span class="dm-oneview-cover-icon"></span><span class="dm-oneview-cover-label">Appuyer pour voir</span><span class="dm-oneview-cover-hint">Vidéo · vue unique</span>`;
@@ -6599,7 +9969,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show upload progress in messages area
     const progressEl = document.createElement('div');
     progressEl.className = 'dm-upload-progress';
-    progressEl.innerHTML = `<span>⬆️ Envoi en cours...</span><div class="dm-upload-progress-bar-wrap"><div class="dm-upload-progress-bar"></div></div>`;
+    progressEl.innerHTML = `<span>Envoi en cours...</span><div class="dm-upload-progress-bar-wrap"><div class="dm-upload-progress-bar"></div></div>`;
     dmMessagesScroll?.appendChild(progressEl);
     scrollDmToBottom();
 
@@ -6729,7 +10099,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Close Direct Chat Modal
-  btnCloseDirectChat?.addEventListener('click', () => {
+  function closeDirectChatModal() {
     if (currentConversation && socket) {
       socket.emit('dm:leave', { conversationId: currentConversation.id });
     }
@@ -6737,6 +10107,15 @@ document.addEventListener('DOMContentLoaded', () => {
     clearDmMediaPreview();
     currentConversation = null;
     currentDmFriend = null;
+  }
+
+  btnCloseDirectChat?.addEventListener('click', () => {
+    dismissWithHistory(closeDirectChatModal);
+  });
+  directChatModal?.addEventListener('click', (e) => {
+    if (e.target === directChatModal) {
+      dismissWithHistory(closeDirectChatModal);
+    }
   });
 
   // Emoji trigger for DMs
@@ -6903,6 +10282,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Check if friends before calling (authoritative check done by backend; only block client-side if friend list is loaded)
+    const isFriend = myFriendsList.some(f => f.id === currentDmFriend.id || (f.username && currentDmFriend.username && f.username.toLowerCase() === currentDmFriend.username.toLowerCase()));
+    if (state.currentUser?.id && !isFriend && myFriendsList.length > 0) {
+      showToast('Vous devez être amis pour passer un appel.', 'coral');
+      return;
+    }
+
     if (currentCallSession) {
       showToast('Vous êtes déjà en communication.', 'coral');
       return;
@@ -6930,6 +10316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Setup Call Screen UI
     setupCallScreenUI(currentCallSession);
     activeCallModal?.classList.remove('hidden');
+    pushAppModalState('activeCall');
 
     // 4. Start Outgoing Ringing Sound
     playOutgoingCallingSound();
@@ -6989,6 +10376,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupCallScreenUI(currentCallSession);
     activeCallModal?.classList.remove('hidden');
+    pushAppModalState('activeCall');
     playCallConnectedSound();
 
     if (socket && socket.connected) {
@@ -7096,8 +10484,14 @@ document.addEventListener('DOMContentLoaded', () => {
           remoteVideo.srcObject = remoteMediaStream;
           remoteVideo.playsInline = true;
           remoteVideo.setAttribute('playsinline', '');
+          const hideRemotePlaceholder = () => {
+            remoteVideoPlaceholder?.classList.add('hidden');
+            floatingRemotePlaceholder?.classList.add('hidden');
+          };
+          remoteVideo.addEventListener('loadeddata', hideRemotePlaceholder, { once: true });
+          remoteVideo.addEventListener('playing', hideRemotePlaceholder, { once: true });
           const vp = remoteVideo.play();
-          if (vp !== undefined) vp.catch(() => {});
+          if (vp !== undefined) vp.then(hideRemotePlaceholder).catch(() => {});
         }
         if (floatingRemoteVideo) {
           floatingRemoteVideo.srcObject = remoteMediaStream;
@@ -7107,6 +10501,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (fvp !== undefined) fvp.catch(() => {});
         }
         floatingRemotePlaceholder?.classList.add('hidden');
+        remoteVideoPlaceholder?.classList.add('hidden');
 
         startAudioVisualizer(remoteMediaStream, 'peer');
       };
@@ -7114,9 +10509,9 @@ document.addEventListener('DOMContentLoaded', () => {
       peerConnection.oniceconnectionstatechange = () => {
         console.log(' 1-on-1 ICE State:', peerConnection.iceConnectionState);
         if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
-          if (currentCallSession?.isCaller && typeof peerConnection.restartIce === 'function') {
-            console.warn('ICE failed — restarting ICE with TURN relays...');
-            peerConnection.restartIce();
+          // Let both call participants attempt ICE restart; avoid double-ice-restart offer loops
+          if (typeof peerConnection.restartIce === 'function' && peerConnection.signalingState === 'stable' && !peerConnection._iceRestartInFlight) {
+            peerConnection._iceRestartInFlight = true;
             peerConnection.createOffer({ iceRestart: true })
               .then(offer => {
                 const enhanced = enhanceSdpForDiscordQuality(offer.sdp);
@@ -7131,7 +10526,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   });
                 }
               })
-              .catch(e => console.warn('ICE restart error:', e));
+              .catch(e => console.warn('ICE restart error:', e))
+              .finally(() => { peerConnection._iceRestartInFlight = false; });
           }
         }
       };
@@ -7157,9 +10553,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (signal.type === 'offer') {
-        if (peerConnection.signalingState === 'have-remote-offer') {
+        // Allow ICE restart offers even when in have-remote-offer state
+        if (peerConnection.signalingState === 'have-remote-offer' && !signal.isIceRestart) {
           console.warn('Already in have-remote-offer, ignoring duplicate offer');
           return;
+        }
+
+        // If in have-remote-offer and this IS an ICE restart, roll back first
+        if (peerConnection.signalingState === 'have-remote-offer') {
+          await peerConnection.setLocalDescription({ type: 'rollback' });
         }
 
         await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
@@ -7486,6 +10888,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isVideo) {
       callAudioStage?.classList.add('hidden');
       callVideoStage?.classList.remove('hidden');
+      if (remotePlaceholderAvatar) remotePlaceholderAvatar.src = session.peer.avatar;
+      remoteVideoPlaceholder?.classList.remove('hidden');
       if (localVideo && localMediaStream) {
         localVideo.srcObject = localMediaStream;
         localVideo.play().catch(() => { });
@@ -7762,6 +11166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function restoreCallFullScreen() {
     miniCallWidget?.classList.add('hidden');
     activeCallModal?.classList.remove('hidden');
+    pushAppModalState('activeCall');
 
     if (currentCallSession?.type === 'video') {
       if (remoteVideo) {
@@ -7874,7 +11279,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Floating Window Controls Listeners
-  btnMinimizeCall?.addEventListener('click', minimizeCallToFloating);
+  btnMinimizeCall?.addEventListener('click', () => {
+    dismissWithHistory(minimizeCallToFloating);
+  });
   btnRestoreCall?.addEventListener('click', restoreCallFullScreen);
   btnMiniExpand?.addEventListener('click', restoreCallFullScreen);
 
@@ -7896,7 +11303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Backdrop overlay click & Escape key minimize
   activeCallModal?.addEventListener('click', (e) => {
     if (e.target === activeCallModal) {
-      minimizeCallToFloating();
+      dismissWithHistory(minimizeCallToFloating);
     }
   });
 
@@ -7938,6 +11345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setMobileNavActive(mobNavFriends);
     hubMainContent?.classList.add('mobile-hidden');
     hubSidebar?.classList.add('mobile-active');
+    pushAppModalState('mobileSidebar');
     renderFriends();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -7955,33 +11363,274 @@ document.addEventListener('DOMContentLoaded', () => {
     profileDropdown?.classList.toggle('hidden');
   });
 
-  // Mobile Live Salon Tabs: Stage vs Chat
+  // Mobile Live Salon Tabs: Stage vs Duo vs Chat
   const tabMobileStage = document.getElementById('tabMobileStage');
+  const tabMobileSplit = document.getElementById('tabMobileSplit');
   const tabMobileChat = document.getElementById('tabMobileChat');
   const mobileChatUnreadDot = document.getElementById('mobileChatUnreadDot');
 
   tabMobileStage?.addEventListener('click', () => {
     tabMobileStage.classList.add('active');
+    tabMobileSplit?.classList.remove('active');
     tabMobileChat?.classList.remove('active');
     const salonBody = document.querySelector('.salon-modal-body');
     if (salonBody) {
       salonBody.classList.add('show-stage');
-      salonBody.classList.remove('show-chat');
+      salonBody.classList.remove('show-chat', 'show-split');
+    }
+  });
+
+  tabMobileSplit?.addEventListener('click', () => {
+    tabMobileSplit?.classList.add('active');
+    tabMobileStage?.classList.remove('active');
+    tabMobileChat?.classList.remove('active');
+    mobileChatUnreadDot?.classList.add('hidden');
+    const salonBody = document.querySelector('.salon-modal-body');
+    if (salonBody) {
+      salonBody.classList.add('show-split');
+      salonBody.classList.remove('show-stage', 'show-chat');
+    }
+    if (chatMessagesScroll) {
+      chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
     }
   });
 
   tabMobileChat?.addEventListener('click', () => {
     tabMobileChat.classList.add('active');
     tabMobileStage?.classList.remove('active');
+    tabMobileSplit?.classList.remove('active');
     mobileChatUnreadDot?.classList.add('hidden');
     const salonBody = document.querySelector('.salon-modal-body');
     if (salonBody) {
       salonBody.classList.add('show-chat');
-      salonBody.classList.remove('show-stage');
+      salonBody.classList.remove('show-stage', 'show-split');
     }
     if (chatMessagesScroll) {
       chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
     }
+  });
+
+  // In-Call Messaging Triggers (Permet d'envoyer des messages tout en restant en appel vidéo)
+  const btnCallTopChat = document.getElementById('btnCallTopChat');
+  const btnCallOpenChat = document.getElementById('btnCallOpenChat');
+  const btnMiniOpenChat = document.getElementById('btnMiniOpenChat');
+
+  function openChatWhileInCall() {
+    if (!currentCallSession) {
+      showToast('Aucun appel en cours.', 'coral');
+      return;
+    }
+
+    // 1. Minimize call to floating PiP window
+    minimizeCallToFloating();
+
+    // 2. Resolve peer friend object
+    const peer = currentCallSession.peer;
+    let targetFriend = myFriendsList.find(f => f.id === peer.id);
+    if (!targetFriend) {
+      targetFriend = {
+        id: peer.id,
+        name: peer.name || 'Ami',
+        username: peer.name || 'ami',
+        avatar: peer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80',
+        country: peer.country || 'MA',
+        _isOnline: true
+      };
+    }
+
+    // 3. Open direct chat conversation
+    openDirectChat(targetFriend);
+    showToast('Discussion privée active • Votre appel reste connecté en fenêtre volante ✨', 'teal');
+  }
+
+  btnCallTopChat?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatWhileInCall();
+  });
+
+  btnCallOpenChat?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatWhileInCall();
+  });
+
+  btnMiniOpenChat?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatWhileInCall();
+  });
+
+  // =========================================================================
+  // 14c. MOBILE HISTORY & HARDWARE / BROWSER BACK BUTTON NAVIGATION
+  // =========================================================================
+  let appModalHistoryCount = 0;
+  let isProgrammaticBack = false;
+
+  // Initial State: mark root entry so back navigation knows base state
+  try {
+    if (!window.history.state || !window.history.state.wafatalkModal) {
+      window.history.replaceState({ wafatalkModal: 'home', count: 0 }, '');
+    }
+  } catch (err) { }
+
+  function pushAppModalState(modalName) {
+    try {
+      appModalHistoryCount++;
+      window.history.pushState({ wafatalkModal: modalName, count: appModalHistoryCount }, '');
+    } catch (err) {
+      console.warn('History pushState error:', err);
+    }
+  }
+
+  function dismissWithHistory(closeAction) {
+    if (typeof closeAction === 'function') {
+      closeAction();
+    }
+    if (appModalHistoryCount > 0) {
+      isProgrammaticBack = true;
+      try {
+        window.history.back();
+      } catch (err) {
+        isProgrammaticBack = false;
+        appModalHistoryCount = Math.max(0, appModalHistoryCount - 1);
+      }
+    }
+  }
+
+  function closeTopActiveView() {
+    // 1. Lightbox
+    const dmOverlay = document.querySelector('.dm-lightbox-overlay');
+    if (dmOverlay) {
+      dmOverlay.remove();
+      return true;
+    }
+
+    // 2. Incoming call modal
+    const incomingModal = document.getElementById('incomingCallModal');
+    if (incomingModal && !incomingModal.classList.contains('hidden')) {
+      document.getElementById('btnRejectCall')?.click();
+      return true;
+    }
+
+    // 3. Active Call Fullscreen Modal -> Minimize to floating PiP so call is NOT disconnected!
+    const activeCall = document.getElementById('activeCallModal');
+    if (activeCall && !activeCall.classList.contains('hidden')) {
+      minimizeCallToFloating();
+      return true;
+    }
+
+    // 4. User Profile modal
+    const profileModal = document.getElementById('userProfileModal');
+    if (profileModal && !profileModal.classList.contains('hidden')) {
+      closeUserProfileModal();
+      return true;
+    }
+
+    // 5. Gift shop modal
+    const giftModal = document.getElementById('giftShopModal');
+    if (giftModal && !giftModal.classList.contains('hidden')) {
+      closeGiftShop();
+      return true;
+    }
+
+    // 6. Profile status / bio modal
+    const statusModal = document.getElementById('profileStatusModal');
+    if (statusModal && !statusModal.classList.contains('hidden')) {
+      closeProfileStatusModal();
+      return true;
+    }
+
+    // 7. Create salon modal
+    const createModal = document.getElementById('createSalonModal');
+    if (createModal && !createModal.classList.contains('hidden')) {
+      closeCreateModal();
+      return true;
+    }
+
+    // 8. Settings modal
+    const setModal = document.getElementById('settingsModal');
+    if (setModal && !setModal.classList.contains('hidden')) {
+      closeSettingsModal();
+      return true;
+    }
+
+    // 9. Secondary Modals
+    const bansModal = document.getElementById('salonBansModal');
+    if (bansModal && !bansModal.classList.contains('hidden')) {
+      bansModal.classList.add('hidden');
+      return true;
+    }
+    const shareModal = document.getElementById('salonShareModal');
+    if (shareModal && !shareModal.classList.contains('hidden')) {
+      shareModal.classList.add('hidden');
+      return true;
+    }
+    const privModal = document.getElementById('privateSalonAccessModal');
+    if (privModal && !privModal.classList.contains('hidden')) {
+      privModal.classList.add('hidden');
+      return true;
+    }
+    const terms = document.getElementById('termsModal');
+    if (terms && !terms.classList.contains('hidden')) {
+      terms.classList.add('hidden');
+      return true;
+    }
+    const otp = document.getElementById('emailVerificationModal');
+    if (otp && !otp.classList.contains('hidden')) {
+      otp.classList.add('hidden');
+      return true;
+    }
+    const forgot = document.getElementById('forgotPasswordModal');
+    if (forgot && !forgot.classList.contains('hidden')) {
+      forgot.classList.add('hidden');
+      return true;
+    }
+    const social = document.getElementById('socialAuthModal');
+    if (social && !social.classList.contains('hidden')) {
+      social.classList.add('hidden');
+      return true;
+    }
+
+    // 10. Direct Chat (DM) modal
+    const dmModal = document.getElementById('directChatModal');
+    if (dmModal && !dmModal.classList.contains('hidden')) {
+      closeDirectChatModal();
+      return true;
+    }
+
+    // 11. Live Salon Fullscreen Modal -> Minimize to floating window so audio continues!
+    const salonModal = document.getElementById('liveSalonModal');
+    if (salonModal && !salonModal.classList.contains('hidden')) {
+      minimizeSalonToFloating();
+      return true;
+    }
+
+    // 12. Profile Dropdown
+    const profDrop = document.getElementById('profileDropdown');
+    if (profDrop && !profDrop.classList.contains('hidden')) {
+      profDrop.classList.add('hidden');
+      return true;
+    }
+
+    // 13. Mobile Sidebar (Amis tab active) -> Return to Salons hub
+    const sidebar = document.querySelector('.hub-sidebar');
+    if (sidebar && sidebar.classList.contains('mobile-active')) {
+      mobNavSalons?.click();
+      return true;
+    }
+
+    return false;
+  }
+
+  window.addEventListener('popstate', (e) => {
+    if (appModalHistoryCount > 0) {
+      appModalHistoryCount--;
+    }
+
+    if (isProgrammaticBack) {
+      isProgrammaticBack = false;
+      return;
+    }
+
+    closeTopActiveView();
   });
 
   // =========================================================================

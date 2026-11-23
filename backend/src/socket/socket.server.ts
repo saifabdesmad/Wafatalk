@@ -969,7 +969,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           io.to(`user:${payload.receiverId}`).emit('gift:received', giftPayload);
 
           // Companion auto-reply for demo peers
-          if (['user-alexandre', 'user-sarah', 'user-youssef', 'user-lina', 'user-karim'].includes(payload.receiverId)) {
+          if (['user-sarah', 'user-youssef', 'user-lina', 'user-karim'].includes(payload.receiverId)) {
             setTimeout(() => {
               const thankReplies = [
                 `Merci beaucoup pour ce cadeau ! 💖 Ça me fait tellement plaisir.`,
@@ -1068,7 +1068,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
         const isOnline = (targetRoom && targetRoom.size > 0) || onlineUserIds.has(targetUserId);
 
         if (!isOnline) {
-          const demoPeerIds = ['user-alexandre', 'user-sarah', 'user-youssef', 'user-lina', 'user-karim'];
+          const demoPeerIds = ['user-sarah', 'user-youssef', 'user-lina', 'user-karim'];
           const isDemoPeer = demoPeerIds.includes(targetUserId);
           if (!isDemoPeer) {
             const dbTarget = await prisma.user.findUnique({

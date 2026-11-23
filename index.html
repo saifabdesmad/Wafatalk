@@ -49,7 +49,7 @@
   <!-- ============================================================ -->
   <!-- SCREEN 1 : AUTHENTICATION / LOGIN PAGE                       -->
   <!-- ============================================================ -->
-  <main id="authScreen" class="screen auth-screen" style="display: none; opacity: 0;">
+  <main id="authScreen" class="screen auth-screen active">
     <div class="auth-wrapper">
       
             <!-- Left Side: Brand Showcase & Realistic Application Preview -->
@@ -456,7 +456,7 @@
   <!-- ============================================================ -->
   <!-- SCREEN 2 : LANDING PAGE & SALONS HUB (POST-LOGIN)             -->
   <!-- ============================================================ -->
-  <div id="hubScreen" class="screen hub-screen active" style="opacity: 1;">
+  <div id="hubScreen" class="screen hub-screen">
     
     <!-- Top Navigation Header -->
     <header class="hub-navbar glass-nav">
@@ -544,7 +544,7 @@
               </div>
               <div class="user-info-text">
                 <div class="user-name-row">
-                  <span class="user-name" id="navUserName">Alexandre</span>
+                  <span class="user-name" id="navUserName">Mon Compte</span>
                   <span id="navUserCountryFlag" class="user-country-flag" title="Pays"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
                 </div>
                 <span class="user-tag">Membre</span>
@@ -554,10 +554,10 @@
             <div class="dropdown-menu profile-dropdown hidden" id="profileDropdown">
               <div class="profile-dropdown-header">
                 <div class="profile-name-row">
-                  <p class="profile-full-name" id="menuFullName">Alexandre Moreau</p>
+                  <p class="profile-full-name" id="menuFullName">Mon Profil</p>
                   <span id="menuCountryFlag" class="user-country-flag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
                 </div>
-                <p class="profile-email-text" id="menuEmail">alexandre@wafatalk.com</p>
+                <p class="profile-email-text" id="menuEmail"></p>
                 <div class="profile-country-pill" id="menuCountryWrap">
                   <span class="country-pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
                   <span id="menuCountryName">France</span>
@@ -599,7 +599,7 @@
               <span>Communauté WafaTalk Active</span>
             </div>
             <h2 class="hero-title">
-              Heureux de vous revoir, <span class="highlight-coral" id="heroUserGreeting">Alexandre</span> !
+              Heureux de vous revoir sur <span class="highlight-coral" id="heroUserGreeting">WafaTalk</span> !
             </h2>
             <p class="hero-text">
               12 de vos amis sont actuellement en vocal. Rejoignez un salon ou créez votre propre espace de discussion.
@@ -1343,7 +1343,7 @@
         </div>
         <div style="flex: 1;">
           <h2 class="gift-modal-title" id="adminConfirmTitle">Gestion du participant</h2>
-          <p class="gift-modal-desc" id="adminConfirmTargetText">Participant : Alexandre</p>
+          <p class="gift-modal-desc" id="adminConfirmTargetText">Participant : Sélectionné</p>
         </div>
         <button type="button" class="icon-btn modal-close-btn" id="btnCloseAdminConfirmModal" aria-label="Fermer">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1475,10 +1475,10 @@
       <div class="social-modal-body">
         <!-- Quick Suggested Account -->
         <div class="social-account-card" id="btnChooseDefaultGoogle">
-          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="social-account-avatar" id="socialAccountAvatar">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="social-account-avatar" id="socialAccountAvatar">
           <div class="social-account-info">
-            <span class="social-account-name" id="socialAccountName">Alexandre Moreau</span>
-            <span class="social-account-email" id="socialAccountEmail">alexandre.moreau@gmail.com</span>
+            <span class="social-account-name" id="socialAccountName">Compte Réseau</span>
+            <span class="social-account-email" id="socialAccountEmail">compte@reseau.com</span>
           </div>
           <span class="social-account-badge">1-Clic</span>
         </div>
@@ -2164,7 +2164,7 @@
         <div class="form-section-group">
           <label class="section-micro-label">Avatars prédéfinis express</label>
           <div class="avatar-presets-grid" id="avatarPresetsGrid">
-            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" title="Alexandre">
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" title="Avatar 1">
               <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80" alt="Preset 1">
             </button>
             <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" title="Sarah">
@@ -2261,7 +2261,7 @@
               <label for="profileDisplayNameInput">Nom complet affiché</label>
               <div class="input-field-wrap">
                 <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
-                <input type="text" id="profileDisplayNameInput" placeholder="Ex: Alexandre Moreau" required maxlength="50">
+                <input type="text" id="profileDisplayNameInput" placeholder="Ex: Sarah Martin" required maxlength="50">
               </div>
             </div>
 
@@ -2539,7 +2539,7 @@
               <div class="acc-summary-box">
                 <span class="acc-box-label">Email de connexion</span>
                 <div class="acc-email-row">
-                  <span class="acc-box-val" id="settingsUserEmail">alexandre@wafatalk.com</span>
+                  <span class="acc-box-val" id="settingsUserEmail">Non renseigné</span>
                   <span class="badge-verified-inline">Vérifié</span>
                 </div>
               </div>
@@ -2869,46 +2869,7 @@
   <!-- Socket.IO Client Library -->
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
-  <!-- Demo Session Bootstrap & Mock Interceptor for Instant Landing Preview -->
-  <script>
-    (function() {
-      if (!localStorage.getItem('wafatalk_token')) {
-        localStorage.setItem('wafatalk_token', 'demo_token_alexandre_wafatalk');
-        localStorage.setItem('wafatalk_user', JSON.stringify({
-          id: 'user_alexandre_01',
-          name: 'Alexandre Moreau',
-          displayName: 'Alexandre Moreau',
-          email: 'alexandre@wafatalk.fr',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-          points: 1450,
-          wafaPoints: 1450,
-          role: 'Membre Fondateur',
-          country: 'FR',
-          countryName: 'France'
-        }));
-      }
-
-      const _origFetch = window.fetch;
-      window.fetch = function(...args) {
-        const url = args[0] ? args[0].toString() : '';
-        if (url.includes('/auth/me')) {
-          const u = localStorage.getItem('wafatalk_user');
-          if (u) {
-            return Promise.resolve(new Response(JSON.stringify({
-              success: true,
-              user: JSON.parse(u)
-            }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            }));
-          }
-        }
-        return _origFetch.apply(this, args);
-      };
-    })();
-  </script>
-
   <!-- Main JavaScript File -->
-  <script src="app.js?v=20261122b"></script>
+  <script src="app.js?v=20261123"></script>
 </body>
 </html>

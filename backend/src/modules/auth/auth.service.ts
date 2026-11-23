@@ -257,13 +257,6 @@ export class AuthService {
 
     let valid = await bcrypt.compare(input.password, user.passwordHash);
 
-    // Support default pre-filled demo password wafatalk2026 or demo123456 for seeded users
-    if (!valid && (input.password === 'wafatalk2026' || input.password === 'demo123456')) {
-      if (user.username === 'alexandre' || user.email === 'alexandre@wafatalk.com') {
-        valid = true;
-      }
-    }
-
     if (!valid) {
       throw new Error('Identifiants incorrects.');
     }
@@ -289,41 +282,7 @@ export class AuthService {
   }
 
   static async getDemoUser() {
-    let demo = await prisma.user.findUnique({
-      where: { username: 'alexandre' },
-    });
-
-    if (!demo) {
-      const passwordHash = await bcrypt.hash('wafatalk2026', 10);
-      demo = await prisma.user.create({
-        data: {
-          id: 'user-alexandre',
-          username: 'alexandre',
-          email: 'alexandre@wafatalk.com',
-          displayName: 'Alexandre',
-          passwordHash,
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-          bio: 'Créateur & hôte de salons sur WafaTalk ✨',
-          wafaPoints: 450,
-          status: 'ONLINE',
-          role: 'ADMIN',
-        },
-      });
-    }
-
-    return {
-      id: demo.id,
-      username: demo.username,
-      email: demo.email,
-      displayName: demo.displayName,
-      avatarUrl: demo.avatarUrl,
-      bio: demo.bio,
-      birthDate: demo.birthDate,
-      country: demo.country,
-      wafaPoints: demo.wafaPoints,
-      role: demo.role,
-      status: 'ONLINE',
-    };
+    throw new Error('Le mode démo automatique a été désactivé.');
   }
 
   static async socialLogin(provider: string, email: string, displayName: string, avatarUrl?: string) {

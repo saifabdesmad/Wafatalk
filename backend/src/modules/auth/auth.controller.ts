@@ -147,32 +147,12 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Demo 1-Click Login
+  // Demo 1-Click Login (Disabled)
   fastify.post('/demo', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const user = await AuthService.getDemoUser();
-      const token = fastify.jwt.sign({ id: user.id, username: user.username, role: user.role });
-
-      reply.setCookie('token', token, {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-
-      return reply.send({
-        success: true,
-        message: 'Connexion Démo réussie !',
-        token,
-        user,
-      });
-    } catch (error: any) {
-      return reply.code(500).send({
-        success: false,
-        message: 'Erreur lors de la connexion démo',
-      });
-    }
+    return reply.code(403).send({
+      success: false,
+      message: 'Le mode démo a été désactivé définitivement.',
+    });
   });
 
   // Social Login (Google, Apple, Discord)

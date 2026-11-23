@@ -1281,16 +1281,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = userData.email || '';
     const avatar = userData.avatarUrl || userData.avatar || customAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
 
-    if (playFx) {
-      launchParticles(window.innerWidth / 2, window.innerHeight / 2, 'confetti');
-      playTone(520, 'sine', 0.2);
-      showToast(`Bienvenue sur WafaTalk, ${displayName} !`, 'success');
-    }
-
-    // Smooth Screen Transition
-    authScreen.style.opacity = '0';
-    setTimeout(() => {
+    const finalizeUi = () => {
       authScreen.classList.remove('active');
+      authScreen.style.opacity = '0';
       hubScreen.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       hubScreen.style.opacity = '1';
@@ -1336,18 +1329,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderSalons();
       renderFriends();
-    }, 350);
+    };
+
+    if (playFx) {
+      launchParticles(window.innerWidth / 2, window.innerHeight / 2, 'confetti');
+      playTone(520, 'sine', 0.2);
+      showToast(`Bienvenue sur WafaTalk, ${displayName} !`, 'success');
+
+      authScreen.style.opacity = '0';
+      setTimeout(finalizeUi, 250);
+    } else {
+      finalizeUi();
+    }
   }
 
   // Check Existing Session on page load
   async function checkExistingSession() {
-    const token = getAuthToken();
+    let token = getAuthToken();
 
     // Check cached session first for instant load or offline fallback
     const cachedUserJson = localStorage.getItem('wafatalk_user');
     let cachedUser = null;
     if (cachedUserJson) {
       try { cachedUser = JSON.parse(cachedUserJson); } catch (e) { }
+    }
+
+    // Purge any residual demo or old test accounts
+    if (token === 'demo_token_alexandre_wafatalk') {
+      localStorage.removeItem('wafatalk_token');
+      token = null;
+    }
+    if (cachedUser && (
+      cachedUser.username === 'alexandre' ||
+      cachedUser.id === 'user-alexandre' ||
+      cachedUser.id === 'user_alexandre_01' ||
+      (typeof cachedUser.email === 'string' && cachedUser.email.toLowerCase().includes('alexandre')) ||
+      (typeof cachedUser.name === 'string' && cachedUser.name.toLowerCase().includes('alexandre')) ||
+      (typeof cachedUser.displayName === 'string' && cachedUser.displayName.toLowerCase().includes('alexandre'))
+    )) {
+      localStorage.removeItem('wafatalk_token');
+      localStorage.removeItem('wafatalk_user');
+      localStorage.removeItem('wafatalk_last_saved_avatar');
+      cachedUser = null;
+      token = null;
+    }
+
+    if (!token) {
+      // User is not logged in: show Auth screen and hide Hub
+      clearAuthSession();
+      if (hubScreen) {
+        hubScreen.classList.remove('active');
+        hubScreen.style.opacity = '0';
+      }
+      if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.opacity = '1';
+      }
+      return;
     }
 
     if (cachedUser) {
@@ -1358,12 +1396,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    if (!token && cachedUser) {
-      authenticateUser(cachedUser, false);
-      return;
-    }
-    if (!token) return;
-
     try {
       const res = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -1371,6 +1403,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user) {
+          if (data.user.username === 'alexandre' || data.user.id === 'user-alexandre') {
+            clearAuthSession();
+            if (hubScreen) { hubScreen.classList.remove('active'); hubScreen.style.opacity = '0'; }
+            if (authScreen) { authScreen.classList.add('active'); authScreen.style.opacity = '1'; }
+            return;
+          }
           const customAvatar = getPersistentUserAvatar(data.user);
           if (customAvatar && (!data.user.avatarUrl || data.user.avatarUrl.includes('dicebear') || data.user.avatarUrl.includes('photo-1535713875002'))) {
             data.user.avatarUrl = customAvatar;
@@ -1383,6 +1421,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (res.status === 401) {
         clearAuthSession();
+        if (hubScreen) {
+          hubScreen.classList.remove('active');
+          hubScreen.style.opacity = '0';
+        }
+        if (authScreen) {
+          authScreen.classList.add('active');
+          authScreen.style.opacity = '1';
+        }
         return;
       }
       if (cachedUser) {
@@ -1390,9 +1436,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
     } catch (err) {
-      // Offline / Vercel fallback: restore cached user session if present
+      // Offline fallback: restore cached user session if present
       if (cachedUser) {
         authenticateUser(cachedUser, false);
+      } else {
+        if (hubScreen) {
+          hubScreen.classList.remove('active');
+          hubScreen.style.opacity = '0';
+        }
+        if (authScreen) {
+          authScreen.classList.add('active');
+          authScreen.style.opacity = '1';
+        }
       }
     }
   }
@@ -1945,8 +2000,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Connexion avec Google';
       desc.textContent = 'Accédez immédiatement à votre compte ou inscrivez-vous avec votre adresse Gmail.';
       icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#FBBC05" d="M5.3 14.7c-.2-.7-.4-1.5-.4-2.7 0-1.1.2-2 .4-2.7L1.6 6.4C.6 8.3 0 10.1 0 12s.6 3.7 1.6 5.6l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.8-2.5 1.2-4.3 1.2-3.1 0-5.8-2.3-6.7-5.3L1.6 16C3.5 19.8 7.4 23 12 23z"/></svg>`;
-      nameEl.textContent = 'Alexandre Moreau';
-      emailEl.textContent = 'alexandre.moreau@gmail.com';
+      nameEl.textContent = 'Compte Google';
+      emailEl.textContent = 'compte.google@gmail.com';
       emailLabel.textContent = 'Votre adresse Gmail';
       emailInput.placeholder = 'votre.adresse@gmail.com';
       dividerText.textContent = 'ou entrez une autre adresse Gmail';
@@ -1954,8 +2009,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Connexion avec Apple';
       desc.textContent = 'Utilisez votre identifiant Apple ID pour vous connecter en toute confidentialité.';
       icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.92-2.88-.9.04-1.99.6-2.63 1.35-.58.65-1.09 1.73-0.96 2.76 1 .08 2.05-.48 2.67-1.23z"/></svg>`;
-      nameEl.textContent = 'Alexandre Moreau';
-      emailEl.textContent = 'alexandre.moreau@icloud.com';
+      nameEl.textContent = 'Compte Apple';
+      emailEl.textContent = 'compte.apple@icloud.com';
       emailLabel.textContent = 'Votre identifiant Apple';
       emailInput.placeholder = 'votre.nom@icloud.com';
       dividerText.textContent = 'ou entrez une autre adresse Apple ID';
@@ -1963,8 +2018,8 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Connexion avec Discord';
       desc.textContent = 'Rejoignez WafaTalk instantanément avec votre compte Discord.';
       icon.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>`;
-      nameEl.textContent = 'Alexandre (Discord)';
-      emailEl.textContent = 'alexandre#2026@discord.gg';
+      nameEl.textContent = 'Membre Discord';
+      emailEl.textContent = 'membre#2026@discord.gg';
       emailLabel.textContent = 'Votre email Discord';
       emailInput.placeholder = 'pseudo@discord.gg';
       dividerText.textContent = 'ou entrez une autre adresse Discord';
@@ -2060,8 +2115,8 @@ document.addEventListener('DOMContentLoaded', () => {
   btnChooseDefaultGoogle?.addEventListener('click', async () => {
     btnChooseDefaultGoogle.style.opacity = '0.5';
     btnChooseDefaultGoogle.style.pointerEvents = 'none';
-    const email = document.getElementById('socialAccountEmail')?.textContent || 'alexandre.moreau@gmail.com';
-    const name = document.getElementById('socialAccountName')?.textContent || 'Alexandre Moreau';
+    const email = document.getElementById('socialAccountEmail')?.textContent || 'compte.google@gmail.com';
+    const name = document.getElementById('socialAccountName')?.textContent || 'Membre WafaTalk';
     try {
       await executeSocialAuth(activeSocialProvider, email, name);
     } finally {
@@ -2088,13 +2143,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearAuthSession();
 
-    hubScreen.style.opacity = '0';
+    if (hubScreen) hubScreen.style.opacity = '0';
     setTimeout(() => {
-      hubScreen.classList.remove('active');
-      authScreen.classList.add('active');
-      authScreen.style.opacity = '1';
+      if (hubScreen) hubScreen.classList.remove('active');
+      if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.opacity = '1';
+      }
       showToast('Déconnexion effectuée. À bientôt sur WafaTalk !', 'coral');
-    }, 300);
+    }, 250);
   });
 
   // Load Salons from Backend API
@@ -2775,9 +2832,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selfUser = state.currentUser || {
       id: 'self-' + Date.now(),
-      username: 'vous',
-      displayName: 'Alexandre Moreau',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+      username: 'invite',
+      displayName: 'Invité',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
       role: selfRole,
       badgeType: selfBadge,
       country: 'FR',
@@ -6645,8 +6702,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Populate Account Info
     const user = state.currentUser || {};
-    if (settingsUserEmail) settingsUserEmail.textContent = user.email || 'alexandre@wafatalk.com';
-    if (settingsUserId) settingsUserId.textContent = user.id || 'usr_wafatalk_demo';
+    if (settingsUserEmail) settingsUserEmail.textContent = user.email || 'Non renseigné';
+    if (settingsUserId) settingsUserId.textContent = user.id || 'N/A';
 
     // Populate Audio Preferences from LocalStorage
     loadAudioSettings();

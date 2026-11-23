@@ -8,17 +8,17 @@ async function main() {
 
   // 1. Create Main Users
   const userAlex = await prisma.user.upsert({
-    where: { username: 'alexandre' },
+    where: { username: 'wafa_admin' },
     update: {},
     create: {
-      id: 'user-alexandre',
-      username: 'alexandre',
-      email: 'alexandre@wafatalk.com',
-      displayName: 'Alexandre',
+      id: 'user-wafa-admin',
+      username: 'wafa_admin',
+      email: 'admin@wafatalk.com',
+      displayName: 'Wafa Admin',
       passwordHash,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-      bio: 'Créateur & hôte de salons sur WafaTalk ✨',
-      wafaPoints: 450,
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      bio: 'Espace officiel WafaTalk ✨',
+      wafaPoints: 1000,
       status: 'ONLINE',
       role: 'ADMIN',
     },

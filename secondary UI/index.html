@@ -2,28 +2,54 @@
 <html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>WafaTalk : Salons Vocaux Spontanés, Musique et Rencontres Audio</title>
-  
-  <meta name="description" content="Rejoins des conversations audio spontanées, sans filtre ni pression d’image. Parle entre amis ou écoute les salons en direct.">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ea2844' d='M16 2C16 2 20 8 20 13C20 15.2 19.1 17.2 17.6 18.6C17.2 16.5 15.6 14.8 13.5 14.2C13.8 12.5 14.6 11 16 10C12.5 11.5 10 15 10 19C10 24.5 14.5 29 20 29C25.5 29 30 24.5 30 19C30 11 22 7 16 2Z'/%3E%3C/svg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0d837d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>WafaTalk — Salons de Chat & Hangout entre Amis</title>
+  <meta name="description" content="WafaTalk est l'application moderne de discussion entre amis organisée en salons vocaux et textuels. Connectez-vous et partagez des moments uniques.">
+  <link rel="icon" type="image/png" href="assets/wafatalk-icon.png">
 
-  <!-- Google Fonts: Outfit (Display), Instrument Serif (Editorial Quote), Plus Jakarta Sans (UI) -->
+  <!-- Google Fonts: Plus Jakarta Sans (UI) & Outfit (Titres & Brand) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
-  <!-- Stylesheets -->
-  <link rel="stylesheet" href="tokens.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261122c">
 </head>
-<body class="tinder-theme-body">
+<body>
 
-  <!-- Confetti / Effects Particle Canvas -->
+  <!-- Background Surface & Pattern Overlay -->
+  <div class="ambient-background" aria-hidden="true">
+    <div class="geometric-pattern-overlay"></div>
+  </div>
+
+  <!-- Particle Canvas for Gifts & Celebrations -->
   <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true"></canvas>
 
-  <!-- SCREEN 1 : AUTHENTICATION / LOGIN (Preserved for compatibility) -->
-  <main id="authScreen" class="screen auth-screen" style="display: none; opacity: 0;">
+  <!-- Motion Design Celebration Stage for Gifts -->
+  <div id="giftCelebrationStage" class="gift-celebration-stage pointer-events-none hidden" aria-live="polite">
+    <div class="gift-celebration-backdrop" id="giftCelebrationBackdrop"></div>
+    <div class="gift-celebration-wrapper" id="giftCelebrationWrapper">
+      <div class="gift-hero-halo" id="giftHeroHalo"></div>
+      <div class="gift-hero-graphic-box" id="giftHeroGraphicBox">
+        <div class="gift-hero-visual" id="giftHeroVisual"></div>
+      </div>
+      <div class="gift-celebration-banner" id="giftCelebrationBanner">
+        <div class="gift-celebration-badge-pill" id="giftCelebrationBadge">Attention Gourmande</div>
+        <div class="gift-celebration-sender" id="giftCelebrationSender">Célébration WafaTalk</div>
+        <h3 class="gift-celebration-name" id="giftCelebrationName">Café Douceur</h3>
+        <p class="gift-celebration-note" id="giftCelebrationNote">« Un petit café pour commencer notre discussion du bon pied ? »</p>
+        <div class="gift-celebration-points" id="giftCelebrationPoints">+30 pts d'amitié</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SCREEN 1 : AUTHENTICATION / LOGIN PAGE                       -->
+  <!-- ============================================================ -->
+  <main id="authScreen" class="screen auth-screen active">
     <div class="auth-wrapper">
       
             <!-- Left Side: Brand Showcase & Realistic Application Preview -->
@@ -430,133 +456,127 @@
   <!-- ============================================================ -->
   <!-- SCREEN 2 : LANDING PAGE & SALONS HUB (POST-LOGIN)             -->
   <!-- ============================================================ -->
-
-  <!-- SCREEN 2 : TINDER-INSPIRED EDITORIAL LANDING (OPEN BY DEFAULT) -->
-  
-  <!-- ============================================================ -->
-  <!-- SCREEN 2 : TINDER-INSPIRED EDITORIAL LANDING & SALONS HUB    -->
-  <!-- ============================================================ -->
-  <main id="hubScreen" class="screen hub-screen active" style="opacity: 1;">
-
-    <!-- Top Floating Navbar -->
-    <header class="tinder-navbar">
-      <div class="tinder-nav-container">
+  <div id="hubScreen" class="screen hub-screen">
+    
+    <!-- Top Navigation Header -->
+    <header class="hub-navbar glass-nav">
+      <div class="nav-container">
         
-        <!-- Left: Brand Logo & Flame -->
-        <a href="#" class="tinder-nav-logo" id="brandLogoHome" aria-label="WafaTalk Accueil">
-          <span class="tinder-flame-icon" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <path d="M16 2C16 2 20 8 20 13C20 15.2 19.1 17.2 17.6 18.6C17.2 16.5 15.6 14.8 13.5 14.2C13.8 12.5 14.6 11 16 10C12.5 11.5 10 15 10 19C10 24.5 14.5 29 20 29C25.5 29 30 24.5 30 19C30 11 22 7 16 2Z" fill="url(#tinderFlameNav)"/>
-              <defs>
-                <linearGradient id="tinderFlameNav" x1="10" y1="2" x2="30" y2="29" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#ff5864"/>
-                  <stop offset="1" stop-color="#ea2844"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </span>
-          <span class="tinder-brand-text">WafaTalk</span>
-          <span class="tinder-version-badge">v1.0</span>
-        </a>
+        <!-- Left: Brand Logo & Tag -->
+        <div class="nav-brand-group">
+          <a href="#" class="brand-link" id="brandLogoHome">
+            <img src="assets/wafatalk-logo.png" alt="WafaTalk Logo" class="nav-logo">
+          </a>
+          <span class="brand-version-tag">v1.0</span>
+        </div>
 
-        <!-- Center: Editorial Nav Links -->
-        <nav class="tinder-nav-links" aria-label="Navigation principale">
-          <a href="#salons-section" class="tinder-link">Explorer</a>
-          <a href="#hero-cards-section" class="tinder-link">Expérience</a>
-          <a href="#features-band" class="tinder-link">Avantages</a>
-          <a href="#safety-section" class="tinder-link">Sécurité</a>
-        </nav>
+        <!-- Center: Instant Search with Ctrl+K shortcut -->
+        <div class="nav-search-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="salonSearchInput" placeholder="Rechercher un salon, un ami, un sujet..." aria-label="Rechercher">
+          <kbd class="search-kbd">Ctrl K</kbd>
+        </div>
 
-        <!-- Right: Actions, Search, Profile -->
-        <div class="tinder-nav-actions">
+        <!-- Right: Actions, Notifications & Profile -->
+        <div class="nav-user-actions">
           
-          <!-- Search Pill -->
-          <div class="tinder-search-pill">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="salonSearchInput" placeholder="Rechercher un salon, un sujet..." autocomplete="off">
-            <kbd class="tinder-kbd-hint">Ctrl K</kbd>
-          </div>
-
-          <!-- Theme Toggle Button -->
-          <button id="hubThemeToggleBtn" class="tinder-icon-btn" title="Changer de thème" aria-label="Basculer le thème">
-            <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
+          <!-- Theme Switch in Hub -->
+          <button type="button" class="theme-toggle-btn icon-btn" id="hubThemeToggleBtn" title="Changer le thème" aria-label="Changer le thème">
+            <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
           </button>
 
-          <!-- Notifications Pill -->
-          <div class="tinder-notif-wrap">
-            <button id="btnNotifications" class="tinder-icon-btn" title="Notifications" aria-label="Notifications">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
+          <!-- Create Salon Primary Button -->
+          <button type="button" class="btn btn-primary btn-sm btn-create-salon" id="btnOpenCreateSalon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Créer un Salon</span>
+          </button>
+
+          <!-- Gift Box Launcher -->
+          <button type="button" class="icon-btn gift-launcher-btn" id="btnOpenGiftShop" title="Boîte à Cadeaux Wafa" aria-label="Cadeaux">
+            
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+          </button>
+
+          <!-- Notifications Dropdown Trigger -->
+          <div class="dropdown-wrap">
+            <button type="button" class="icon-btn" id="btnNotifications" title="Notifications" aria-label="Notifications">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span class="notif-badge">3</span>
             </button>
-            <div id="notifDropdown" class="notif-dropdown hidden">
+            <div class="dropdown-menu notif-dropdown hidden" id="notifDropdown">
               <div class="notif-header">
-                <h5>Notifications</h5>
+                <strong>Notifications</strong>
+                <span class="text-muted">3 nouvelles</span>
               </div>
               <div class="notif-list">
-                <p class="notif-empty">Aucune nouvelle notification.</p>
+                <div class="notif-item unread">
+                  <div class="notif-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></div>
+                  <div class="notif-content">
+                    <p><strong>Lina</strong> vous a envoyé un <em>Cœur d'Or</em> !</p>
+                    <span class="notif-time">Il y a 5 min</span>
+                  </div>
+                </div>
+                <div class="notif-item unread">
+                  <div class="notif-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></div>
+                  <div class="notif-content">
+                    <p>Le salon <strong>Gaming Night</strong> est en live avec 8 amis.</p>
+                    <span class="notif-time">Il y a 12 min</span>
+                  </div>
+                </div>
+                <div class="notif-item">
+                  <div class="notif-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg></div>
+                  <div class="notif-content">
+                    <p><strong>Youssef</strong> vient de se connecter.</p>
+                    <span class="notif-time">Il y a 35 min</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Create Salon CTA -->
-          <button id="btnOpenCreateSalon" class="tinder-nav-cta">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span>Créer un salon</span>
-          </button>
-
-          <!-- User Menu Button -->
-          <div class="tinder-user-menu-wrap">
-            <button id="btnUserMenu" class="tinder-user-pill user-profile-trigger" aria-expanded="false" aria-haspopup="true">
-              <img id="navUserAvatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="tinder-user-avatar">
-              <span id="navUserName" class="tinder-user-name">Alexandre</span>
-              <span id="navUserCountryFlag" class="tinder-user-flag" aria-hidden="true">🇫🇷</span>
-              <span class="user-status-dot online"></span>
-            </button>
-            
-            <div id="profileDropdown" class="profile-dropdown hidden">
-              <div class="profile-menu-header">
-                <div class="user-meta">
-                  <h4 id="menuFullName">Alexandre D.</h4>
-                  <span id="menuEmail">alexandre@wafatalk.fr</span>
+          <!-- User Profile Menu -->
+          <div class="dropdown-wrap">
+            <button type="button" class="user-profile-trigger" id="btnUserMenu" aria-label="Menu profil">
+              <div class="avatar-wrap">
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Avatar utilisateur" class="user-nav-avatar" id="navUserAvatar">
+                <span class="user-status-dot online"></span>
+              </div>
+              <div class="user-info-text">
+                <div class="user-name-row">
+                  <span class="user-name" id="navUserName">Mon Compte</span>
+                  <span id="navUserCountryFlag" class="user-country-flag" title="Pays"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
                 </div>
-                <div id="menuCountryWrap" class="country-pill-badge">
-                  <span id="menuCountryFlag">🇫🇷</span>
+                <span class="user-tag">Membre</span>
+              </div>
+              <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="dropdown-menu profile-dropdown hidden" id="profileDropdown">
+              <div class="profile-dropdown-header">
+                <div class="profile-name-row">
+                  <p class="profile-full-name" id="menuFullName">Mon Profil</p>
+                  <span id="menuCountryFlag" class="user-country-flag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
+                </div>
+                <p class="profile-email-text" id="menuEmail"></p>
+                <div class="profile-country-pill" id="menuCountryWrap">
+                  <span class="country-pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span>
                   <span id="menuCountryName">France</span>
                 </div>
               </div>
-              <div class="profile-menu-links">
-                <button id="btnViewProfile" class="dropdown-link">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  <span>Mon Profil Public</span>
-                </button>
-                <button id="btnOpenSettings" class="dropdown-link">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                  <span>Paramètres Audio &amp; Compte</span>
-                </button>
-                <div class="dropdown-divider"></div>
-                <button id="btnLogout" class="dropdown-link text-danger">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                  <span>Se déconnecter</span>
-                </button>
-              </div>
+              <div class="profile-dropdown-divider"></div>
+              <button type="button" class="dropdown-item" id="btnViewProfile">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Mon Profil & Statut</span>
+              </button>
+              <button type="button" class="dropdown-item" id="btnOpenSettings">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <span>Paramètres Audio & Compte</span>
+              </button>
+              <div class="profile-dropdown-divider"></div>
+              <button type="button" class="dropdown-item text-danger" id="btnLogout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Déconnexion</span>
+              </button>
             </div>
           </div>
 
@@ -565,597 +585,179 @@
       </div>
     </header>
 
-    <!-- ============================================================ -->
-    <!-- HERO SECTION : TINDER 3D HIGH-FASHION HEADLINE & 3 CARDS     -->
-    <!-- ============================================================ -->
-    <section id="hero-cards-section" class="tinder-hero-section">
-      <div class="tinder-container">
+    <!-- Main Content Layout with Grid and Sidebar -->
+    <div class="hub-layout">
+      
+      <!-- Center Main Content -->
+      <main class="hub-main-content">
         
-        <!-- Big Bold Title -->
-        <h1 class="tinder-main-headline">
-          Beaucoup de choses ont changé depuis ton dernier salon vocal.
-        </h1>
-        
-        <p class="tinder-hero-sub">
-          Rejoins des conversations audio spontanées, sans filtre ni pression d’image. Branche ton micro, rigole entre amis ou pose-toi simplement pour écouter.
-        </p>
-
-        <!-- 3 Glossy 3D Hero Cards -->
-        <div class="tinder-cards-grid">
-          
-          <!-- Card 1: Crimson Wine (Duo / Squads) -->
-          <article class="tinder-hero-card card-wine">
-            <div class="card-tag">✦ SQUADS &amp; DUOS</div>
-            <div class="card-visual-wrap">
-              <svg width="180" height="180" viewBox="0 0 200 200" fill="none" class="tinder-3d-graphic" aria-hidden="true">
-  <defs>
-    <radialGradient id="cherryGrad1" cx="35%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#ff7b89"/>
-      <stop offset="25%" stop-color="#ff2e4c"/>
-      <stop offset="65%" stop-color="#b80c28"/>
-      <stop offset="100%" stop-color="#540410"/>
-    </radialGradient>
-    <radialGradient id="cherryGrad2" cx="30%" cy="25%" r="75%">
-      <stop offset="0%" stop-color="#ff8f9d"/>
-      <stop offset="30%" stop-color="#ff3b56"/>
-      <stop offset="70%" stop-color="#c40e2d"/>
-      <stop offset="100%" stop-color="#5a0512"/>
-    </radialGradient>
-    <radialGradient id="leafGrad" cx="30%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#6ee7b7"/>
-      <stop offset="50%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#047857"/>
-    </radialGradient>
-    <filter id="cherryGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000" flood-opacity="0.45"/>
-    </filter>
-  </defs>
-  <!-- Stems -->
-  <path d="M100 35 C100 35, 115 75, 75 130" stroke="#047857" stroke-width="6" stroke-linecap="round" fill="none"/>
-  <path d="M100 35 C100 35, 120 70, 135 125" stroke="#059669" stroke-width="6" stroke-linecap="round" fill="none"/>
-  <!-- Leaf -->
-  <path d="M100 35 C120 15, 150 25, 155 45 C140 55, 115 50, 100 35 Z" fill="url(#leafGrad)"/>
-  <!-- Left Cherry -->
-  <circle cx="70" cy="135" r="38" fill="url(#cherryGrad1)" filter="url(#cherryGlow)"/>
-  <ellipse cx="58" cy="120" rx="12" ry="7" transform="rotate(-30 58 120)" fill="white" opacity="0.6"/>
-  <!-- Right Cherry -->
-  <circle cx="135" cy="130" r="34" fill="url(#cherryGrad2)" filter="url(#cherryGlow)"/>
-  <ellipse cx="125" cy="116" rx="10" ry="6" transform="rotate(-30 125 116)" fill="white" opacity="0.65"/>
-</svg>
+        <!-- Welcome Hero Banner -->
+        <section class="hub-hero-banner glass-card">
+          <div class="hero-left">
+            <div class="hero-tag">
+              <span class="live-dot pulse"></span>
+              <span>Communauté WafaTalk Active</span>
             </div>
-            <div class="card-content">
-              <h3>Avec des potes &gt; sans</h3>
-              <p>Fini les silences gênants et les vocaux monotones. Débarque dans les salons avec ta bande et faites monter l’ambiance ensemble.</p>
-              <button class="tinder-card-btn btn-light" onclick="document.getElementById('salons-section').scrollIntoView({behavior:'smooth'})">
-                Explorer les squads →
+            <h2 class="hero-title">
+              Heureux de vous revoir sur <span class="highlight-coral" id="heroUserGreeting">WafaTalk</span> !
+            </h2>
+            <p class="hero-text">
+              12 de vos amis sont actuellement en vocal. Rejoignez un salon ou créez votre propre espace de discussion.
+            </p>
+            <div class="hero-action-row">
+              <button type="button" class="btn btn-primary" id="btnQuickJoinTrending">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Rejoindre le salon tendance</span>
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnSendCommunityGift">
+                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>Envoyer un cadeau</span>
               </button>
             </div>
-          </article>
-
-          <!-- Card 2: Deep Cosmic Midnight (Direct Chemistry) -->
-          <article class="tinder-hero-card card-cosmic">
-            <div class="card-tag">✦ ALCHIMIE VOCALE</div>
-            <div class="card-visual-wrap">
-              <svg width="180" height="180" viewBox="0 0 200 200" fill="none" class="tinder-3d-graphic" aria-hidden="true">
-  <defs>
-    <radialGradient id="moonGrad" cx="40%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#93c5fd"/>
-      <stop offset="35%" stop-color="#3b82f6"/>
-      <stop offset="75%" stop-color="#1d4ed8"/>
-      <stop offset="100%" stop-color="#1e1b4b"/>
-    </radialGradient>
-    <filter id="moonGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#3b82f6" flood-opacity="0.5"/>
-    </filter>
-  </defs>
-  <!-- Crescent Moon -->
-  <path d="M135 30 C75 30, 30 75, 30 135 C30 155, 35 170, 45 180 C35 155, 45 105, 95 65 C120 45, 150 40, 175 45 C162 35, 148 30, 135 30 Z" 
-        fill="url(#moonGrad)" filter="url(#moonGlow)"/>
-  <!-- Highlight on Moon curve -->
-  <path d="M60 100 C50 125, 55 150, 75 165 C62 145, 60 120, 70 100 Z" fill="white" opacity="0.45"/>
-  <!-- 4-Point Sparkle 1 -->
-  <path d="M150 85 Q150 105 130 105 Q150 105 150 125 Q150 105 170 105 Q150 105 150 85 Z" fill="#93c5fd" filter="drop-shadow(0 0 8px #60a5fa)"/>
-  <!-- 4-Point Sparkle 2 -->
-  <path d="M110 145 Q110 155 100 155 Q110 155 110 165 Q110 155 120 155 Q110 155 110 145 Z" fill="#bfdbfe"/>
-</svg>
-            </div>
-            <div class="card-content">
-              <h3>Alchimie en direct</h3>
-              <p>La voix transmet ce que le texte ne pourra jamais capter. Connecte-toi avec des personnes qui matchent ton mood et tes passions en temps réel.</p>
-              <button class="tinder-card-btn btn-coral" id="btnQuickJoinHero" onclick="document.getElementById('btnQuickJoinTrending').click()">
-                Écouter en direct
-              </button>
-            </div>
-          </article>
-
-          <!-- Card 3: Ivory / Soft Rose (Chill & Good Vibes) -->
-          <article class="tinder-hero-card card-ivory">
-            <div class="card-tag">✦ BONNES VIBES</div>
-            <div class="card-visual-wrap">
-              <svg width="180" height="180" viewBox="0 0 200 200" fill="none" class="tinder-3d-graphic" aria-hidden="true">
-  <defs>
-    <radialGradient id="hpGrad" cx="35%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#fbcfe8"/>
-      <stop offset="35%" stop-color="#f472b6"/>
-      <stop offset="70%" stop-color="#db2777"/>
-      <stop offset="100%" stop-color="#831843"/>
-    </radialGradient>
-    <filter id="hpGlow" x="-25%" y="-25%" width="150%" height="150%">
-      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#db2777" flood-opacity="0.35"/>
-    </filter>
-  </defs>
-  <!-- Headband Arch -->
-  <path d="M45 110 C45 50, 155 50, 155 110" stroke="url(#hpGrad)" stroke-width="16" stroke-linecap="round" fill="none" filter="url(#hpGlow)"/>
-  <!-- Headband inner highlight -->
-  <path d="M60 100 C60 62, 140 62, 140 100" stroke="white" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.6"/>
-  <!-- Left Ear Cushion -->
-  <rect x="32" y="100" width="26" height="50" rx="13" fill="url(#hpGrad)" filter="url(#hpGlow)"/>
-  <ellipse cx="40" cy="120" rx="4" ry="14" fill="white" opacity="0.6"/>
-  <!-- Right Ear Cushion -->
-  <rect x="142" y="100" width="26" height="50" rx="13" fill="url(#hpGrad)" filter="url(#hpGlow)"/>
-  <ellipse cx="150" cy="120" rx="4" ry="14" fill="white" opacity="0.6"/>
-</svg>
-            </div>
-            <div class="card-content">
-              <h3>Bonnes vibes uniquement</h3>
-              <p>Entre dans un salon, pose-toi tranquillement en auditeur ou lève la main pour prendre la parole. C’est toi qui donnes le tempo.</p>
-              <button class="tinder-card-btn btn-dark" id="btnCreateHero" onclick="document.getElementById('btnOpenCreateSalon').click()">
-                Créer un salon vocal +
-              </button>
-            </div>
-          </article>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ============================================================ -->
-    <!-- EDITORIAL SERIF STATEMENT                                     -->
-    <!-- ============================================================ -->
-    <section class="editorial-statement-section">
-      <div class="tinder-container-narrow">
-        <blockquote class="editorial-serif">
-          “Les meilleures soirées ont toujours commencé par ‘voyons juste ce que ça donne.’”
-        </blockquote>
-        <p class="editorial-punchline">
-          WafaTalk n’est pas un énième réseau social où l’on scrolle dans le vide. C’est l’espace où la voix crée de vrais liens.
-        </p>
-      </div>
-    </section>
-
-    <!-- ============================================================ -->
-    <!-- FULL-BLEED BURGUNDY WINE BAND : 4X PLUS DE FUN                -->
-    <!-- ============================================================ -->
-    <section id="features-band" class="wine-band-section">
-      <div class="tinder-container">
-        
-        <!-- Big Bold Stats -->
-        <div class="wine-stats-row">
-          <div class="wine-stat-box">
-            <span class="wine-stat-num">4x</span>
-            <span class="wine-stat-label">Plus de fun en vocal</span>
           </div>
-          <div class="wine-stat-divider"></div>
-          <div class="wine-stat-box">
-            <span class="wine-stat-num">10x</span>
-            <span class="wine-stat-label">Plus spontané que WhatsApp</span>
-          </div>
-          <div class="wine-stat-divider"></div>
-          <div class="wine-stat-box">
-            <span class="wine-stat-num">0€</span>
-            <span class="wine-stat-label">100% gratuit &amp; sans pub</span>
-          </div>
-        </div>
 
-        <div class="wine-showcase-content">
-          <h2>Pourquoi taper des messages quand on peut simplement discuter ?</h2>
-          <p>Rejoins un salon en un clic, échange des anecdotes, lance un jam musical ou découvre des squads gaming prêts à monter en niveau.</p>
-          
-          <div class="wine-actions-row">
-            <button id="btnQuickJoinTrending" class="wine-btn-primary">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-              <span>Rejoindre le salon tendance</span>
+          <!-- Live Activity Stats Widget -->
+          <div class="hero-stats-grid">
+            <div class="stat-pill">
+              <div class="stat-icon teal-bg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </div>
+              <div class="stat-meta">
+                <strong class="stat-number">1,420</strong>
+                <span class="stat-label">Membres en ligne</span>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <div class="stat-icon coral-bg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+              </div>
+              <div class="stat-meta">
+                <strong class="stat-number">84</strong>
+                <span class="stat-label">Salons vocaux HD</span>
+              </div>
+            </div>
+            <div class="stat-pill">
+              <div class="stat-icon amber-bg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+              </div>
+              <div class="stat-meta">
+                <strong class="stat-number">3,892</strong>
+                <span class="stat-label">Cadeaux échangés</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Category Filters -->
+        <section class="salons-header-section">
+          <div class="section-title-wrap">
+            <h3 class="section-title">Explorer les Salons WafaTalk</h3>
+            <span class="badge-count" id="salonCountBadge">8 Salons disponibles</span>
+          </div>
+
+          <div class="category-pills-row" role="tablist">
+            <button type="button" class="category-pill active" data-category="all">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+              <span>Tous</span>
             </button>
-            <button id="btnSendCommunityGift" class="wine-btn-outline">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
-              <span>Envoyer un cadeau Wafa</span>
+            <button type="button" class="category-pill" data-category="vocal">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg></span>
+              <span>Salons Vocaux</span>
             </button>
-            <button id="btnOpenGiftShop" class="wine-btn-ghost">
-              <span>Boutique de Cadeaux</span>
+            <button type="button" class="category-pill" data-category="chill">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg></span>
+              <span>Chill & Café</span>
+            </button>
+            <button type="button" class="category-pill" data-category="gaming">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="15" y1="11" x2="15.01" y2="11"></line><line x1="18" y1="13" x2="18.01" y2="13"></line></svg></span>
+              <span>Gaming & Squads</span>
+            </button>
+            <button type="button" class="category-pill" data-category="music">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span>
+              <span>Musique & Jam</span>
+            </button>
+            <button type="button" class="category-pill" data-category="private">
+              <span class="pill-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+              <span>Privés</span>
             </button>
           </div>
+        </section>
+
+        <!-- Dynamic Salons Cards Grid -->
+        <div class="salons-grid" id="salonsGrid">
+          <!-- Populated dynamically via app.js -->
         </div>
 
-      </div>
-    </section>
+      </main>
 
-    <!-- ============================================================ -->
-    <!-- INTERACTIVE SALONS EXPLORER GRID & COMPANION SIDEBAR          -->
-    <!-- ============================================================ -->
-    <section id="salons-section" class="salons-explorer-section">
-      <div class="tinder-container">
+      <!-- Right Sidebar: Friends Online & Quick Chat -->
+      <aside class="hub-sidebar glass-panel">
         
-        <!-- Header with Greeting & Filter Pills -->
-        <div class="salons-explorer-head">
-          <div class="salons-title-wrap">
-            <h2>Salons Vocaux en Direct</h2>
-            <p id="heroUserGreeting" class="salons-greeting-text">
-              Heureux de vous revoir, Alexandre ! 12 de vos amis sont actuellement en vocal.
-            </p>
+        <div class="sidebar-header">
+          <div class="sidebar-title-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <h4>Amis Connectés</h4>
           </div>
-          <span id="salonCountBadge" class="salons-counter-badge">6 Salons disponibles</span>
+          <span class="online-counter" id="onlineFriendsCount">0 en ligne</span>
         </div>
 
-        <!-- Category Filter Pills -->
-        <div class="category-pills-row" role="tablist">
-          <button class="category-pill active" data-category="all" role="tab" aria-selected="true">Tout</button>
-          <button class="category-pill" data-category="vocal" role="tab" aria-selected="false">Salons Vocaux</button>
-          <button class="category-pill" data-category="chill" role="tab" aria-selected="false">Chill et Café</button>
-          <button class="category-pill" data-category="gaming" role="tab" aria-selected="false">Gaming et Squads</button>
-          <button class="category-pill" data-category="music" role="tab" aria-selected="false">Musique et Jam</button>
-          <button class="category-pill" data-category="private" role="tab" aria-selected="false">Privés</button>
+        <!-- Friends List -->
+        <div class="friends-list" id="friendsList">
+          <!-- Populated dynamically via app.js -->
         </div>
 
-        <!-- 2-Column Responsive Layout -->
-        <div class="salons-main-grid-layout">
-          
-          <!-- Left: Dynamic Salons Grid (Populated by app.js) -->
-          <div class="salons-cards-column hub-main-content">
-            <div id="salonsGrid" class="salons-cards-grid">
-              <!-- Rendered dynamically by app.js -->
+        <!-- Mini Gifting Card in Sidebar -->
+        <div class="sidebar-gift-card glass-card">
+          <div class="gift-card-inner">
+            <div class="gift-sparkle-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></div>
+            <div class="gift-card-text">
+              <strong>Boîte à Cadeaux Wafa</strong>
+              <p>Envoyez une surprise à un ami pour booster son niveau d'amitié !</p>
             </div>
           </div>
-
-          <!-- Right: Social Sidebar (Friends & Stats) -->
-          <aside class="salons-sidebar-column hub-sidebar">
-            
-            <!-- Friends Connected Card -->
-            <div class="tinder-sidebar-card friends-card">
-              <div class="sidebar-card-header">
-                <div class="sidebar-title-with-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                  <h4>Amis Connectés</h4>
-                </div>
-                <span id="onlineFriendsCount" class="friends-status-pill">0 en ligne</span>
-              </div>
-              <div id="friendsList" class="friends-list-container">
-                <!-- Rendered dynamically by app.js -->
-              </div>
-            </div>
-
-            <!-- Community Stats Card -->
-            <div class="tinder-sidebar-card stats-card">
-              <h4 class="sidebar-card-title">Communauté WafaTalk</h4>
-              <div class="stat-item-row">
-                <div class="stat-label-wrap">
-                  <span class="stat-dot teal"></span>
-                  <span>Membres actifs</span>
-                </div>
-                <strong id="statOnlineCount">1,420</strong>
-              </div>
-              <div class="stat-item-row">
-                <div class="stat-label-wrap">
-                  <span class="stat-dot coral"></span>
-                  <span>Salons vocaux HD</span>
-                </div>
-                <strong id="statSalonsCount">84</strong>
-              </div>
-              <div class="stat-item-row">
-                <div class="stat-label-wrap">
-                  <span class="stat-dot gold"></span>
-                  <span>Cadeaux échangés</span>
-                </div>
-                <strong id="statGiftsCount">3,892</strong>
-              </div>
-            </div>
-
-            <!-- Gift Box Widget -->
-            <div class="tinder-sidebar-card gift-widget-card">
-              <div class="gift-widget-icon" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="20 12 20 22 4 22 4 12"></polyline>
-                  <rect x="2" y="7" width="20" height="5"></rect>
-                  <line x1="12" y1="22" x2="12" y2="7"></line>
-                  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-                  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-                </svg>
-              </div>
-              <h4>Boîte à Cadeaux Wafa</h4>
-              <p>Envoie une surprise animée à un ami pour booster son niveau d’amitié !</p>
-              <button id="btnSidebarGiftTrigger" class="gift-widget-btn">
-                Offrir un cadeau
-              </button>
-            </div>
-
-          </aside>
-
+          <button type="button" class="btn btn-coral-outline btn-sm btn-block" id="btnSidebarGiftTrigger">
+            Offrir un cadeau
+          </button>
         </div>
 
-      </div>
-    </section>
+      </aside>
 
-    <!-- ============================================================ -->
-    <!-- 3 PILLARS : SAFETY, COMFORT & FREEDOM                        -->
-    <!-- ============================================================ -->
-    <section id="safety-section" class="tinder-pillars-section">
-      <div class="tinder-container">
-        
-        <h2 class="pillars-main-title">Une expérience vocale pensée pour le respect et le confort</h2>
-        
-        <div class="pillars-grid">
-          
-          <div class="pillar-card">
-            <div class="pillar-icon-wrap">
-              <svg width="68" height="68" viewBox="0 0 100 100" fill="none" class="pillar-3d-icon" aria-hidden="true">
-  <defs>
-    <radialGradient id="verGrad" cx="35%" cy="30%" r="75%">
-      <stop offset="0%" stop-color="#60a5fa"/>
-      <stop offset="50%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#1d4ed8"/>
-    </radialGradient>
-  </defs>
-  <path d="M50 5 L63 15 L79 13 L86 28 L100 37 L97 53 L105 67 L94 79 L92 95 L76 96 L67 107 L51 101 L36 107 L27 96 L11 95 L9 79 L-2 67 L6 53 L3 37 L17 28 L24 13 L40 15 Z" 
-        transform="scale(0.85) translate(8, 8)" fill="url(#verGrad)" filter="drop-shadow(0 8px 12px rgba(37,99,235,0.4))"/>
-  <path d="M38 50 L47 59 L65 41" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-            </div>
-            <h3>Salons 100% Modérés</h3>
-            <p>Outils de modération en temps réel (mute, kick, ban IP) et signalement instantané pour un espace toujours sain et accueillant.</p>
-          </div>
+    </div>
 
-          <div class="pillar-card">
-            <div class="pillar-icon-wrap">
-              <svg width="68" height="68" viewBox="0 0 100 100" fill="none" class="pillar-3d-icon" aria-hidden="true">
-  <defs>
-    <radialGradient id="smileGrad" cx="35%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#fed7aa"/>
-      <stop offset="40%" stop-color="#f97316"/>
-      <stop offset="100%" stop-color="#c2410c"/>
-    </radialGradient>
-  </defs>
-  <circle cx="50" cy="50" r="42" fill="url(#smileGrad)" filter="drop-shadow(0 8px 14px rgba(249,115,22,0.4))"/>
-  <ellipse cx="40" cy="38" rx="8" ry="4" fill="white" opacity="0.6"/>
-  <!-- Eyes & Smile -->
-  <circle cx="36" cy="46" r="5" fill="#431407"/>
-  <circle cx="64" cy="46" r="5" fill="#431407"/>
-  <path d="M34 60 C40 72, 60 72, 66 60" stroke="#431407" stroke-width="5" stroke-linecap="round" fill="none"/>
-</svg>
-            </div>
-            <h3>Zéro malaise, liberté totale</h3>
-            <p>Simple auditeur ou orateur principal, c’est toi qui choisis. Aucune caméra obligatoire, tu prends la parole quand tu le souhaites.</p>
-          </div>
-
-          <div class="pillar-card">
-            <div class="pillar-icon-wrap">
-              <svg width="68" height="68" viewBox="0 0 100 100" fill="none" class="pillar-3d-icon" aria-hidden="true">
-  <defs>
-    <radialGradient id="pinGrad" cx="35%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#fca5a5"/>
-      <stop offset="40%" stop-color="#ef4444"/>
-      <stop offset="100%" stop-color="#991b1b"/>
-    </radialGradient>
-  </defs>
-  <path d="M50 88 L50 68" stroke="#94a3b8" stroke-width="6" stroke-linecap="round"/>
-  <path d="M50 88 L50 78" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
-  <ellipse cx="50" cy="65" rx="20" ry="7" fill="url(#pinGrad)" filter="drop-shadow(0 6px 10px rgba(185,28,28,0.4))"/>
-  <circle cx="50" cy="38" r="22" fill="url(#pinGrad)"/>
-  <ellipse cx="44" cy="30" rx="7" ry="4" fill="white" opacity="0.6"/>
-</svg>
-            </div>
-            <h3>Salons Locaux &amp; Globaux</h3>
-            <p>Retrouve des potes de ta ville ou discute avec la communauté francophone à travers le monde (France, Maroc, Algérie, Tunisie, Canada...).</p>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ============================================================ -->
-    <!-- SMARTPHONE SHOWCASE : OK MAIS... POURQUOI WAFATALK ?          -->
-    <!-- ============================================================ -->
-    <section class="phone-showcase-section">
-      <div class="tinder-container">
-        <div class="phone-showcase-wrapper">
-          
-          <div class="phone-showcase-text">
-            <h2>Ok mais... pourquoi WafaTalk ?</h2>
-            <p class="showcase-desc">
-              Parce que la voix est directe, sincère et dix fois plus rapide qu’un message écrit. Pas besoin de coiffer ses cheveux ni d’allumer sa caméra : branche tes écouteurs et parle naturellement.
-            </p>
-            <ul class="showcase-feature-list">
-              <li>
-                <span class="check-bullet">✓</span>
-                <div>
-                  <strong>Audio Haute Définition WebRTC</strong>
-                  <p>Qualité studio avec suppression active de bruit et zéro latence.</p>
-                </div>
-              </li>
-              <li>
-                <span class="check-bullet">✓</span>
-                <div>
-                  <strong>Partage de Scène &amp; Musique</strong>
-                  <p>Écoutez des sons ensemble ou diffusez vos sessions gaming en direct.</p>
-                </div>
-              </li>
-              <li>
-                <span class="check-bullet">✓</span>
-                <div>
-                  <strong>Cadeaux Virtuels &amp; Réactions 3D</strong>
-                  <p>Réagis en direct avec des confettis, flammes et badges collector.</p>
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Smartphone Bezel Mockup -->
-          <div class="phone-mockup-frame" aria-hidden="true">
-            <div class="phone-bezel">
-              <div class="phone-notch"></div>
-              <div class="phone-screen-content">
-                <div class="phone-app-header">
-                  <span class="live-pill">EN DIRECT</span>
-                  <span class="room-title">Chill et Discussion</span>
-                  <span class="user-count">8 auditeurs</span>
-                </div>
-                
-                <!-- Audio Wave Visualizer in Phone -->
-                <div class="phone-audio-wave">
-                  <span class="wave-bar h1"></span>
-                  <span class="wave-bar h3"></span>
-                  <span class="wave-bar h5"></span>
-                  <span class="wave-bar h2"></span>
-                  <span class="wave-bar h4"></span>
-                  <span class="wave-bar h1"></span>
-                  <span class="wave-bar h3"></span>
-                </div>
-
-                <!-- Active Stage Avatars -->
-                <div class="phone-stage-avatars">
-                  <div class="phone-speaker active">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80" alt="Alexandre">
-                    <span class="speaker-name">Alexandre</span>
-                  </div>
-                  <div class="phone-speaker">
-                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80" alt="Lina">
-                    <span class="speaker-name">Lina M.</span>
-                  </div>
-                  <div class="phone-speaker">
-                    <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=80&auto=format&fit=crop&q=80" alt="Karim">
-                    <span class="speaker-name">Karim D.</span>
-                  </div>
-                </div>
-
-                <!-- Floating Reactions -->
-                <div class="floating-reactions-preview">
-                  <span class="react-bubble r1" aria-hidden="true">🔥</span>
-                  <span class="react-bubble r2" aria-hidden="true">💖</span>
-                  <span class="react-bubble r3" aria-hidden="true">👏</span>
-                </div>
-
-                <!-- Control Bar at Phone Bottom -->
-                <div class="phone-bottom-dock">
-                  <span class="dock-btn mic active">Micro On</span>
-                  <span class="dock-btn gift">Cadeau</span>
-                  <span class="dock-btn leave">Quitter</span>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- ============================================================ -->
-    <!-- GIANT ARCHITECTURAL FOOTER : WAFATALK                         -->
-    <!-- ============================================================ -->
-    <footer class="tinder-giant-footer">
-      <div class="tinder-container">
-        
-        <!-- Footer Columns -->
-        <div class="footer-columns-grid">
-          
-          <div class="footer-col brand-col">
-            <div class="footer-logo">
-              <span class="tinder-flame-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M16 2C16 2 20 8 20 13C20 15.2 19.1 17.2 17.6 18.6C17.2 16.5 15.6 14.8 13.5 14.2C13.8 12.5 14.6 11 16 10C12.5 11.5 10 15 10 19C10 24.5 14.5 29 20 29C25.5 29 30 24.5 30 19C30 11 22 7 16 2Z" fill="#ea2844"/>
-                </svg>
-              </span>
-              <span class="footer-brand-title">WafaTalk</span>
-            </div>
-            <p class="footer-tagline">
-              La plateforme audio moderne pour discuter, rire et partager sans pression.
-            </p>
-            <div class="footer-country-badge">
-              <span>🇫🇷 Disponible en France, Maghreb et Francophonie</span>
-            </div>
-          </div>
-
-          <div class="footer-col">
-            <h5>Salons</h5>
-            <ul>
-              <li><a href="#salons-section">Salons Vocaux</a></li>
-              <li><a href="#salons-section">Chill et Café</a></li>
-              <li><a href="#salons-section">Gaming Squads</a></li>
-              <li><a href="#salons-section">Jam Sessions</a></li>
-              <li><a href="#salons-section">Salons Privés</a></li>
-            </ul>
-          </div>
-
-          <div class="footer-col">
-            <h5>Fonctionnalités</h5>
-            <ul>
-              <li><a href="#">Audio HD WebRTC</a></li>
-              <li><a href="#">Cadeaux Virtuels Wafa</a></li>
-              <li><a href="#">Badges et Niveaux VIP</a></li>
-              <li><a href="#">Modération Proactive</a></li>
-            </ul>
-          </div>
-
-          <div class="footer-col">
-            <h5>Sécurité &amp; Légal</h5>
-            <ul>
-              <li><a href="#" id="btnOpenTermsModal">Conditions d'utilisation</a></li>
-              <li><a href="#">Politique de Confidentialité</a></li>
-              <li><a href="#">Charte de la Communauté</a></li>
-              <li><a href="#">Signaler un problème</a></li>
-            </ul>
-          </div>
-
-        </div>
-
-        <!-- GIANT ARCHITECTURAL WORDMARK -->
-        <div class="giant-wordmark-container" aria-hidden="true">
-          <span class="giant-wordmark-text">WAFATALK</span>
-        </div>
-
-        <!-- Bottom Copyright Bar -->
-        <div class="footer-bottom-bar">
-          <p class="copyright-text">© 2026 WafaTalk Inc. Tous droits réservés. Conçu pour la voix.</p>
-          <div class="footer-social-links">
-            <a href="#" aria-label="Twitter">Twitter/X</a>
-            <a href="#" aria-label="Discord">Discord</a>
-            <a href="#" aria-label="Instagram">Instagram</a>
-            <a href="#" aria-label="GitHub">GitHub</a>
-          </div>
-        </div>
-
-      </div>
-    </footer>
-
-    <!-- Mobile Navigation Dock (Fixed at bottom on phones) -->
-    <nav class="mobile-nav-dock" aria-label="Navigation mobile">
-      <button id="mobNavSalons" class="mob-dock-btn active" aria-label="Salons">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    <!-- Mobile Bottom Navigation Bar (Visible on mobile screens) -->
+    <nav class="mobile-bottom-nav" aria-label="Navigation Mobile">
+      <button type="button" class="mobile-nav-item active" id="mobNavSalons" aria-label="Salons">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
         <span>Salons</span>
       </button>
-      <button id="mobNavFriends" class="mob-dock-btn" aria-label="Amis">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+      <button type="button" class="mobile-nav-item" id="mobNavFriends" aria-label="Amis">
+        <div class="mob-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span class="mob-badge" id="mobFriendsBadge">0</span>
+        </div>
         <span>Amis</span>
-        <span id="mobFriendsBadge" class="mob-badge hidden">0</span>
       </button>
-      <button id="mobNavCreate" class="mob-dock-btn highlight" aria-label="Créer">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <button type="button" class="mobile-nav-item mobile-nav-action" id="mobNavCreate" aria-label="Créer un salon">
+        <div class="mob-create-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
         <span>Créer</span>
       </button>
-      <button id="mobNavGifts" class="mob-dock-btn" aria-label="Cadeaux">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
+      <button type="button" class="mobile-nav-item" id="mobNavGifts" aria-label="Cadeaux">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
         <span>Cadeaux</span>
       </button>
-      <button id="mobNavProfile" class="mob-dock-btn" aria-label="Profil">
-        <img id="mobNavUserAvatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Moi" class="mob-dock-avatar">
-        <span>Moi</span>
+      <button type="button" class="mobile-nav-item" id="mobNavProfile" aria-label="Profil">
+        <div class="mob-avatar-wrap">
+          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60" id="mobNavUserAvatar" class="mob-user-avatar" alt="Profil">
+        </div>
+        <span>Profil</span>
       </button>
     </nav>
+  </div>
 
-  </main>
 
-
-  <!-- ALL MODALS & TEMPLATES (PRESERVED 100%) -->
+  <!-- ============================================================ -->
+  <!-- MODAL : LIVE SALON EXPERIENCE (VOICE + CHAT + GIFTS)         -->
   <!-- ============================================================ -->
   <div class="modal-overlay hidden" id="liveSalonModal" role="dialog" aria-modal="true" aria-labelledby="liveSalonTitle">
     <div class="modal-container salon-modal-container glass-panel">
@@ -1172,6 +774,14 @@
         </div>
 
         <div class="salon-modal-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnToggleSalonFullscreen" title="Basculer Plein écran">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            <span class="fullscreen-label">Plein écran</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnMinimizeSalon" title="Réduire en fenêtre volante (Picture-in-Picture)" aria-label="Réduire le salon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            <span>Réduire</span>
+          </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btnOpenSalonShare" title="Inviter des amis / Partager le salon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
             <span>Inviter</span>
@@ -1194,22 +804,77 @@
       <div class="mobile-salon-tabs" role="tablist">
         <button type="button" class="mobile-salon-tab active" id="tabMobileStage" role="tab" aria-selected="true">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-          <span>Scène Vocale & Vidéo</span>
+          <span>Scène</span>
+        </button>
+        <button type="button" class="mobile-salon-tab" id="tabMobileSplit" role="tab" aria-selected="false" title="Afficher la scène et le chat simultanément">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line></svg>
+          <span>Duo</span>
         </button>
         <button type="button" class="mobile-salon-tab" id="tabMobileChat" role="tab" aria-selected="false">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-          <span>Chat en direct</span>
+          <span>Chat</span>
           <span class="mobile-chat-badge hidden" id="mobileChatUnreadDot"></span>
         </button>
       </div>
 
-      <!-- Live Salon Body: Split Audio Stage & Chat Stream -->
+      <!-- Live Salon Body: Chat Stream (Left) & Unified Call Stage (Right) -->
       <div class="salon-modal-body">
-        
-        <!-- Left Stage: Voice Avatars & Equalizer -->
+
+        <!-- Left Side: Real-time Salon Chat Stream (Messages Section) -->
+        <div class="salon-chat-panel">
+          <div class="chat-panel-header">
+            <h4>Discussion en Direct</h4>
+            <span class="chat-users-online" id="chatParticipantsCount">1 participant</span>
+          </div>
+
+          <div class="chat-messages-scroll" id="chatMessagesScroll">
+            <!-- Messages populated via app.js -->
+          </div>
+
+          <!-- Floating Scroll-to-Bottom Button with Unread Badge -->
+          <button type="button" class="chat-scroll-bottom-btn hidden" id="salonScrollBottomBtn" title="Faire défiler vers le bas" aria-label="Faire défiler vers le bas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span class="scroll-unread-badge hidden" id="salonScrollUnreadBadge">0</span>
+          </button>
+
+          <!-- Typing Indicator -->
+          <div class="salon-typing-indicator hidden" id="salonTypingIndicator">
+            <span class="typing-dots"><span></span><span></span><span></span></span>
+            <span id="salonTypingText">Un membre est en train d'écrire...</span>
+          </div>
+
+          <!-- In-Salon Private Whisper Banner -->
+          <div class="salon-whisper-banner hidden" id="salonWhisperBanner">
+            <div class="whisper-banner-left">
+              <span class="whisper-lock-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+              <span class="whisper-target-desc">Chuchotement à <strong id="whisperTargetName">@Membre</strong> <span class="whisper-privacy-note">(visible uniquement par vous deux)</span></span>
+            </div>
+            <button type="button" id="btnCancelWhisper" class="btn-cancel-whisper" title="Annuler le chuchotement" aria-label="Annuler le chuchotement">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+
+          <!-- Chat Input Row -->
+          <form id="chatForm" class="chat-input-bar">
+            <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+            </button>
+            <button type="button" class="icon-btn btn-chat-gift" id="btnChatGiftTrigger" title="Envoyer un cadeau">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            </button>
+            <input type="text" id="chatInputText" placeholder="Écrire un message..." autocomplete="off" required>
+            <button type="submit" class="btn btn-primary btn-chat-send" title="Envoyer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Right Side: Call Stage (Unified Equal Stage Grid) -->
         <div class="voice-stage-container">
           <div class="voice-stage-grid" id="voiceStageGrid">
-            <!-- Populated dynamically via app.js -->
+            <!-- Populated dynamically via app.js - all members equal -->
           </div>
 
           <!-- Floating Voice Controls Bar -->
@@ -1243,109 +908,217 @@
           </div>
         </div>
 
-        <!-- Right Side: Real-time Salon Chat Stream -->
-        <div class="salon-chat-panel">
-          <div class="chat-panel-header">
-            <h4>Discussion en Direct</h4>
-            <span class="chat-users-online" id="chatParticipantsCount">1 participant</span>
-          </div>
-
-          <div class="chat-messages-scroll" id="chatMessagesScroll">
-            <!-- Messages populated via app.js -->
-          </div>
-
-          <!-- Floating Scroll-to-Bottom Button with Unread Badge -->
-          <button type="button" class="chat-scroll-bottom-btn hidden" id="salonScrollBottomBtn" title="Faire défiler vers le bas" aria-label="Faire défiler vers le bas">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            <span class="scroll-unread-badge hidden" id="salonScrollUnreadBadge">0</span>
-          </button>
-
-          <!-- Typing Indicator -->
-          <div class="salon-typing-indicator hidden" id="salonTypingIndicator">
-            <span class="typing-dots"><span></span><span></span><span></span></span>
-            <span id="salonTypingText">Un membre est en train d'écrire...</span>
-          </div>
-
-          <!-- Chat Input Row -->
-          <form id="chatForm" class="chat-input-bar">
-            <button type="button" class="icon-btn emoji-trigger" id="btnEmojiChat" title="Émojis">
-              
-            </button>
-            <input type="text" id="chatInputText" placeholder="Écrire un message bienveillant..." autocomplete="off" required>
-            <button type="submit" class="btn btn-primary btn-chat-send" title="Envoyer">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-          </form>
-        </div>
-
       </div>
     </div>
   </div>
 
 
   <!-- ============================================================ -->
-  <!-- MODAL : GIFT SHOPPING / BOÎTE À CADEAUX WAFA                 -->
+  <!-- MODAL : BOUTIQUE « COUP DE CŒUR & CADEAUX » (20 GIFTS)       -->
   <!-- ============================================================ -->
   <div class="modal-overlay hidden" id="giftShopModal" role="dialog" aria-modal="true" aria-labelledby="giftShopTitle">
     <div class="modal-container gift-modal-container glass-panel">
+      <!-- Header -->
       <div class="gift-modal-header">
         <div class="gift-header-icon-wrap">
-          <span class="gift-head-emoji"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg></span>
+          <span class="gift-head-emoji">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 12 20 22 4 22 4 12"></polyline>
+              <rect x="2" y="7" width="20" height="5"></rect>
+              <line x1="12" y1="22" x2="12" y2="7"></line>
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+            </svg>
+          </span>
         </div>
-        <div>
-          <h2 class="gift-modal-title" id="giftShopTitle">Boîte à Cadeaux WafaTalk</h2>
-          <p class="gift-modal-desc">Envoyez une attention spéciale et faites scintiller l'écran de vos amis !</p>
+        <div class="gift-header-titles">
+          <div class="gift-title-row">
+            <h2 class="gift-modal-title" id="giftShopTitle">Coup de C&oelig;ur &amp; Cadeaux</h2>
+            <div class="gift-user-points-badge" id="giftUserPointsBadge" title="Votre solde actuel de points WafaTalk">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span id="giftModalBalance">450</span> pts
+            </div>
+          </div>
+          <p class="gift-modal-desc">Offrez une attention, brisez la glace avec des accroches originales et illuminez vos rencontres !</p>
         </div>
         <button type="button" class="icon-btn modal-close-btn" id="btnCloseGiftModal" aria-label="Fermer">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
-      <div class="gift-items-grid">
-        
-        <div class="gift-card-item" data-gift="heart" data-name="Cœur WafaTalk" data-points="50">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
-          <strong class="gift-item-title">Cœur WafaTalk</strong>
-          <span class="gift-item-price">50 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="coffee" data-name="Café Douceur" data-points="30">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path></svg></div>
-          <strong class="gift-item-title">Café Douceur</strong>
-          <span class="gift-item-price">30 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="box" data-name="Coffret Magique" data-points="150">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg></div>
-          <strong class="gift-item-title">Coffret Magique</strong>
-          <span class="gift-item-price">150 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="crown" data-name="Couronne VIP" data-points="300">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path></svg></div>
-          <strong class="gift-item-title">Couronne VIP</strong>
-          <span class="gift-item-price">300 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="star" data-name="Étoile Scintillante" data-points="80">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>
-          <strong class="gift-item-title">Étoile Scintillante</strong>
-          <span class="gift-item-price">80 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
-        <div class="gift-card-item" data-gift="fireworks" data-name="Feu d'Artifice" data-points="500">
-          <div class="gift-item-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg></div>
-          <strong class="gift-item-title">Feu d'Artifice</strong>
-          <span class="gift-item-price">500 pts d'amitié</span>
-          <button type="button" class="btn btn-sm btn-primary btn-send-gift">Offrir</button>
-        </div>
-
+      <!-- Main Navigation Tabs -->
+      <div class="gift-nav-tabs-bar">
+        <button type="button" class="gift-nav-tab active" data-tab="catalog">
+          <span>Catalogue</span>
+          <span class="gift-tab-counter" id="giftCatalogCounter">20</span>
+        </button>
+        <button type="button" class="gift-nav-tab" data-tab="favorites">
+          <span>Mes Favoris</span>
+          <span class="gift-tab-counter" id="giftFavCounter">0</span>
+        </button>
+        <button type="button" class="gift-nav-tab" data-tab="history">
+          <span>Historique d'envois</span>
+          <span class="gift-tab-counter" id="giftHistoryCounter">0</span>
+        </button>
       </div>
+
+      <!-- Filter Controls Toolbar -->
+      <div class="gift-filter-toolbar" id="giftFilterToolbar">
+        <div class="gift-search-row">
+          <div class="gift-search-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="giftSearchInput" class="gift-search-input" placeholder="Rechercher un cadeau, une attention, une accroche...">
+          </div>
+          <button type="button" class="btn btn-sm btn-surprise-me" id="btnSurpriseMe" title="Sélectionne un cadeau et une accroche au hasard !">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+              <circle cx="8" cy="8" r="1.5" fill="currentColor"></circle>
+              <circle cx="16" cy="16" r="1.5" fill="currentColor"></circle>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+            </svg>
+            <span>Surprends-moi !</span>
+          </button>
+        </div>
+
+        <!-- Ambiance Pills -->
+        <div class="gift-ambiance-pills" id="giftAmbiancePills">
+          <button type="button" class="gift-ambiance-pill active" data-ambiance="all">Tous (20)</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="romantique">Romantique</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="complice">Complice &amp; Fun</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="premier_rdv">Premier RDV</button>
+          <button type="button" class="gift-ambiance-pill" data-ambiance="festif">Festif &amp; Spectaculaire</button>
+        </div>
+
+        <!-- Sub-filters: Type & Budget -->
+        <div class="gift-subfilters-row">
+          <div class="gift-select-group">
+            <label for="giftTypeSelect">Type :</label>
+            <select id="giftTypeSelect" class="gift-filter-select">
+              <option value="all">Tous les types</option>
+              <option value="gourmand">Attention Gourmande</option>
+              <option value="sortie">Moment &amp; Sortie</option>
+              <option value="declaration">Déclaration Virtuelle</option>
+              <option value="objet">Objet Symbolique</option>
+            </select>
+          </div>
+
+          <div class="gift-select-group">
+            <label for="giftBudgetSelect">Budget :</label>
+            <select id="giftBudgetSelect" class="gift-filter-select">
+              <option value="all">Tous les budgets</option>
+              <option value="tier1">&lt; 50 pts (Accessible)</option>
+              <option value="tier2">50 - 150 pts (Doux)</option>
+              <option value="tier3">150 - 300 pts (Élégant)</option>
+              <option value="tier4">&gt; 300 pts (Prestige)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Dynamic Content Area (Scrollable) -->
+      <div class="gift-modal-body-scrollable">
+        <!-- 20 Gifts Grid Container (Populated dynamically by app.js) -->
+        <div class="gift-items-grid" id="giftsCatalogGrid"></div>
+
+        <!-- Empty State (No match or empty favorites/history) -->
+        <div class="gift-empty-state hidden" id="giftEmptyState">
+          <div class="gift-empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </div>
+          <h3 class="gift-empty-title" id="giftEmptyTitle">Aucun cadeau trouvé</h3>
+          <p class="gift-empty-desc" id="giftEmptyDesc">Essayez de modifier vos filtres ou effectuez une autre recherche.</p>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnResetGiftFilters">Réinitialiser les filtres</button>
+        </div>
+
+        <!-- Sent History List -->
+        <div class="gift-history-list hidden" id="giftHistoryList"></div>
+      </div>
+
+      <!-- Personalization & Live Preview Slide-in Drawer -->
+      <div class="gift-personalize-drawer hidden" id="giftPersonalizeDrawer">
+        <div class="gift-drawer-header">
+          <div class="gift-drawer-header-left">
+            <h3 class="gift-drawer-title">Personnaliser votre attention</h3>
+            <p class="gift-drawer-subtitle">Ajoutez une dédicace et prévisualisez la carte avant d'offrir.</p>
+          </div>
+          <button type="button" class="icon-btn gift-drawer-close" id="btnCloseGiftDrawer" aria-label="Fermer le tiroir">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="gift-drawer-body">
+          <!-- Recipient Selector -->
+          <div class="gift-drawer-field">
+            <label class="gift-field-label" for="giftRecipientSelect">Destinataire :</label>
+            <select id="giftRecipientSelect" class="gift-field-select">
+              <option value="room">À tout le salon (Célébration collective)</option>
+            </select>
+          </div>
+
+          <!-- Suggested Accroche (Icebreaker) with Copy Action -->
+          <div class="gift-drawer-field">
+            <div class="gift-field-label-row">
+              <label class="gift-field-label">Accroche suggérée :</label>
+              <button type="button" class="btn-copy-accroche" id="btnCopyAccroche" title="Copier l'accroche dans le presse-papier">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copyAccrocheLabel">Copier</span>
+              </button>
+            </div>
+            <div class="gift-accroche-box" id="giftAccrocheText"></div>
+          </div>
+
+          <!-- Custom Message Input -->
+          <div class="gift-drawer-field">
+            <label class="gift-field-label" for="giftCustomNote">Votre mot doux personnalisé (optionnel) :</label>
+            <textarea id="giftCustomNote" class="gift-field-textarea" rows="2" maxlength="240" placeholder="Ex: Pour te remercier pour notre échange d'hier soir..."></textarea>
+            <div class="gift-char-counter"><span id="giftCharCount">0</span>/240</div>
+          </div>
+
+          <!-- Live Card Preview -->
+          <div class="gift-drawer-preview-wrap">
+            <div class="gift-preview-label">Aperçu en direct :</div>
+            <div class="gift-live-preview-card" id="giftLivePreviewCard">
+              <div class="preview-card-badge" id="previewCardAmbiance">Romantique</div>
+              <div class="preview-card-icon" id="previewCardIcon"></div>
+              <div class="preview-card-info">
+                <h4 class="preview-card-name" id="previewCardName">Coup de Cœur</h4>
+                <div class="preview-card-cost" id="previewCardCost">50 pts d'amitié</div>
+                <p class="preview-card-note" id="previewCardNote"></p>
+                <div class="preview-card-recipient" id="previewCardRecipient">Offert à tout le salon</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gift-drawer-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelGiftDrawer">Annuler</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmSendGift">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span id="confirmSendGiftText">Confirmer et offrir</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1570,7 +1343,7 @@
         </div>
         <div style="flex: 1;">
           <h2 class="gift-modal-title" id="adminConfirmTitle">Gestion du participant</h2>
-          <p class="gift-modal-desc" id="adminConfirmTargetText">Participant : Alexandre</p>
+          <p class="gift-modal-desc" id="adminConfirmTargetText">Participant : Sélectionné</p>
         </div>
         <button type="button" class="icon-btn modal-close-btn" id="btnCloseAdminConfirmModal" aria-label="Fermer">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1702,10 +1475,10 @@
       <div class="social-modal-body">
         <!-- Quick Suggested Account -->
         <div class="social-account-card" id="btnChooseDefaultGoogle">
-          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="social-account-avatar" id="socialAccountAvatar">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="social-account-avatar" id="socialAccountAvatar">
           <div class="social-account-info">
-            <span class="social-account-name" id="socialAccountName">Alexandre Moreau</span>
-            <span class="social-account-email" id="socialAccountEmail">alexandre.moreau@gmail.com</span>
+            <span class="social-account-name" id="socialAccountName">Compte Réseau</span>
+            <span class="social-account-email" id="socialAccountEmail">compte@reseau.com</span>
           </div>
           <span class="social-account-badge">1-Clic</span>
         </div>
@@ -1888,7 +1661,7 @@
         <div class="terms-modal-actions">
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <a href="terms.html" target="_blank" class="btn btn-secondary btn-sm" id="btnOpenFullTermsPage">
-              <span>CGU complètes ↗</span>
+              <span>Conditions d'utilisation</span>
             </a>
             <a href="privacy.html" target="_blank" class="btn btn-secondary btn-sm">
               <span>Politique RGPD</span>
@@ -1976,7 +1749,7 @@
     <div class="modal-container dm-modal-container glass-panel">
       <!-- DM Header -->
       <div class="dm-header">
-        <div class="dm-user-profile-wrap">
+        <div class="dm-user-profile-wrap" id="dmFriendProfileWrap" style="cursor: pointer;" title="Cliquer pour voir le profil">
           <div class="dm-avatar-container">
             <img src="" alt="Avatar ami" class="dm-avatar-img" id="dmFriendAvatar">
             <span class="dm-status-indicator online" id="dmFriendStatusDot"></span>
@@ -2067,6 +1840,129 @@
   </div>
 
   <!-- ============================================================ -->
+  <!-- MODAL : FICHE PROFIL UTILISATEUR & DESCRIPTION               -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="userProfileModal" role="dialog" aria-modal="true" aria-labelledby="userProfileName">
+    <div class="modal-container user-profile-modal-container glass-panel">
+      <!-- Ambient Banner & Close Button -->
+      <div class="user-profile-banner">
+        <div class="user-profile-banner-pattern"></div>
+        <button type="button" class="icon-btn modal-close-btn user-profile-close-btn" id="btnCloseUserProfileModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Avatar & Quick Badge Row -->
+      <div class="user-profile-header-body">
+        <div class="user-profile-avatar-wrapper">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160" alt="Avatar" id="userProfileAvatar" class="user-profile-avatar">
+          <span class="user-profile-status-indicator online" id="userProfileStatusDot"></span>
+        </div>
+        
+        <div class="user-profile-main-meta">
+          <div class="user-profile-name-row">
+            <h2 class="user-profile-display-name" id="userProfileName">Nom de l'utilisateur</h2>
+            <span class="user-profile-flag" id="userProfileFlag">🇫🇷</span>
+            <span class="user-profile-role-badge" id="userProfileRole">Membre</span>
+          </div>
+          <div class="user-profile-username-sub" id="userProfileUsername">@username</div>
+          
+          <div class="user-profile-status-pill-wrap">
+            <span class="user-profile-online-badge online" id="userProfileOnlineStatus">🟢 En ligne</span>
+            <span class="user-profile-social-badge" id="userProfileSocialStatus">💖 Célibataire</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Content Scrollable Area -->
+      <div class="user-profile-content-scroll">
+        <!-- Bio / Description Section -->
+        <div class="user-profile-card-block">
+          <h4 class="user-profile-section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            À propos de moi
+          </h4>
+          <p class="user-profile-bio-text" id="userProfileBio">
+            Partage sa bonne humeur et discute dans les salons vocaux et textuels de WafaTalk.
+          </p>
+        </div>
+
+        <!-- Social & Personnalité Tags -->
+        <div class="user-profile-card-block">
+          <h4 class="user-profile-section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+            Centres d'intérêt & Mode de vie
+          </h4>
+          <div class="user-profile-tags-grid" id="userProfileInterests">
+            <span class="user-profile-tag">☕ Discussion & Café</span>
+            <span class="user-profile-tag">🎮 Gaming</span>
+            <span class="user-profile-tag">🎵 Musique</span>
+          </div>
+        </div>
+
+        <!-- Community Highlights Grid (Stats) -->
+        <div class="user-profile-stats-grid">
+          <div class="user-profile-stat-box">
+            <span class="stat-box-icon">⭐</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfilePoints">150</span>
+              <span class="stat-box-lbl">Points Wafa</span>
+            </div>
+          </div>
+          <div class="user-profile-stat-box">
+            <span class="stat-box-icon">🎁</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfileGifts">0</span>
+              <span class="stat-box-lbl">Cadeaux reçus</span>
+            </div>
+          </div>
+          <div class="user-profile-stat-box">
+            <span class="stat-box-icon">📅</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfileMemberSince">Nov. 2026</span>
+              <span class="stat-box-lbl">Membre depuis</span>
+            </div>
+          </div>
+          <div class="user-profile-stat-box" id="userProfileAgeBox">
+            <span class="stat-box-icon">🎂</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfileAge">24 ans</span>
+              <span class="stat-box-lbl">Âge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Salon / Activity (if any) -->
+        <div class="user-profile-salon-activity hidden" id="userProfileSalonBox">
+          <div class="salon-activity-icon">🎙️</div>
+          <div class="salon-activity-text">
+            <span>Actuellement en salon vocal</span>
+            <strong id="userProfileSalonName">Chill & Discussion</strong>
+          </div>
+          <button type="button" class="btn btn-sm btn-teal" id="btnJoinProfileUserSalon">Rejoindre</button>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="user-profile-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnProfileSendWink">
+          <span>😉 Envoyer un clin d'œil</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="btnProfileStartChat">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Discuter</span>
+        </button>
+        <button type="button" class="btn btn-coral-outline" id="btnProfileSendGift" title="Offrir un cadeau WafaTalk">
+          <span>🎁 Cadeau</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
   <!-- MODAL : INCOMING CALL (AUDIO & VIDEO RINGING)                -->
   <!-- ============================================================ -->
   <div class="modal-overlay incoming-call-overlay hidden" id="incomingCallModal" role="dialog" aria-modal="true">
@@ -2121,6 +2017,9 @@
         </div>
 
         <div class="active-call-top-actions">
+          <button type="button" class="icon-btn btn-call-chat-trigger" id="btnCallTopChat" title="Écrire un message (mode PiP)" aria-label="Messages">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          </button>
           <button type="button" class="icon-btn" id="btnMinimizeCall" title="Réduire l'appel (Picture-in-Picture)" aria-label="Réduire">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
           </button>
@@ -2200,6 +2099,11 @@
           <span class="ctrl-label">Écran</span>
         </button>
 
+        <button type="button" class="call-ctrl-btn btn-call-message" id="btnCallOpenChat" title="Discuter par écrit en direct">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span class="ctrl-label">Message</span>
+        </button>
+
         <button type="button" class="call-ctrl-btn btn-call-hangup" id="btnCallHangup" title="Raccrocher">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
           <span class="ctrl-label">Raccrocher</span>
@@ -2260,7 +2164,7 @@
         <div class="form-section-group">
           <label class="section-micro-label">Avatars prédéfinis express</label>
           <div class="avatar-presets-grid" id="avatarPresetsGrid">
-            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" title="Alexandre">
+            <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80" title="Avatar 1">
               <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80" alt="Preset 1">
             </button>
             <button type="button" class="avatar-preset-btn" data-url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&auto=format&fit=crop&q=80" title="Sarah">
@@ -2357,7 +2261,7 @@
               <label for="profileDisplayNameInput">Nom complet affiché</label>
               <div class="input-field-wrap">
                 <span class="input-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
-                <input type="text" id="profileDisplayNameInput" placeholder="Ex: Alexandre Moreau" required maxlength="50">
+                <input type="text" id="profileDisplayNameInput" placeholder="Ex: Sarah Martin" required maxlength="50">
               </div>
             </div>
 
@@ -2402,6 +2306,32 @@
                 <option value="Royaume-Uni">Royaume-Uni</option>
                 <option value="États-Unis">États-Unis</option>
               </select>
+            </div>
+          </div>
+
+          <div class="profile-fields-grid" style="margin-top: 14px;">
+            <div class="input-group">
+              <label for="profileSocialStatusSelect">Statut relationnel / Ambiance</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">💖</span>
+                <select id="profileSocialStatusSelect">
+                  <option value="Célibataire">💖 Célibataire</option>
+                  <option value="En couple">💍 En couple</option>
+                  <option value="Cœur à prendre">💘 Cœur à prendre</option>
+                  <option value="C'est compliqué">🌪️ C'est compliqué</option>
+                  <option value="Marié(e)">👰 Marié(e)</option>
+                  <option value="Juste des amis">🤝 Juste des amis</option>
+                  <option value="Secret">🤫 Secret</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="profileInterestsInput">Centres d'intérêt (séparés par virgules)</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">✨</span>
+                <input type="text" id="profileInterestsInput" placeholder="Ex: Chill, Musique, Gaming" maxlength="80">
+              </div>
             </div>
           </div>
         </div>
@@ -2609,7 +2539,7 @@
               <div class="acc-summary-box">
                 <span class="acc-box-label">Email de connexion</span>
                 <div class="acc-email-row">
-                  <span class="acc-box-val" id="settingsUserEmail">alexandre@wafatalk.com</span>
+                  <span class="acc-box-val" id="settingsUserEmail">Non renseigné</span>
                   <span class="badge-verified-inline">Vérifié</span>
                 </div>
               </div>
@@ -2855,8 +2785,12 @@
       </div>
     </div>
 
-    <!-- Floating Action Controls Bar (Quick Mute / Cam / Hangup / Fullscreen) -->
+    <!-- Floating Action Controls Bar (Quick Mute / Cam / Hangup / Fullscreen / Chat) -->
     <div class="floating-call-controls">
+      <button type="button" class="floating-ctrl-btn btn-floating-chat" id="btnMiniOpenChat" title="Ouvrir la discussion (mode PiP)" aria-label="Discussion">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      </button>
+
       <button type="button" class="floating-ctrl-btn" id="btnMiniToggleMic" title="Activer / Couper le micro" aria-label="Micro">
         <svg class="mini-mic-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
         <svg class="mini-mic-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
@@ -2877,6 +2811,58 @@
     </div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- MINI FLOATING DRAGGABLE PIP SALON WINDOW (SALON FLOTTANT)    -->
+  <!-- ============================================================ -->
+  <div class="floating-call-window floating-salon-window glass-card hidden" id="miniSalonWidget" role="region" aria-label="Salon vocal flottant">
+    <!-- Draggable Header / Grip Handle -->
+    <div class="floating-call-header" id="floatingSalonDragHandle" title="Glisser pour déplacer le salon vocal">
+      <div class="floating-call-drag-indicator">
+        <span class="floating-drag-dots" aria-hidden="true">⠿</span>
+        <span class="floating-live-dot pulse"></span>
+        <span class="floating-call-peer-name" id="miniSalonName">Salon Vocal</span>
+      </div>
+      <div class="floating-call-header-right">
+        <span class="floating-call-timer" id="miniSalonCount" title="Participants en ligne"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span id="miniSalonCountNum">8</span></span>
+        <button type="button" class="floating-icon-btn btn-maximize-call" id="btnRestoreSalon" title="Agrandir en plein écran" aria-label="Agrandir">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating Salon Stage (Avatars & Equalizer Waves) -->
+    <div class="floating-call-stage floating-salon-stage" id="floatingSalonStage" title="Cliquer pour agrandir le salon">
+      <div class="floating-salon-avatars" id="miniSalonAvatars">
+        <!-- Rendered dynamically with participants & active speaking rings -->
+      </div>
+      <div class="floating-audio-waves mini-salon-waves">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="mini-salon-status-label" id="miniSalonStatusLabel">En direct • Audio HD</div>
+    </div>
+
+    <!-- Floating Action Controls Bar (Quick Mute / Deafen / Expand / Leave) -->
+    <div class="floating-call-controls">
+      <button type="button" class="floating-ctrl-btn" id="btnMiniSalonToggleMic" title="Activer / Couper le micro" aria-label="Micro">
+        <svg class="mini-mic-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        <svg class="mini-mic-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn" id="btnMiniSalonToggleAudio" title="Couper le son / Sourdine" aria-label="Son">
+        <svg class="mini-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        <svg class="mini-sound-off hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-expand" id="btnMiniSalonExpand" title="Agrandir en plein écran" aria-label="Agrandir">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button>
+
+      <button type="button" class="floating-ctrl-btn btn-floating-hangup" id="btnMiniSalonLeave" title="Quitter le salon" aria-label="Quitter le salon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
@@ -2884,51 +2870,6 @@
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
   <!-- Main JavaScript File -->
-  <script src="app.js?v=20261017b"></script>
-</body>
-</html>
-
-
-  <!-- Bootstrap Script -->
-  
-  <!-- Instant Demo Bootstrap & Mock Interceptor -->
-  <script>
-    (function() {
-      if (!localStorage.getItem('wafatalk_token')) {
-        localStorage.setItem('wafatalk_token', 'demo_token_alexandre_wafatalk');
-        localStorage.setItem('wafatalk_user', JSON.stringify({
-          id: 'user_alexandre_01',
-          name: 'Alexandre',
-          displayName: 'Alexandre',
-          email: 'alexandre@wafatalk.fr',
-          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-          points: 1250,
-          role: 'Membre Fondateur',
-          country: 'FR',
-          countryName: 'France'
-        }));
-      }
-
-      const _origFetch = window.fetch;
-      window.fetch = function(...args) {
-        const url = args[0] ? args[0].toString() : '';
-        if (url.includes('/auth/me')) {
-          const u = localStorage.getItem('wafatalk_user');
-          if (u) {
-            return Promise.resolve(new Response(JSON.stringify({
-              success: true,
-              user: JSON.parse(u)
-            }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            }));
-          }
-        }
-        return _origFetch.apply(this, args);
-      };
-    })();
-  </script>
-
-
+  <script src="app.js?v=20261123"></script>
 </body>
 </html>
