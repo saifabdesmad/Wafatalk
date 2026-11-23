@@ -1231,7 +1231,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return localStorage.getItem('wafatalk_token');
   }
 
+  function getPersistentUserAvatar(user) {
+    if (!user) return null;
+    const customAvatar = (user.id && localStorage.getItem(`wafatalk_avatar_${user.id}`)) ||
+      (user.username && localStorage.getItem(`wafatalk_avatar_${user.username.toLowerCase()}`)) ||
+      (user.email && localStorage.getItem(`wafatalk_avatar_${user.email.toLowerCase()}`)) ||
+      (user.avatarUrl && !user.avatarUrl.includes('dicebear') && !user.avatarUrl.includes('photo-1535713875002') ? null : localStorage.getItem('wafatalk_last_saved_avatar'));
+    return customAvatar || null;
+  }
+
   function setAuthSession(token, user) {
+    const customAvatar = getPersistentUserAvatar(user);
+    if (customAvatar && (!user.avatarUrl || user.avatarUrl.includes('dicebear') || user.avatarUrl.includes('photo-1535713875002'))) {
+      user.avatarUrl = customAvatar;
+      user.avatar = customAvatar;
+    }
     localStorage.setItem('wafatalk_token', token);
     localStorage.setItem('wafatalk_user', JSON.stringify(user));
     state.currentUser = user;
@@ -1252,6 +1266,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Successful Login Transition to Hub
   function authenticateUser(userData, playFx = true) {
+    const customAvatar = getPersistentUserAvatar(userData);
+    if (customAvatar && (!userData.avatarUrl || userData.avatarUrl.includes('dicebear') || userData.avatarUrl.includes('photo-1535713875002'))) {
+      userData.avatarUrl = customAvatar;
+      userData.avatar = customAvatar;
+    }
     state.currentUser = userData;
     if (userData.wafaPoints !== undefined) {
       state.userPoints = userData.wafaPoints;
@@ -1259,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const displayName = userData.displayName || userData.name || 'Ami WafaTalk';
     const email = userData.email || '';
-    const avatar = userData.avatarUrl || userData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
+    const avatar = userData.avatarUrl || userData.avatar || customAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
 
     if (playFx) {
       launchParticles(window.innerWidth / 2, window.innerHeight / 2, 'confetti');
@@ -1330,6 +1349,14 @@ document.addEventListener('DOMContentLoaded', () => {
       try { cachedUser = JSON.parse(cachedUserJson); } catch (e) { }
     }
 
+    if (cachedUser) {
+      const customAvatar = getPersistentUserAvatar(cachedUser);
+      if (customAvatar) {
+        cachedUser.avatarUrl = customAvatar;
+        cachedUser.avatar = customAvatar;
+      }
+    }
+
     if (!token && cachedUser) {
       authenticateUser(cachedUser, false);
       return;
@@ -1343,6 +1370,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user) {
+          const customAvatar = getPersistentUserAvatar(data.user);
+          if (customAvatar && (!data.user.avatarUrl || data.user.avatarUrl.includes('dicebear') || data.user.avatarUrl.includes('photo-1535713875002'))) {
+            data.user.avatarUrl = customAvatar;
+            data.user.avatar = customAvatar;
+          }
           setAuthSession(token, data.user);
           authenticateUser(data.user, false);
           return;
@@ -1387,8 +1419,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user && data.token) {
-          setAuthSession(data.token, data.user);
-          authenticateUser(data.user, true);
+          const user = data.user;
+          const customAvatar = getPersistentUserAvatar(user);
+          if (customAvatar && (!user.avatarUrl || user.avatarUrl.includes('dicebear') || user.avatarUrl.includes('photo-1535713875002'))) {
+            user.avatarUrl = customAvatar;
+            user.avatar = customAvatar;
+          }
+          setAuthSession(data.token, user);
+          authenticateUser(user, true);
           return;
         }
       } else if (res.status === 401 || res.status === 400) {
@@ -1408,6 +1446,11 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       if (found) {
+        const customAvatar = getPersistentUserAvatar(found);
+        if (customAvatar) {
+          found.avatarUrl = customAvatar;
+          found.avatar = customAvatar;
+        }
         const token = `local_token_${found.id}`;
         setAuthSession(token, found);
         authenticateUser(found, true);
@@ -5969,7 +6012,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = state.currentUser || {};
     const displayName = user.displayName || user.name || user.username || 'Ami WafaTalk';
     const username = user.username || 'utilisateur';
-    const avatar = user.avatarUrl || user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80';
+    const savedAvatar = getPersistentUserAvatar(user);
+    const avatar = user.avatarUrl || user.avatar || savedAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80';
     const bio = user.bio || '';
     const country = user.country || 'France';
     const status = (user.status || 'ONLINE').toUpperCase();
@@ -6063,8 +6107,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Local Image File Upload -> Base64
-  avatarFileInput?.addEventListener('change', (e) => {
+  // Helper: crop and optimize image file to a crisp 256x256 square avatar (~25-40KB)
+  function optimizeAvatarFile(file, targetSize = 256) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = targetSize;
+            canvas.height = targetSize;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(e.target.result);
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            const minSide = Math.min(img.width, img.height);
+            const sx = (img.width - minSide) / 2;
+            const sy = (img.height - minSide) / 2;
+
+            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, targetSize, targetSize);
+            const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
+            resolve(optimizedBase64);
+          } catch (err) {
+            resolve(e.target.result);
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Local Image File Upload -> Optimized Base64
+  avatarFileInput?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -6073,23 +6153,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (file.size > 3 * 1024 * 1024) {
-      showToast('L\'image dépasse 3 Mo. Veuillez choisir une photo plus légère.', 'coral');
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('L\'image dépasse 15 Mo. Veuillez choisir une photo plus légère.', 'coral');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const base64Url = evt.target?.result;
-      if (base64Url) {
-        activeProfileAvatar = base64Url;
-        if (profileAvatarPreview) profileAvatarPreview.src = base64Url;
-        if (profileAvatarUrlInput) profileAvatarUrlInput.value = '';
-        updatePresetSelectionUI('');
-        showToast('Photo prête ! Cliquez sur « Enregistrer » pour confirmer.', 'teal');
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      showToast('Optimisation de la photo...', 'teal');
+      const optimizedAvatar = await optimizeAvatarFile(file, 256);
+      activeProfileAvatar = optimizedAvatar;
+      if (profileAvatarPreview) profileAvatarPreview.src = optimizedAvatar;
+      if (profileAvatarUrlInput) profileAvatarUrlInput.value = '';
+      updatePresetSelectionUI('');
+      showToast('Photo prête ! Cliquez sur « Enregistrer » pour sauvegarder.', 'teal');
+    } catch (err) {
+      console.warn('Avatar processing error:', err);
+      showToast('Erreur lors du traitement de l\'image.', 'coral');
+    }
   });
 
   // Presence Cards Click
@@ -6131,6 +6211,12 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Veuillez renseigner un nom d\'affichage.', 'coral');
       profileDisplayNameInput?.focus();
       return;
+    }
+
+    // Capture URL input if pasted
+    const urlInputVal = profileAvatarUrlInput?.value.trim();
+    if (urlInputVal && (urlInputVal.startsWith('http://') || urlInputVal.startsWith('https://') || urlInputVal.startsWith('data:'))) {
+      activeProfileAvatar = urlInputVal;
     }
 
     btnSaveProfileModal.disabled = true;
@@ -6180,10 +6266,38 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
 
-      // Synchronize App State
+      // Synchronize App State & Avatar across sessions
       updatedUser.mood = mood;
+      const finalAvatar = updatedUser.avatarUrl || activeProfileAvatar || state.currentUser?.avatarUrl || state.currentUser?.avatar;
+      if (finalAvatar) {
+        updatedUser.avatarUrl = finalAvatar;
+        updatedUser.avatar = finalAvatar;
+        if (state.currentUser?.id) localStorage.setItem(`wafatalk_avatar_${state.currentUser.id}`, finalAvatar);
+        if (state.currentUser?.username) localStorage.setItem(`wafatalk_avatar_${state.currentUser.username.toLowerCase()}`, finalAvatar);
+        if (state.currentUser?.email) localStorage.setItem(`wafatalk_avatar_${state.currentUser.email.toLowerCase()}`, finalAvatar);
+        localStorage.setItem('wafatalk_last_saved_avatar', finalAvatar);
+      }
+
       state.currentUser = { ...state.currentUser, ...updatedUser };
       localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+
+      // Update persistent local users list so avatar survives logout & re-login
+      try {
+        const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
+        const idx = localUsers.findIndex(u =>
+          (u.id && u.id === state.currentUser?.id) ||
+          (u.email && state.currentUser?.email && u.email.toLowerCase() === state.currentUser.email.toLowerCase()) ||
+          (u.username && state.currentUser?.username && u.username.toLowerCase() === state.currentUser.username.toLowerCase())
+        );
+        if (idx !== -1) {
+          localUsers[idx] = { ...localUsers[idx], ...updatedUser, avatarUrl: finalAvatar, avatar: finalAvatar };
+        } else if (state.currentUser) {
+          localUsers.push({ ...state.currentUser, ...updatedUser, avatarUrl: finalAvatar, avatar: finalAvatar });
+        }
+        localStorage.setItem('wafatalk_local_users', JSON.stringify(localUsers));
+      } catch (e) {
+        console.warn('Could not sync to wafatalk_local_users:', e);
+      }
 
       // Update Nav Bar & Header Elements Instantly
       const navUserName = document.getElementById('navUserName');
@@ -6197,8 +6311,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (navUserName) navUserName.textContent = displayName.split(' ')[0];
       if (heroUserGreeting) heroUserGreeting.textContent = displayName.split(' ')[0];
-      if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
-      if (mobNavUserAvatar) mobNavUserAvatar.src = activeProfileAvatar;
+      if (navUserAvatar) navUserAvatar.src = finalAvatar;
+      if (mobNavUserAvatar) mobNavUserAvatar.src = finalAvatar;
+      if (profileAvatarPreview) profileAvatarPreview.src = finalAvatar;
       if (menuFullName) menuFullName.textContent = displayName;
       if (menuCountryName) menuCountryName.textContent = country;
 
@@ -6223,21 +6338,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      showToast('Profil et statut mis à jour avec succès ! ', 'success');
+      showToast('Profil et photo enregistrés avec succès ! ✨', 'success');
       playTone(520, 'sine', 0.2);
       closeProfileStatusModal();
     } catch (err) {
       console.warn('Profile update error:', err);
-      // Fallback: save to local state anyway
-      state.currentUser = { ...(state.currentUser || {}), ...updatePayload, mood };
+      // Fallback: save to local state and persistent storage anyway
+      const finalAvatar = activeProfileAvatar || state.currentUser?.avatarUrl || state.currentUser?.avatar;
+      if (finalAvatar) {
+        if (state.currentUser?.id) localStorage.setItem(`wafatalk_avatar_${state.currentUser.id}`, finalAvatar);
+        if (state.currentUser?.username) localStorage.setItem(`wafatalk_avatar_${state.currentUser.username.toLowerCase()}`, finalAvatar);
+        if (state.currentUser?.email) localStorage.setItem(`wafatalk_avatar_${state.currentUser.email.toLowerCase()}`, finalAvatar);
+        localStorage.setItem('wafatalk_last_saved_avatar', finalAvatar);
+      }
+
+      const localFallbackUser = { ...(state.currentUser || {}), ...updatePayload, mood, avatarUrl: finalAvatar, avatar: finalAvatar };
+      state.currentUser = localFallbackUser;
       localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+
+      try {
+        const localUsers = JSON.parse(localStorage.getItem('wafatalk_local_users') || '[]');
+        const idx = localUsers.findIndex(u =>
+          (u.id && u.id === state.currentUser?.id) ||
+          (u.email && state.currentUser?.email && u.email.toLowerCase() === state.currentUser.email.toLowerCase()) ||
+          (u.username && state.currentUser?.username && u.username.toLowerCase() === state.currentUser.username.toLowerCase())
+        );
+        if (idx !== -1) {
+          localUsers[idx] = { ...localUsers[idx], ...localFallbackUser };
+        } else if (state.currentUser) {
+          localUsers.push(localFallbackUser);
+        }
+        localStorage.setItem('wafatalk_local_users', JSON.stringify(localUsers));
+      } catch (e) {}
 
       const navUserName = document.getElementById('navUserName');
       if (navUserName) navUserName.textContent = displayName.split(' ')[0];
       const navUserAvatar = document.getElementById('navUserAvatar');
-      if (navUserAvatar) navUserAvatar.src = activeProfileAvatar;
+      if (navUserAvatar) navUserAvatar.src = finalAvatar;
+      const mobNavUserAvatar = document.getElementById('mobNavUserAvatar');
+      if (mobNavUserAvatar) mobNavUserAvatar.src = finalAvatar;
+      if (profileAvatarPreview) profileAvatarPreview.src = finalAvatar;
 
-      showToast('Profil mis à jour en local avec succès ! ', 'teal');
+      showToast('Profil et photo enregistrés avec succès ! ✨', 'teal');
       closeProfileStatusModal();
     } finally {
       btnSaveProfileModal.disabled = false;

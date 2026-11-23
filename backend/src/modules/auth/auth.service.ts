@@ -415,9 +415,13 @@ export class AuthService {
   }
 
   static async updateProfile(userId: string, input: UpdateProfileInput) {
+    const dataToUpdate: any = { ...input };
+    if (!dataToUpdate.avatarUrl) {
+      delete dataToUpdate.avatarUrl;
+    }
     const user = await prisma.user.update({
       where: { id: userId },
-      data: input,
+      data: dataToUpdate,
       select: {
         id: true,
         username: true,

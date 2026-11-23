@@ -32,10 +32,11 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 async function buildApp() {
   const fastify = Fastify({
     logger: env.NODE_ENV === 'development',
+    bodyLimit: 15 * 1024 * 1024, // 15 MB payload limit
   });
 
   // Gracefully handle empty body when content-type is set to application/json
-  fastify.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body: string, done) => {
+  fastify.addContentTypeParser('application/json', { parseAs: 'string', bodyLimit: 15 * 1024 * 1024 }, (req, body: string, done) => {
     if (!body || body.trim() === '') {
       return done(null, {});
     }

@@ -26,7 +26,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
   bio: z.string().max(200).optional(),
-  avatarUrl: z.string().min(1).optional(),
+  avatarUrl: z.string().optional(),
   country: z.string().optional(),
   birthDate: z.string().optional(),
   socialStatus: z.string().max(80).optional(),
