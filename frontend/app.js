@@ -2371,7 +2371,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const badge = document.getElementById('friendReqBadge');
       if (badge) {
         if (pendingFriendRequests.length > 0) {
-          badge.textContent = pendingFriendRequests.length;
+          badge.textContent = `😉 ${pendingFriendRequests.length}`;
           badge.style.display = 'block';
         } else {
           badge.style.display = 'none';
@@ -2422,8 +2422,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show pending received requests at top if any
       if (pendingFriendRequests.length > 0) {
         const reqHeader = document.createElement('div');
-        reqHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:600;color:var(--text-muted);';
-        reqHeader.textContent = `Demandes reçues (${pendingFriendRequests.length})`;
+        reqHeader.style.cssText = 'padding:8px 12px 4px;font-size:0.72rem;font-weight:600;color:var(--teal-primary, #0d837d);display:flex;align-items:center;gap:4px;';
+        reqHeader.textContent = `😉 Clin d'œil reçus (${pendingFriendRequests.length})`;
         friendsList.appendChild(reqHeader);
 
         pendingFriendRequests.forEach(req => {
@@ -2437,12 +2437,12 @@ document.addEventListener('DOMContentLoaded', () => {
               <img src="${customSenderAv}" class="friend-avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <div style="flex:1;min-width:0;">
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);" class="friend-name">${sender.displayName || sender.username}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous (cliquer pour voir le profil)</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">😉 Vous a envoyé un clin d'œil complice</div>
               </div>
             </div>
             <div style="display:flex;gap:4px;">
-              <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Accepter</button>
-              <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Refuser</button>
+              <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:var(--teal-primary, #0d837d);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">😉 Renvoyer</button>
+              <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Ignorer</button>
             </div>
           `;
           item.querySelector('.pending-user-info')?.addEventListener('click', () => openUserProfileModal(sender));
