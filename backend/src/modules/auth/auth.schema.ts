@@ -29,6 +29,8 @@ export const updateProfileSchema = z.object({
   avatarUrl: z.string().min(1).optional(),
   country: z.string().optional(),
   birthDate: z.string().optional(),
+  socialStatus: z.string().max(80).optional(),
+  interests: z.string().max(200).optional(),
   status: z.enum(['ONLINE', 'BUSY', 'IDLE', 'OFFLINE']).optional(),
 });
 

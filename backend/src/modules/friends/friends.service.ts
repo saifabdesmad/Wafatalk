@@ -122,7 +122,21 @@ export class FriendsService {
       where: { userId },
       include: {
         friend: {
-          select: { id: true, displayName: true, username: true, avatarUrl: true, country: true, status: true },
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            country: true,
+            status: true,
+            bio: true,
+            socialStatus: true,
+            interests: true,
+            role: true,
+            wafaPoints: true,
+            createdAt: true,
+            birthDate: true,
+          },
         }
       }
     });
@@ -133,6 +147,14 @@ export class FriendsService {
       avatar: f.friend.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.friend.username)}`,
       country: f.friend.country || 'FR',
       status: f.friend.status.toLowerCase(),
+      bio: f.friend.bio || "Membre actif de WafaTalk ✨",
+      socialStatus: f.friend.socialStatus || "Célibataire",
+      interests: f.friend.interests ? f.friend.interests.split(',').map(s => s.trim()) : ['Discussion', 'Chill', 'Musique'],
+      role: f.friend.role === 'ADMIN' ? 'Admin WafaTalk' : f.friend.role === 'MODERATOR' ? 'Modérateur' : 'Membre',
+      wafaPoints: f.friend.wafaPoints,
+      createdAt: f.friend.createdAt,
+      birthDate: f.friend.birthDate,
+      friendStatus: 'friends',
     }));
   }
 
@@ -176,7 +198,21 @@ export class FriendsService {
           ]
         } : {}),
       },
-      select: { id: true, username: true, displayName: true, avatarUrl: true, country: true, status: true, role: true },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        country: true,
+        status: true,
+        role: true,
+        bio: true,
+        socialStatus: true,
+        interests: true,
+        wafaPoints: true,
+        createdAt: true,
+        birthDate: true,
+      },
       take: 60,
       orderBy: { createdAt: 'desc' },
     });
@@ -213,9 +249,73 @@ export class FriendsService {
         country: u.country || 'FR',
         status: u.status.toLowerCase(),
         role: u.role === 'ADMIN' ? 'Admin WafaTalk' : u.role === 'MODERATOR' ? 'Modérateur' : 'Membre',
+        bio: u.bio || "Membre actif de WafaTalk ✨",
+        socialStatus: u.socialStatus || "Célibataire",
+        interests: u.interests ? u.interests.split(',').map(s => s.trim()) : ['Discussion', 'Chill', 'Musique'],
+        wafaPoints: u.wafaPoints,
+        createdAt: u.createdAt,
+        birthDate: u.birthDate,
         friendStatus,
         requestId,
       };
     });
+  }
+
+  // Get complete rich profile description for any user
+  static async getUserProfile(currentUserId: string, targetUserId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        country: true,
+        status: true,
+        role: true,
+        bio: true,
+        socialStatus: true,
+        interests: true,
+        wafaPoints: true,
+        createdAt: true,
+        birthDate: true,
+        receivedGifts: {
+          select: { id: true, giftType: true, createdAt: true },
+          take: 10,
+        },
+        memberships: {
+          where: { isMuted: false },
+          take: 1,
+          orderBy: { joinedAt: 'desc' },
+          include: {
+            salon: { select: { id: true, name: true, slug: true } }
+          }
+        }
+      }
+    });
+
+    if (!user) throw new Error('Utilisateur introuvable.');
+
+    const { status: friendStatus, requestId } = await this.getFriendshipStatus(currentUserId, targetUserId);
+
+    return {
+      id: user.id,
+      username: user.username,
+      name: user.displayName || user.username,
+      avatar: user.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`,
+      country: user.country || 'FR',
+      status: user.status.toLowerCase(),
+      role: user.role === 'ADMIN' ? 'Admin WafaTalk' : user.role === 'MODERATOR' ? 'Modérateur' : 'Membre',
+      bio: user.bio || "Partage sa bonne humeur et discute dans les salons vocaux et textuels de WafaTalk ✨",
+      socialStatus: user.socialStatus || "Célibataire",
+      interests: user.interests ? user.interests.split(',').map(s => s.trim()) : ['Discussion', 'Chill', 'Musique', 'Rencontres'],
+      wafaPoints: user.wafaPoints,
+      giftsCount: user.receivedGifts.length,
+      createdAt: user.createdAt,
+      birthDate: user.birthDate,
+      friendStatus,
+      requestId,
+      currentSalon: user.memberships[0]?.salon || null,
+    };
   }
 }

@@ -20,6 +20,8 @@ model User {
   status       String        @default("OFFLINE") // ONLINE, IDLE, OFFLINE, IN_SALON
   birthDate        DateTime?
   country          String?
+  socialStatus     String?       @default("Célibataire")
+  interests        String?       @default("Chill, Musique, Discussion")
   isEmailVerified  Boolean       @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt

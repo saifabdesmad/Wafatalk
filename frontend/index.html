@@ -1742,7 +1742,7 @@
     <div class="modal-container dm-modal-container glass-panel">
       <!-- DM Header -->
       <div class="dm-header">
-        <div class="dm-user-profile-wrap">
+        <div class="dm-user-profile-wrap" id="dmFriendProfileWrap" style="cursor: pointer;" title="Cliquer pour voir le profil">
           <div class="dm-avatar-container">
             <img src="" alt="Avatar ami" class="dm-avatar-img" id="dmFriendAvatar">
             <span class="dm-status-indicator online" id="dmFriendStatusDot"></span>
@@ -1829,6 +1829,129 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : FICHE PROFIL UTILISATEUR & DESCRIPTION               -->
+  <!-- ============================================================ -->
+  <div class="modal-overlay hidden" id="userProfileModal" role="dialog" aria-modal="true" aria-labelledby="userProfileName">
+    <div class="modal-container user-profile-modal-container glass-panel">
+      <!-- Ambient Banner & Close Button -->
+      <div class="user-profile-banner">
+        <div class="user-profile-banner-pattern"></div>
+        <button type="button" class="icon-btn modal-close-btn user-profile-close-btn" id="btnCloseUserProfileModal" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Avatar & Quick Badge Row -->
+      <div class="user-profile-header-body">
+        <div class="user-profile-avatar-wrapper">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160" alt="Avatar" id="userProfileAvatar" class="user-profile-avatar">
+          <span class="user-profile-status-indicator online" id="userProfileStatusDot"></span>
+        </div>
+        
+        <div class="user-profile-main-meta">
+          <div class="user-profile-name-row">
+            <h2 class="user-profile-display-name" id="userProfileName">Nom de l'utilisateur</h2>
+            <span class="user-profile-flag" id="userProfileFlag">🇫🇷</span>
+            <span class="user-profile-role-badge" id="userProfileRole">Membre</span>
+          </div>
+          <div class="user-profile-username-sub" id="userProfileUsername">@username</div>
+          
+          <div class="user-profile-status-pill-wrap">
+            <span class="user-profile-online-badge online" id="userProfileOnlineStatus">🟢 En ligne</span>
+            <span class="user-profile-social-badge" id="userProfileSocialStatus">💖 Célibataire</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Content Scrollable Area -->
+      <div class="user-profile-content-scroll">
+        <!-- Bio / Description Section -->
+        <div class="user-profile-card-block">
+          <h4 class="user-profile-section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            À propos de moi
+          </h4>
+          <p class="user-profile-bio-text" id="userProfileBio">
+            Partage sa bonne humeur et discute dans les salons vocaux et textuels de WafaTalk.
+          </p>
+        </div>
+
+        <!-- Social & Personnalité Tags -->
+        <div class="user-profile-card-block">
+          <h4 class="user-profile-section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+            Centres d'intérêt & Mode de vie
+          </h4>
+          <div class="user-profile-tags-grid" id="userProfileInterests">
+            <span class="user-profile-tag">☕ Discussion & Café</span>
+            <span class="user-profile-tag">🎮 Gaming</span>
+            <span class="user-profile-tag">🎵 Musique</span>
+          </div>
+        </div>
+
+        <!-- Community Highlights Grid (Stats) -->
+        <div class="user-profile-stats-grid">
+          <div class="user-profile-stat-box">
+            <span class="stat-box-icon">⭐</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfilePoints">150</span>
+              <span class="stat-box-lbl">Points Wafa</span>
+            </div>
+          </div>
+          <div class="user-profile-stat-box">
+            <span class="stat-box-icon">🎁</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfileGifts">0</span>
+              <span class="stat-box-lbl">Cadeaux reçus</span>
+            </div>
+          </div>
+          <div class="user-profile-stat-box">
+            <span class="stat-box-icon">📅</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfileMemberSince">Nov. 2026</span>
+              <span class="stat-box-lbl">Membre depuis</span>
+            </div>
+          </div>
+          <div class="user-profile-stat-box" id="userProfileAgeBox">
+            <span class="stat-box-icon">🎂</span>
+            <div class="stat-box-info">
+              <span class="stat-box-val" id="userProfileAge">24 ans</span>
+              <span class="stat-box-lbl">Âge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Salon / Activity (if any) -->
+        <div class="user-profile-salon-activity hidden" id="userProfileSalonBox">
+          <div class="salon-activity-icon">🎙️</div>
+          <div class="salon-activity-text">
+            <span>Actuellement en salon vocal</span>
+            <strong id="userProfileSalonName">Chill & Discussion</strong>
+          </div>
+          <button type="button" class="btn btn-sm btn-teal" id="btnJoinProfileUserSalon">Rejoindre</button>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="user-profile-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnProfileSendWink">
+          <span>😉 Envoyer un clin d'œil</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="btnProfileStartChat">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Discuter</span>
+        </button>
+        <button type="button" class="btn btn-coral-outline" id="btnProfileSendGift" title="Offrir un cadeau WafaTalk">
+          <span>🎁 Cadeau</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2168,6 +2291,32 @@
                 <option value="Royaume-Uni">Royaume-Uni</option>
                 <option value="États-Unis">États-Unis</option>
               </select>
+            </div>
+          </div>
+
+          <div class="profile-fields-grid" style="margin-top: 14px;">
+            <div class="input-group">
+              <label for="profileSocialStatusSelect">Statut relationnel / Ambiance</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">💖</span>
+                <select id="profileSocialStatusSelect">
+                  <option value="Célibataire">💖 Célibataire</option>
+                  <option value="En couple">💍 En couple</option>
+                  <option value="Cœur à prendre">💘 Cœur à prendre</option>
+                  <option value="C'est compliqué">🌪️ C'est compliqué</option>
+                  <option value="Marié(e)">👰 Marié(e)</option>
+                  <option value="Juste des amis">🤝 Juste des amis</option>
+                  <option value="Secret">🤫 Secret</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="profileInterestsInput">Centres d'intérêt (séparés par virgules)</label>
+              <div class="input-field-wrap">
+                <span class="input-icon">✨</span>
+                <input type="text" id="profileInterestsInput" placeholder="Ex: Chill, Musique, Gaming" maxlength="80">
+              </div>
             </div>
           </div>
         </div>

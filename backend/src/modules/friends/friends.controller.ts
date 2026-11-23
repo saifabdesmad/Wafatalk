@@ -45,6 +45,17 @@ export async function friendsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // GET /api/friends/profile/:targetUserId — get rich user profile description
+  fastify.get('/profile/:targetUserId', async (request: any, reply: FastifyReply) => {
+    try {
+      const { targetUserId } = request.params as { targetUserId: string };
+      const profile = await FriendsService.getUserProfile(request.user.id, targetUserId);
+      return reply.send({ success: true, profile });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
   // POST /api/friends/request/:targetUserId — send friend request
   fastify.post('/request/:targetUserId', async (request: any, reply: FastifyReply) => {
     try {

@@ -240,6 +240,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Stage Voices in Room (populated dynamically from real connected users)
   const stageParticipants = [];
 
+  // Active target for profile viewing / gifting
+  let activeDirectUser = null;
+
   // =========================================================================
   // 2. DOM ELEMENTS SELECTION
   // =========================================================================
@@ -2327,16 +2330,19 @@ document.addEventListener('DOMContentLoaded', () => {
           const item = document.createElement('div');
           item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-muted);';
           item.innerHTML = `
-            <img src="${sender.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender.username)}`}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${sender.displayName || sender.username}</div>
-              <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous</div>
+            <div class="pending-user-info" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${sender.displayName || sender.username}">
+              <img src="${sender.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender.username)}`}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${sender.displayName || sender.username}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous (cliquer pour voir le profil)</div>
+              </div>
             </div>
             <div style="display:flex;gap:4px;">
               <button class="btn-accept-req" data-reqid="${req.id}" data-senderid="${sender.id}" style="padding:4px 10px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Accepter</button>
               <button class="btn-reject-req" data-reqid="${req.id}" style="padding:4px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Refuser</button>
             </div>
           `;
+          item.querySelector('.pending-user-info')?.addEventListener('click', () => openUserProfileModal(sender));
           item.querySelector('.btn-accept-req').addEventListener('click', async () => {
             await handleAcceptRequest(req.id, sender);
           });
@@ -2371,7 +2377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = document.createElement('div');
         item.className = `friend-item ${statusClass}`;
         item.innerHTML = `
-          <div class="friend-item-left" style="cursor:pointer;flex:1;" title="${statusLabel} — Cliquer pour envoyer un message">
+          <div class="friend-item-left" style="cursor:pointer;flex:1;" title="${statusLabel} — Cliquer pour voir la fiche profil">
             <div class="friend-avatar-wrap">
               <img src="${friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
@@ -2396,7 +2402,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
           </div>
         `;
-        item.querySelector('.friend-item-left').addEventListener('click', () => openDirectChat(friend));
+        item.querySelector('.friend-item-left').addEventListener('click', () => openUserProfileModal(friend));
         item.querySelector('.friend-action-btn').addEventListener('click', () => openDirectChat(friend));
         item.querySelector('.friend-unfriend-btn').addEventListener('click', (e) => {
           e.stopPropagation();
@@ -2462,7 +2468,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         item.innerHTML = `
-          <div class="friend-item-left" style="flex:1;min-width:0;">
+          <div class="friend-item-left" style="flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${u.name || u.username}">
             <div class="friend-avatar-wrap">
               <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${u.name || u.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <span class="friend-status-dot ${isOnline ? 'online' : 'offline'}"></span>
@@ -2472,11 +2478,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="friend-name">${u.name || u.username}</span>
                 <span>${flagTag}</span>
               </div>
-              <span class="friend-activity" style="font-size:0.72rem;color:var(--text-muted);">${u.role || ''}</span>
+              <span class="friend-activity" style="font-size:0.72rem;color:var(--text-muted);">${u.socialStatus ? `💖 ${u.socialStatus}` : (u.role || '')}</span>
             </div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0;">${actionBtn}</div>
         `;
+
+        item.querySelector('.friend-item-left').addEventListener('click', () => openUserProfileModal(u));
 
         // Wire up action buttons
         item.querySelectorAll('.explore-action-btn').forEach(btn => {
@@ -5978,6 +5986,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileBioInput) profileBioInput.value = bio;
     if (profileBioCounter) profileBioCounter.textContent = `${bio.length}/160`;
     if (profileMoodInput) profileMoodInput.value = mood;
+    const profileSocialStatusSelect = document.getElementById('profileSocialStatusSelect');
+    if (profileSocialStatusSelect) profileSocialStatusSelect.value = user.socialStatus || 'Célibataire';
+    const profileInterestsInput = document.getElementById('profileInterestsInput');
+    if (profileInterestsInput) profileInterestsInput.value = user.interests || 'Chill, Musique, Discussion';
     if (profileCountrySelect) {
       // Find matching country option by value or text
       const opts = Array.from(profileCountrySelect.options);
@@ -6124,11 +6136,18 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSaveProfileModal.disabled = true;
     profileSaveSpinner?.classList.remove('hidden');
 
+    const profileSocialStatusSelect = document.getElementById('profileSocialStatusSelect');
+    const socialStatus = profileSocialStatusSelect ? profileSocialStatusSelect.value : 'Célibataire';
+    const profileInterestsInput = document.getElementById('profileInterestsInput');
+    const interests = profileInterestsInput ? profileInterestsInput.value.trim() : 'Chill, Musique, Discussion';
+
     const updatePayload = {
       displayName,
       avatarUrl: activeProfileAvatar,
       bio,
       country,
+      socialStatus,
+      interests,
       status: activePresenceStatus,
     };
 
@@ -8317,6 +8336,276 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
+  // 14.3 FICHE PROFIL UTILISATEUR & DESCRIPTION (MODAL)
+  // =========================================================================
+  const userProfileModal = document.getElementById('userProfileModal');
+  const btnCloseUserProfileModal = document.getElementById('btnCloseUserProfileModal');
+  const userProfileAvatar = document.getElementById('userProfileAvatar');
+  const userProfileStatusDot = document.getElementById('userProfileStatusDot');
+  const userProfileName = document.getElementById('userProfileName');
+  const userProfileFlag = document.getElementById('userProfileFlag');
+  const userProfileRole = document.getElementById('userProfileRole');
+  const userProfileUsername = document.getElementById('userProfileUsername');
+  const userProfileOnlineStatus = document.getElementById('userProfileOnlineStatus');
+  const userProfileSocialStatus = document.getElementById('userProfileSocialStatus');
+  const userProfileBio = document.getElementById('userProfileBio');
+  const userProfileInterests = document.getElementById('userProfileInterests');
+  const userProfilePoints = document.getElementById('userProfilePoints');
+  const userProfileGifts = document.getElementById('userProfileGifts');
+  const userProfileMemberSince = document.getElementById('userProfileMemberSince');
+  const userProfileAge = document.getElementById('userProfileAge');
+  const userProfileAgeBox = document.getElementById('userProfileAgeBox');
+  const userProfileSalonBox = document.getElementById('userProfileSalonBox');
+  const userProfileSalonName = document.getElementById('userProfileSalonName');
+  const btnJoinProfileUserSalon = document.getElementById('btnJoinProfileUserSalon');
+  const btnProfileSendWink = document.getElementById('btnProfileSendWink');
+  const btnProfileStartChat = document.getElementById('btnProfileStartChat');
+  const btnProfileSendGift = document.getElementById('btnProfileSendGift');
+
+  let currentInspectedUser = null;
+
+  function closeUserProfileModal() {
+    if (userProfileModal) {
+      userProfileModal.classList.add('hidden');
+    }
+  }
+
+  btnCloseUserProfileModal?.addEventListener('click', closeUserProfileModal);
+  userProfileModal?.addEventListener('click', (e) => {
+    if (e.target === userProfileModal) closeUserProfileModal();
+  });
+
+  function formatSocialStatusText(status) {
+    if (!status) return '💖 Célibataire';
+    const s = String(status).trim();
+    if (s.toLowerCase().includes('célibataire') || s.toLowerCase().includes('celibataire')) {
+      return s.startsWith('💖') || s.startsWith('✨') ? s : `💖 ${s}`;
+    }
+    if (s.toLowerCase().includes('couple')) {
+      return s.startsWith('💍') || s.startsWith('❤️') ? s : `💍 ${s}`;
+    }
+    if (s.toLowerCase().includes('cœur') || s.toLowerCase().includes('coeur')) {
+      return s.startsWith('💘') || s.startsWith('✨') ? s : `💘 ${s}`;
+    }
+    if (s.toLowerCase().includes('compliqué') || s.toLowerCase().includes('complique')) {
+      return s.startsWith('🌪️') ? s : `🌪️ ${s}`;
+    }
+    if (s.toLowerCase().includes('marié') || s.toLowerCase().includes('marie')) {
+      return s.startsWith('👰') ? s : `👰 ${s}`;
+    }
+    if (s.toLowerCase().includes('ami')) {
+      return s.startsWith('🤝') ? s : `🤝 ${s}`;
+    }
+    return `✨ ${s}`;
+  }
+
+  async function openUserProfileModal(userOrUserId) {
+    if (!userOrUserId || !userProfileModal) return;
+
+    let targetId = typeof userOrUserId === 'object' ? userOrUserId.id : userOrUserId;
+    let initialUser = typeof userOrUserId === 'object' ? userOrUserId : {};
+    currentInspectedUser = initialUser;
+
+    // Populate modal elements
+    function populateModalUI(userData) {
+      currentInspectedUser = { ...currentInspectedUser, ...userData };
+      const u = currentInspectedUser;
+      const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username)) || u.status === 'online' || Boolean(u._isOnline);
+
+      if (userProfileAvatar) {
+        userProfileAvatar.src = u.avatar || u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username || 'user')}`;
+      }
+      if (userProfileStatusDot) {
+        userProfileStatusDot.className = `user-profile-status-indicator ${isOnline ? 'online' : ''}`;
+      }
+      if (userProfileName) {
+        userProfileName.textContent = u.name || u.displayName || u.username || 'Membre WafaTalk';
+      }
+      if (userProfileFlag) {
+        userProfileFlag.innerHTML = getFlagImgTag(u.country, u.country);
+      }
+      if (userProfileRole) {
+        userProfileRole.textContent = u.role === 'ADMIN' ? 'Fondateur' : u.role === 'MODERATOR' ? 'Modérateur' : (u.role || 'Membre');
+      }
+      if (userProfileUsername) {
+        userProfileUsername.textContent = `@${u.username || 'membre'}`;
+      }
+      if (userProfileOnlineStatus) {
+        userProfileOnlineStatus.className = `user-profile-online-badge ${isOnline ? 'online' : 'offline'}`;
+        userProfileOnlineStatus.textContent = isOnline ? '🟢 En ligne' : '⚪ Hors ligne';
+      }
+      if (userProfileSocialStatus) {
+        userProfileSocialStatus.textContent = formatSocialStatusText(u.socialStatus);
+      }
+      if (userProfileBio) {
+        userProfileBio.textContent = u.bio || "Partage sa bonne humeur et discute dans les salons vocaux et textuels de WafaTalk ✨";
+      }
+
+      // Interests tags
+      if (userProfileInterests) {
+        userProfileInterests.innerHTML = '';
+        let list = [];
+        if (Array.isArray(u.interests)) {
+          list = u.interests;
+        } else if (typeof u.interests === 'string') {
+          list = u.interests.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if (list.length === 0) list = ['Discussion & Café', 'Gaming', 'Musique'];
+        const tagIcons = ['☕', '🎮', '🎵', '💬', '✨', '🌍', '🎬', '🎧', '✈️', '🎨'];
+        list.forEach((item, idx) => {
+          const tag = document.createElement('span');
+          tag.className = 'user-profile-tag';
+          const icon = tagIcons[idx % tagIcons.length];
+          tag.textContent = `${icon} ${item}`;
+          userProfileInterests.appendChild(tag);
+        });
+      }
+
+      // Points & Gifts stats
+      if (userProfilePoints) {
+        userProfilePoints.textContent = (u.wafaPoints ?? u.points ?? 150).toLocaleString();
+      }
+      if (userProfileGifts) {
+        userProfileGifts.textContent = (u.giftsCount ?? u.receivedGiftsCount ?? 0).toLocaleString();
+      }
+
+      // Member since date
+      if (userProfileMemberSince) {
+        if (u.createdAt) {
+          const d = new Date(u.createdAt);
+          if (!isNaN(d.getTime())) {
+            const m = d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+            userProfileMemberSince.textContent = m.charAt(0).toUpperCase() + m.slice(1);
+          } else {
+            userProfileMemberSince.textContent = 'Nov. 2026';
+          }
+        } else {
+          userProfileMemberSince.textContent = 'Nov. 2026';
+        }
+      }
+
+      // Age calculation
+      if (userProfileAgeBox) {
+        if (u.birthDate) {
+          const age = calculateAge(u.birthDate);
+          if (age >= 13 && age < 120) {
+            if (userProfileAge) userProfileAge.textContent = `${age} ans`;
+            userProfileAgeBox.style.display = 'flex';
+          } else {
+            userProfileAgeBox.style.display = 'none';
+          }
+        } else {
+          userProfileAgeBox.style.display = 'none';
+        }
+      }
+
+      // Current Salon activity
+      if (userProfileSalonBox) {
+        if (u.currentSalon && u.currentSalon.name) {
+          userProfileSalonBox.classList.remove('hidden');
+          if (userProfileSalonName) userProfileSalonName.textContent = u.currentSalon.name;
+          if (btnJoinProfileUserSalon) {
+            btnJoinProfileUserSalon.onclick = () => {
+              closeUserProfileModal();
+              openLiveSalon(u.currentSalon);
+            };
+          }
+        } else {
+          userProfileSalonBox.classList.add('hidden');
+        }
+      }
+
+      // Buttons configuration
+      const isFriend = u.friendStatus === 'friends' || myFriendsList.some(f => f.id === u.id || (f.username && u.username && f.username.toLowerCase() === u.username.toLowerCase()));
+
+      if (btnProfileSendWink) {
+        if (isFriend) {
+          btnProfileSendWink.innerHTML = '<span>🤝 Amis</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = true;
+          btnProfileSendWink.onclick = null;
+        } else if (u.friendStatus === 'request_sent') {
+          btnProfileSendWink.innerHTML = '<span>😉 Clin d\'œil envoyé</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            if (u.requestId) {
+              await handleCancelRequest(u.requestId, null, btnProfileSendWink);
+              u.friendStatus = 'none';
+              populateModalUI({ friendStatus: 'none', requestId: null });
+            } else {
+              showToast('Clin d\'œil déjà envoyé, en attente de réponse !', 'teal');
+            }
+          };
+        } else if (u.friendStatus === 'request_received') {
+          btnProfileSendWink.innerHTML = '<span>😉 Renvoyer le clin d\'œil</span>';
+          btnProfileSendWink.className = 'btn btn-teal';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            await handleAcceptRequest(u.requestId, u);
+            u.friendStatus = 'friends';
+            populateModalUI({ friendStatus: 'friends' });
+          };
+        } else {
+          btnProfileSendWink.innerHTML = '<span>😉 Clin d\'œil complice</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            await handleSendFriendRequest(u.id, null, btnProfileSendWink);
+            u.friendStatus = 'request_sent';
+            populateModalUI({ friendStatus: 'request_sent' });
+          };
+        }
+      }
+
+      if (btnProfileStartChat) {
+        btnProfileStartChat.onclick = () => {
+          if (isFriend) {
+            closeUserProfileModal();
+            openDirectChat(u);
+          } else {
+            showToast('Envoyez d\'abord un clin d\'œil complice pour devenir amis et discuter en privé ! 😉', 'teal');
+            if (btnProfileSendWink) {
+              btnProfileSendWink.classList.add('pulse-highlight');
+              setTimeout(() => btnProfileSendWink?.classList.remove('pulse-highlight'), 1200);
+            }
+          }
+        };
+      }
+
+      if (btnProfileSendGift) {
+        btnProfileSendGift.onclick = () => {
+          closeUserProfileModal();
+          activeDirectUser = u;
+          openGiftShop();
+        };
+      }
+    }
+
+    // Immediately display initial data
+    populateModalUI(initialUser);
+    userProfileModal.classList.remove('hidden');
+
+    // Fetch full enriched profile from backend API if available
+    if (targetId) {
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/friends/profile/${targetId}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.profile) {
+            populateModalUI(data.profile);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch rich user profile:', err);
+      }
+    }
+  }
+
+  // =========================================================================
   // 1-ON-1 DIRECT CHAT CONTROLLER
   // =========================================================================
   async function openDirectChat(friend) {
@@ -8338,6 +8627,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dmFriendFlag) dmFriendFlag.innerHTML = getFlagImgTag(friend.country, friend.country);
     const isOnline = activeOnlineUserIds.has(friend.id) || (friend.username && activeOnlineUserIds.has(friend.username)) || Boolean(friend._isOnline);
     updateDmFriendStatusUI(isOnline);
+
+    const dmProfileWrap = document.getElementById('dmFriendProfileWrap');
+    if (dmProfileWrap) {
+      dmProfileWrap.onclick = () => {
+        if (currentDmFriend) openUserProfileModal(currentDmFriend);
+      };
+    }
 
     directChatModal.classList.remove('hidden');
     dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><p>Chargement du salon privé...</p></div>';
