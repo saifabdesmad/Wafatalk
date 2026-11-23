@@ -5407,6 +5407,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnOpenGiftShop?.addEventListener('click', openGiftShop);
   btnSidebarGiftTrigger?.addEventListener('click', openGiftShop);
   btnModalGiftTrigger?.addEventListener('click', openGiftShop);
+  document.getElementById('btnChatGiftTrigger')?.addEventListener('click', openGiftShop);
   btnSendCommunityGift?.addEventListener('click', openGiftShop);
   btnCloseGiftModal?.addEventListener('click', () => {
     dismissWithHistory(closeGiftShop);

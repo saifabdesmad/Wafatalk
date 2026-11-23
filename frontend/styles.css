@@ -4821,22 +4821,154 @@ a {
   }
 
   .salon-modal-header {
-    padding: 10px 14px;
-    gap: 8px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: max(10px, env(safe-area-inset-top, 0px)) 12px 10px 12px !important;
+    background: var(--bg-surface-elevated) !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .salon-modal-info {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    padding-right: 4px !important;
+  }
+
+  .salon-tag-badge {
+    font-size: 0.62rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .salon-modal-title {
-    font-size: 1.05rem;
-    line-height: 1.2;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
   }
 
   .salon-modal-topic {
     display: none !important;
   }
 
-  .btn-gift-special {
-    padding: 6px 10px;
-    font-size: 0.78rem;
+  .salon-modal-top-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    max-width: fit-content !important;
+  }
+
+  /* Fullscreen API is redundant on mobile: modal is already full viewport 100dvh */
+  .salon-modal-top-actions #btnToggleSalonFullscreen {
+    display: none !important;
+  }
+
+  /* Compact Circular Icon Buttons: Réduire, Inviter, Bannis */
+  .salon-modal-top-actions #btnMinimizeSalon,
+  .salon-modal-top-actions #btnOpenSalonShare,
+  .salon-modal-top-actions #btnOpenSalonBansModal {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-medium) !important;
+    color: var(--text-normal) !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .salon-modal-top-actions #btnMinimizeSalon span,
+  .salon-modal-top-actions #btnOpenSalonShare span,
+  .salon-modal-top-actions #btnOpenSalonBansModal span {
+    display: none !important;
+  }
+
+  .salon-modal-top-actions #btnMinimizeSalon svg,
+  .salon-modal-top-actions #btnOpenSalonShare svg,
+  .salon-modal-top-actions #btnOpenSalonBansModal svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* THE STAR BUTTON: CADEAUX (Envoyer Cadeaux en Salon) */
+  .salon-modal-top-actions .btn-gift-special,
+  .salon-modal-top-actions #btnModalGiftTrigger {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    height: 34px !important;
+    padding: 0 11px !important;
+    border-radius: 999px !important;
+    font-size: 0.76rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.02em !important;
+    background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 12px rgba(245, 158, 11, 0.45) !important;
+    border: none !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+    box-sizing: border-box !important;
+  }
+
+  .salon-modal-top-actions #btnModalGiftTrigger svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .salon-modal-top-actions #btnModalGiftTrigger span {
+    display: inline !important;
+  }
+
+  /* Quitter / Close Button */
+  .salon-modal-top-actions #btnCloseSalonModal {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: var(--coral-primary, #ef4444) !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .salon-modal-top-actions #btnCloseSalonModal svg {
+    width: 17px !important;
+    height: 17px !important;
   }
 
   /* Mobile Salon Tabs Switcher */
@@ -5085,6 +5217,35 @@ a {
     flex-shrink: 0;
   }
 
+  .btn-chat-gift {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    color: var(--amber-primary, #f59e0b) !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    cursor: pointer;
+    transition: transform var(--duration-fast), background var(--duration-fast);
+  }
+
+  .btn-chat-gift svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+
+  .btn-chat-gift:active {
+    transform: scale(0.92);
+    background: rgba(245, 158, 11, 0.25) !important;
+  }
+
   /* ---- 7. Modal Overlay & Dialogs Mobile Polish ---- */
   .modal-overlay {
     padding: 10px;
@@ -5217,6 +5378,53 @@ a {
     max-height: 100dvh !important;
     border-radius: 0 !important;
     border: none !important;
+  }
+
+  .active-call-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 14px 10px 14px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+  }
+
+  .active-call-user-info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  .active-call-peer-name {
+    font-size: 0.95rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin: 0 !important;
+  }
+
+  .active-call-encrypted-tag {
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+  }
+
+  .active-call-avatar-mini {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .active-call-top-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
   }
 
   .local-video-pip {
