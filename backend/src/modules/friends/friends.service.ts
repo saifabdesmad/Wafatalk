@@ -24,9 +24,9 @@ export class FriendsService {
     });
     if (existingReq) {
       if (existingReq.senderId === receiverId) {
-        throw new Error("Cet utilisateur vous a déjà envoyé une demande d'ami. Acceptez-la !");
+        throw new Error("Cet utilisateur vous a déjà envoyé un clin d'œil. Renvoyez-lui un clin d'œil !");
       }
-      throw new Error("Une demande d'ami est déjà en attente pour cet utilisateur.");
+      throw new Error("Un clin d'œil est déjà en attente pour cet utilisateur.");
     }
 
     const request = await prisma.friendRequest.create({

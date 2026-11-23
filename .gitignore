@@ -17,3 +17,5 @@ cloudflared.log
 .agent/
 .agents/
 .hallmark/
+graphify-out/
+serve-frontend.js

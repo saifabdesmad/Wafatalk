@@ -2202,12 +2202,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tabBar = document.createElement('div');
     tabBar.id = 'friendTabsBar';
-    tabBar.style.cssText = 'display:flex;gap:4px;padding:8px 10px 4px;border-bottom:1px solid var(--border);';
     tabBar.innerHTML = `
-      <button id="tabBtnFriends" class="friend-tab-btn active" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--primary);color:#fff;transition:opacity 0.15s;">
+      <button id="tabBtnFriends" class="friend-tab-btn active" type="button" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--teal-primary, #0d837d);color:#fff;transition:all 0.15s;">
         Amis
       </button>
-      <button id="tabBtnExplore" class="friend-tab-btn" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--bg-muted, rgba(120,120,120,0.12));color:var(--text-muted);transition:opacity 0.15s;position:relative;">
+      <button id="tabBtnExplore" class="friend-tab-btn" type="button" style="flex:1;padding:6px 8px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;background:var(--bg-muted, rgba(120,120,120,0.12));color:var(--text-secondary, #3b504e);transition:all 0.15s;position:relative;">
         Explorer
         <span id="friendReqBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:0.65rem;line-height:16px;text-align:center;"></span>
       </button>
@@ -2224,15 +2223,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExplore = document.getElementById('tabBtnExplore');
     if (btnFriends && btnExplore) {
       if (tab === 'friends') {
-        btnFriends.style.background = 'var(--primary)';
+        btnFriends.classList.add('active');
+        btnExplore.classList.remove('active');
+        btnFriends.style.background = 'var(--teal-primary, #0d837d)';
         btnFriends.style.color = '#fff';
         btnExplore.style.background = 'var(--bg-muted, rgba(120,120,120,0.12))';
-        btnExplore.style.color = 'var(--text-muted)';
+        btnExplore.style.color = 'var(--text-secondary, #3b504e)';
       } else {
-        btnExplore.style.background = 'var(--primary)';
+        btnExplore.classList.add('active');
+        btnFriends.classList.remove('active');
+        btnExplore.style.background = 'var(--teal-primary, #0d837d)';
         btnExplore.style.color = '#fff';
         btnFriends.style.background = 'var(--bg-muted, rgba(120,120,120,0.12))';
-        btnFriends.style.color = 'var(--text-muted)';
+        btnFriends.style.color = 'var(--text-secondary, #3b504e)';
       }
     }
     renderFriends();
@@ -2446,16 +2449,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let actionBtn = '';
         if (u.friendStatus === 'friends') {
-          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message" style="padding:5px 10px;border-radius:6px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Message</button>`;
+          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message">Message</button>`;
         } else if (u.friendStatus === 'request_sent') {
-          actionBtn = `<button class="explore-action-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler la demande" style="padding:5px 10px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;">En attente</button>`;
+          actionBtn = `<button class="explore-action-btn explore-wink-sent-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler le clin d'œil">😉 Envoyé</button>`;
         } else if (u.friendStatus === 'request_received') {
           actionBtn = `
-            <button class="explore-action-btn" data-action="accept" data-reqid="${u.requestId}" data-uid="${u.id}" title="Accepter" style="padding:5px 8px;border-radius:6px;border:none;background:#10b981;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Accepter</button>
-            <button class="explore-action-btn" data-action="reject" data-reqid="${u.requestId}" title="Refuser" style="padding:5px 8px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-muted);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Refuser</button>
+            <button class="explore-action-btn explore-wink-reply-btn" data-action="accept" data-reqid="${u.requestId}" data-uid="${u.id}" title="Renvoyer un clin d'œil">😉 Renvoyer</button>
+            <button class="explore-action-btn" data-action="reject" data-reqid="${u.requestId}" title="Ignorer" style="padding:5px 8px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-secondary, #3b504e);font-size:0.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border-subtle);">Ignorer</button>
           `;
         } else {
-          actionBtn = `<button class="explore-action-btn" data-action="add" data-uid="${u.id}" title="Envoyer une demande d'ami" style="padding:5px 10px;border-radius:6px;border:none;background:var(--primary);color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Ajouter</button>`;
+          actionBtn = `<button class="explore-action-btn explore-wink-btn" data-action="add" data-uid="${u.id}" title="Envoyer un clin d'œil complice">😉 Clin d'œil</button>`;
         }
 
         item.innerHTML = `
@@ -2500,11 +2503,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Friend Request Action Handlers
+  // Friend Request Action Handlers (Clin d'œil)
   async function handleSendFriendRequest(targetUserId, itemEl, btn) {
     const token = getAuthToken();
     if (!token) { showToast('Connexion requise.', 'coral'); return; }
     try {
+      const rect = btn?.getBoundingClientRect?.();
+      spawnFloatingWink(rect ? rect.left + rect.width / 2 : undefined, rect ? rect.top : undefined);
+      playTone(784, 'sine', 0.12);
+
       btn.disabled = true;
       btn.textContent = '...';
       const res = await fetch(`${API_BASE_URL}/friends/request/${targetUserId}`, {
@@ -2513,21 +2520,20 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = 'En attente';
-        btn.style.background = 'var(--bg-secondary,#e5e7eb)';
-        btn.style.color = 'var(--text-muted)';
+        btn.textContent = '😉 Envoyé';
+        btn.className = 'explore-action-btn explore-wink-sent-btn';
         btn.dataset.action = 'cancel';
         btn.dataset.reqid = data.request.id;
         btn.disabled = false;
-        showToast('Demande d\'ami envoyée.', 'green');
+        showToast('😉 Clin d\'œil complice envoyé !', 'teal');
       } else {
         btn.disabled = false;
-        btn.textContent = 'Ajouter';
+        btn.textContent = '😉 Clin d\'œil';
         showToast(data.message || 'Erreur.', 'coral');
       }
     } catch(e) {
       btn.disabled = false;
-      btn.textContent = 'Ajouter';
+      btn.textContent = '😉 Clin d\'œil';
       showToast('Erreur réseau.', 'coral');
     }
   }
@@ -2543,13 +2549,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = 'Ajouter';
-        btn.style.background = 'var(--primary)';
-        btn.style.color = '#fff';
+        btn.textContent = '😉 Clin d\'œil';
+        btn.className = 'explore-action-btn explore-wink-btn';
         btn.dataset.action = 'add';
         delete btn.dataset.reqid;
         btn.disabled = false;
-        showToast('Demande annulée.', 'orange');
+        showToast('Clin d\'œil annulé.', 'orange');
       } else {
         btn.disabled = false;
         showToast(data.message || 'Erreur.', 'coral');
@@ -2569,7 +2574,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`Vous êtes maintenant amis avec ${sender.name || sender.displayName || sender.username}.`, 'green');
+        triggerWinkHaptic();
+        playGiftChime();
+        spawnFloatingWink();
+        const sName = sender?.name || sender?.displayName || sender?.username || 'cet utilisateur';
+        showToast(`✨ Clin d'œil renvoyé ! Vous êtes maintenant amis avec ${sName}.`, 'green');
+        await refreshFriendData();
         await renderFriends();
       } else {
         showToast(data.message || 'Erreur.', 'coral');
@@ -2589,7 +2599,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Demande refusée.', 'orange');
+        showToast('Clin d\'œil ignoré.', 'orange');
+        await refreshFriendData();
         await renderFriends();
       } else {
         showToast(data.message || 'Erreur.', 'coral');
@@ -6803,6 +6814,123 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { }
   }
 
+  // Haptic feedback for Clin d'œil (playful, friendly pulse)
+  function triggerWinkHaptic() {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        // Playful double-buzz wink rhythm: short ping (70ms), brief rest (50ms), warm soft buzz (130ms)
+        navigator.vibrate([70, 50, 130]);
+      }
+    } catch (err) {}
+  }
+
+  // Playful, cheerful two-tone chime for Clin d'œil (Web Audio API)
+  function playWinkChime() {
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      // Note 1: Playful upward slide (D5 -> F#5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now);
+      osc1.frequency.exponentialRampToValueAtTime(739.99, now + 0.12);
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.16);
+
+      // Note 2: Bright, crystal-clear wink sparkle (A5 -> D6)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(880, now + 0.10);
+      osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.24);
+      gain2.gain.setValueAtTime(0.14, now + 0.10);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.10);
+      osc2.stop(now + 0.36);
+    } catch (err) {}
+  }
+
+  // Spawns a floating 😉 particle on screen (interactive visual feedback)
+  function spawnFloatingWink(clientX, clientY) {
+    try {
+      const particle = document.createElement('div');
+      particle.className = 'floating-wink-particle';
+      particle.textContent = '😉';
+      const x = clientX ?? (window.innerWidth / 2);
+      const y = clientY ?? (window.innerHeight / 2);
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      document.body.appendChild(particle);
+      setTimeout(() => particle.remove(), 950);
+    } catch (e) {}
+  }
+
+  // Interactive Clin d'œil Notification with 1-click "Renvoyer"
+  function showWinkNotification(request) {
+    try {
+      const existing = document.getElementById('activeWinkToast');
+      if (existing) existing.remove();
+
+      const sender = request?.sender || {};
+      const senderName = sender.displayName || sender.username || 'Un membre';
+      const senderAvatar = sender.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+
+      const card = document.createElement('div');
+      card.id = 'activeWinkToast';
+      card.className = 'wink-toast-card';
+      card.innerHTML = `
+        <img src="${senderAvatar}" alt="${senderName}" class="wink-toast-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+        <div class="wink-toast-content">
+          <div class="wink-toast-title">
+            <span>😉 Clin d'œil reçu !</span>
+          </div>
+          <div class="wink-toast-desc">
+            <strong>${senderName}</strong> vous a envoyé un clin d'œil complice.
+          </div>
+          <div class="wink-toast-actions">
+            <button type="button" class="wink-toast-btn-accept" id="btnWinkToastAccept">
+              😉 Renvoyer le clin d'œil
+            </button>
+            <button type="button" class="wink-toast-btn-dismiss" id="btnWinkToastDismiss">
+              Plus tard
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(card);
+
+      const dismiss = () => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(16px)';
+        card.style.transition = 'all 0.25s ease';
+        setTimeout(() => card.remove(), 260);
+      };
+
+      card.querySelector('#btnWinkToastAccept')?.addEventListener('click', async () => {
+        dismiss();
+        spawnFloatingWink();
+        await handleAcceptRequest(request.id, sender);
+      });
+
+      card.querySelector('#btnWinkToastDismiss')?.addEventListener('click', dismiss);
+
+      // Auto dismiss after 10s if untouched
+      setTimeout(() => {
+        if (document.body.contains(card)) dismiss();
+      }, 10000);
+    } catch (e) {}
+  }
+
 
 
   // =========================================================================
@@ -7951,26 +8079,38 @@ document.addEventListener('DOMContentLoaded', () => {
       renderFriends();
     });
 
-    // Real-time friend request events
+    // Real-time friend request events (Clin d'œil complice)
     socket.on('friend:request_received', ({ request }) => {
       if (request && !pendingFriendRequests.some(r => r.id === request.id)) {
         pendingFriendRequests.unshift(request);
       }
       const badge = document.getElementById('friendReqBadge');
       if (badge) {
-        badge.textContent = pendingFriendRequests.length;
+        badge.textContent = `😉 ${pendingFriendRequests.length}`;
         badge.style.display = pendingFriendRequests.length > 0 ? 'block' : 'none';
       }
-      const senderName = request?.sender?.displayName || request?.sender?.username || 'Quelqu\'un';
-      showToast(`${senderName} vous a envoyé une demande d'ami.`, 'green');
-      playTone(550, 'sine', 0.2);
+
+      // 1. Playful Haptic Vibration for receiver
+      triggerWinkHaptic();
+
+      // 2. Playful Chime sound
+      playWinkChime();
+
+      // 3. Floating wink animation
+      spawnFloatingWink();
+
+      // 4. Interactive card notification with 1-click "Renvoyer"
+      showWinkNotification(request);
+
       renderFriends();
     });
 
     socket.on('friend:request_accepted', ({ request }) => {
       const accepterName = request?.receiver?.displayName || request?.receiver?.username || 'Un utilisateur';
-      showToast(`${accepterName} a accepté votre demande d'ami.`, 'green');
-      playTone(660, 'sine', 0.2);
+      triggerWinkHaptic();
+      playGiftChime();
+      spawnFloatingWink();
+      showToast(`✨ ${accepterName} vous a renvoyé un clin d'œil ! Vous êtes maintenant amis.`, 'green');
       refreshFriendData().then(() => renderFriends());
     });
 
