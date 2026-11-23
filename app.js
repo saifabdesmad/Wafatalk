@@ -5108,27 +5108,62 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate Recipient Selector
     if (giftRecipientSelect) {
       giftRecipientSelect.innerHTML = '';
-      const optAll = document.createElement('option');
-      optAll.value = 'all';
-      optAll.textContent = state.currentRoom ? 'À tout le salon (Célébration collective)' : 'À mes amis';
-      giftRecipientSelect.appendChild(optAll);
 
-      // If inside salon, add participants
+      // 1. Option: All Friends (Toujours accessible)
+      const optAllFriends = document.createElement('option');
+      optAllFriends.value = 'friends:all';
+      const friendCount = myFriendsList ? myFriendsList.length : 0;
+      optAllFriends.textContent = `✨ À tous mes amis (${friendCount > 0 ? friendCount + ' amis' : 'Célébration générale'})`;
+      giftRecipientSelect.appendChild(optAllFriends);
+
+      // 2. Option: All Salon (if inside a salon)
+      if (state.currentRoom) {
+        const optSalon = document.createElement('option');
+        optSalon.value = 'salon:all';
+        optSalon.textContent = `🎉 À tout le salon (${state.currentRoom.name || 'Célébration collective'})`;
+        optSalon.selected = true; // default when inside a salon
+        giftRecipientSelect.appendChild(optSalon);
+      }
+
+      // 3. Optgroup: Choisir un ami en particulier
+      if (myFriendsList && myFriendsList.length > 0) {
+        const optgroupFriends = document.createElement('optgroup');
+        optgroupFriends.label = '— Choisir parmi mes amis —';
+        myFriendsList.forEach(friend => {
+          const opt = document.createElement('option');
+          opt.value = `friend:${friend.id}`;
+          opt.textContent = `👤 ${friend.name || friend.username} ${friend.country ? `(${friend.country})` : ''}`;
+          if (activeDirectUser && (activeDirectUser.id === friend.id || activeDirectUser.username === friend.username)) {
+            opt.selected = true;
+          }
+          optgroupFriends.appendChild(opt);
+        });
+        giftRecipientSelect.appendChild(optgroupFriends);
+      }
+
+      // 4. Optgroup: Membres du salon (if inside salon)
       if (currentSalonRoster && currentSalonRoster.size > 0) {
+        const optgroupSalon = document.createElement('optgroup');
+        optgroupSalon.label = '— Membres présents dans ce salon —';
         currentSalonRoster.forEach(user => {
           if (user.userId !== state.currentUser?.id) {
             const opt = document.createElement('option');
-            opt.value = user.userId;
-            opt.textContent = `${user.displayName || user.username} (${user.role || 'Membre'})`;
-            giftRecipientSelect.appendChild(opt);
+            opt.value = `salon_user:${user.userId}`;
+            opt.textContent = `🎙️ ${user.displayName || user.username} (${user.role || 'Membre'})`;
+            optgroupSalon.appendChild(opt);
           }
         });
+        giftRecipientSelect.appendChild(optgroupSalon);
       } else if (typeof activeDirectUser !== 'undefined' && activeDirectUser) {
-        const opt = document.createElement('option');
-        opt.value = activeDirectUser.id;
-        opt.textContent = activeDirectUser.name || activeDirectUser.username;
-        opt.selected = true;
-        giftRecipientSelect.appendChild(opt);
+        // If chatting directly with someone not yet in myFriendsList
+        const exists = Array.from(giftRecipientSelect.options).some(o => o.value === `friend:${activeDirectUser.id}`);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = `friend:${activeDirectUser.id}`;
+          opt.textContent = `👤 ${activeDirectUser.name || activeDirectUser.username}`;
+          opt.selected = true;
+          giftRecipientSelect.appendChild(opt);
+        }
       }
     }
 
@@ -5232,8 +5267,11 @@ document.addEventListener('DOMContentLoaded', () => {
     syncUserPointsDisplay();
 
     const customMsg = giftCustomNote ? giftCustomNote.value.trim() : '';
-    const recipientVal = giftRecipientSelect ? giftRecipientSelect.value : 'all';
-    const recipientName = giftRecipientSelect && giftRecipientSelect.options[giftRecipientSelect.selectedIndex] ? giftRecipientSelect.options[giftRecipientSelect.selectedIndex].text : 'Tout le salon';
+    const recipientVal = giftRecipientSelect ? giftRecipientSelect.value : 'friends:all';
+    const rawRecipientName = giftRecipientSelect && giftRecipientSelect.options[giftRecipientSelect.selectedIndex] ? giftRecipientSelect.options[giftRecipientSelect.selectedIndex].text : 'Tous mes amis';
+    // Clean emojis from recipient name for nice display in celebration badges
+    const recipientName = rawRecipientName.replace(/^[^\w\s\u00C0-\u017F]+/, '').trim() || rawRecipientName;
+
     const now = new Date();
     const dateStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -5258,17 +5296,51 @@ document.addEventListener('DOMContentLoaded', () => {
     closePersonalizeDrawer();
     closeGiftShop();
 
-    // Launch rich particle fireworks & audio chime
+    // 1. Launch rich celebration graphic motion immediately on sender's device
     triggerGiftCelebrationGraphic(gift, state.currentUser?.displayName || 'Vous', recipientName, noteToDisplay);
 
-    showToast(`Attention offerte avec succès : ${gift.name} (${gift.points} pts) !`, 'teal');
+    showToast(`Attention offerte avec succès : ${gift.name} (${gift.points} pts) ! ✨`, 'teal');
 
-    // Send to backend if authenticated and inside salon
+    // 2. Resolve targetType & targetUserId for Socket & REST transmission
+    let targetType = 'all_friends';
+    let targetUserId = undefined;
+
+    if (recipientVal === 'salon:all') {
+      targetType = 'salon';
+    } else if (recipientVal === 'friends:all' || recipientVal === 'all') {
+      targetType = 'all_friends';
+    } else if (recipientVal.startsWith('friend:')) {
+      targetType = 'friend';
+      targetUserId = recipientVal.replace('friend:', '');
+    } else if (recipientVal.startsWith('salon_user:')) {
+      targetType = 'salon';
+      targetUserId = recipientVal.replace('salon_user:', '');
+    } else if (state.currentRoom) {
+      targetType = 'salon';
+      targetUserId = recipientVal !== 'all' ? recipientVal : undefined;
+    } else if (recipientVal && recipientVal !== 'all') {
+      targetType = 'friend';
+      targetUserId = recipientVal;
+    }
+
+    // 3. Emit real-time WebSocket gift event so the receiver(s) get the graphic animation!
+    if (socket && socket.connected) {
+      socket.emit('gift:send', {
+        giftType: gift.id,
+        targetType: targetType,
+        salonId: state.currentRoom?.id,
+        receiverId: targetUserId,
+        customMessage: noteToDisplay,
+        costPoints: gift.points
+      });
+    }
+
+    // 4. Send to backend REST API if inside salon and authenticated
     if (state.currentRoom?.id) {
       try {
-        const token = localStorage.getItem('wafatalk_token');
+        const token = getAuthToken();
         if (token) {
-          fetch(`${API_URL}/gifts/send`, {
+          fetch(`${API_BASE_URL}/gifts/send`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -5278,7 +5350,7 @@ document.addEventListener('DOMContentLoaded', () => {
               salonId: state.currentRoom.id,
               giftType: gift.id,
               costPoints: gift.points,
-              receiverId: recipientVal !== 'all' ? recipientVal : undefined,
+              receiverId: targetUserId,
               customMessage: noteToDisplay
             })
           }).catch(err => console.warn('Offline gift logging:', err));
@@ -5295,29 +5367,31 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="chat-gift-icon-bubble">${gift.icon}</div>
           <div class="chat-gift-content">
             <div class="chat-gift-headline">
-              <strong>${state.currentUser?.displayName || 'Vous'}</strong> a offert <strong>${gift.name}</strong> (${recipientName}) !
+              <strong>${escapeHtml(state.currentUser?.displayName || 'Vous')}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> (${escapeHtml(recipientName)}) !
             </div>
-            <div class="chat-gift-note">« ${noteToDisplay} »</div>
+            <div class="chat-gift-note">« ${escapeHtml(noteToDisplay)} »</div>
           </div>
         `;
         chatMessagesScroll.appendChild(giftMsg);
         chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
       }
-    } else if (typeof activeDirectUser !== 'undefined' && activeDirectUser && typeof directMessagesScroll !== 'undefined' && directMessagesScroll) {
+    } else if (currentDmFriend && (currentDmFriend.id === targetUserId || targetType === 'friend')) {
       // In Direct Chat
-      const dmMsg = document.createElement('div');
-      dmMsg.className = 'chat-gift-announcement';
-      dmMsg.innerHTML = `
-        <div class="chat-gift-icon-bubble">${gift.icon}</div>
-        <div class="chat-gift-content">
-          <div class="chat-gift-headline">
-            <strong>${state.currentUser?.displayName || 'Vous'}</strong> a offert <strong>${gift.name}</strong> !
+      if (dmMessagesScroll) {
+        const dmMsg = document.createElement('div');
+        dmMsg.className = 'chat-gift-announcement';
+        dmMsg.innerHTML = `
+          <div class="chat-gift-icon-bubble">${gift.icon}</div>
+          <div class="chat-gift-content">
+            <div class="chat-gift-headline">
+              <strong>${escapeHtml(state.currentUser?.displayName || 'Vous')}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> !
+            </div>
+            <div class="chat-gift-note">« ${escapeHtml(noteToDisplay)} »</div>
           </div>
-          <div class="chat-gift-note">« ${noteToDisplay} »</div>
-        </div>
-      `;
-      directMessagesScroll.appendChild(dmMsg);
-      directMessagesScroll.scrollTop = directMessagesScroll.scrollHeight;
+        `;
+        dmMessagesScroll.appendChild(dmMsg);
+        dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
+      }
     }
   });
 
@@ -8619,37 +8693,86 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // Real-time Salon Gift Celebration Received from another member
     socket.on('salon:gift', ({ sender, receiver, giftType, costPoints, customMessage }) => {
-      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || {
-        name: 'Attention Spéciale',
-        icon: '🎁',
-        fx: 'confetti',
-        accroche: 'Une attention spéciale partagée avec le salon.'
-      };
-      
-      // Trigger festive particles and sound
-      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+      // Don't duplicate if sender is ourself (sender already saw celebration immediately on send)
+      if (sender && state.currentUser && sender.id === state.currentUser.id) return;
 
       const senderName = sender?.displayName || sender?.username || 'Un ami';
       const receiverName = receiver?.displayName || receiver?.username || 'tout le salon';
+      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || GIFTS_CATALOG[0];
       const messageText = customMessage || gift.accroche;
 
-      // Show toast
-      showToast(`${senderName} a offert ${gift.name} à ${receiverName} !`, 'amber');
+      // 1. Trigger festive graphic motion and sound on receiver end
+      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
 
-      // Append celebration announcement in salon chat
+      // 2. Playful haptic vibration
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([100, 60, 160]); } catch (e) {}
+      }
+
+      // 3. Show toast
+      showToast(`🎁 ${senderName} a offert ${gift.name} à ${receiverName} !`, 'amber');
+
+      // 4. Append celebration announcement in salon chat
       if (chatMessagesScroll) {
         const giftEl = document.createElement('div');
         giftEl.className = 'chat-gift-announcement';
         giftEl.innerHTML = `
           <div class="chat-gift-icon-bubble">${gift.icon}</div>
           <div class="chat-gift-content">
-            <div class="chat-gift-headline"><strong>${senderName}</strong> a offert <strong>${gift.name}</strong> (${receiverName}) !</div>
-            <div class="chat-gift-note">« ${messageText} »</div>
+            <div class="chat-gift-headline"><strong>${escapeHtml(senderName)}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> (${escapeHtml(receiverName)}) !</div>
+            <div class="chat-gift-note">« ${escapeHtml(messageText)} »</div>
           </div>
         `;
         chatMessagesScroll.appendChild(giftEl);
         chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
       }
+    });
+
+    // Real-time Direct Gift Received from a Friend or "Tous mes amis"
+    socket.on('gift:received', ({ sender, receiver, giftType, costPoints, customMessage, targetType }) => {
+      // Don't duplicate if sender is ourself
+      if (sender && state.currentUser && sender.id === state.currentUser.id) return;
+
+      const senderName = sender?.displayName || sender?.username || 'Un ami';
+      const receiverName = receiver?.displayName || receiver?.username || (state.currentUser?.displayName || 'Vous');
+      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || GIFTS_CATALOG[0];
+      const messageText = customMessage || gift.accroche;
+
+      // 1. Trigger full graphic motion & celebration on receiver end!
+      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      // 2. Playful haptic vibration
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([100, 60, 160]); } catch (e) {}
+      }
+
+      // 3. Festive Toast Notification
+      const label = targetType === 'all_friends'
+        ? `✨ ${senderName} a envoyé ${gift.name} à tous ses amis (dont vous) !`
+        : `🎁 ${senderName} vous a offert ${gift.name} !`;
+      showToast(label, 'amber');
+
+      // 4. If DM with this sender is open, append celebration card
+      if (currentDmFriend && (currentDmFriend.id === sender.id || currentDmFriend.username === sender.username)) {
+        if (dmMessagesScroll) {
+          const dmGiftEl = document.createElement('div');
+          dmGiftEl.className = 'chat-gift-announcement';
+          dmGiftEl.innerHTML = `
+            <div class="chat-gift-icon-bubble">${gift.icon}</div>
+            <div class="chat-gift-content">
+              <div class="chat-gift-headline"><strong>${escapeHtml(senderName)}</strong> vous a offert <strong>${escapeHtml(gift.name)}</strong> !</div>
+              <div class="chat-gift-note">« ${escapeHtml(messageText)} »</div>
+            </div>
+          `;
+          dmMessagesScroll.appendChild(dmGiftEl);
+          dmMessagesScroll.scrollTop = dmMessagesScroll.scrollHeight;
+        }
+      }
+
+      // 5. Update user points & counters
+      state.userPoints += (costPoints || 10);
+      syncUserPointsDisplay();
+      updateGiftCounters();
     });
 
     // Active Roster received upon joining salon

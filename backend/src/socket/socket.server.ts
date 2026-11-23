@@ -6,6 +6,7 @@ import { prisma } from '../database/prisma.js';
 import { MessagesService } from '../modules/messages/messages.service.js';
 import { ConversationsService } from '../modules/conversations/conversations.service.js';
 import { SalonsService } from '../modules/salons/salons.service.js';
+import { UsersService } from '../modules/users/users.service.js';
 
 function getSocketClientIp(socket: any): string {
   const forwarded = socket.handshake?.headers?.['x-forwarded-for'];
@@ -869,6 +870,170 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           readByUserId: user.id,
         });
       } catch (error) {}
+    });
+
+    // =========================================================================
+    // 2b. INTERACTIVE GIFT CELEBRATIONS & GRAPHIC MOTION BROADCAST
+    // =========================================================================
+    socket.on('gift:send', async (payload: {
+      giftType: string;
+      targetType?: 'salon' | 'friend' | 'all_friends';
+      salonId?: string;
+      receiverId?: string;
+      customMessage?: string;
+      costPoints?: number;
+    }) => {
+      try {
+        const giftType = payload.giftType || 'coffee';
+        const costPoints = Number(payload.costPoints) || 10;
+        const customMessage = (payload.customMessage || '').trim() || null;
+        const targetType = payload.targetType || (payload.salonId ? 'salon' : (payload.receiverId ? 'friend' : 'all_friends'));
+
+        const senderData = {
+          id: user.id,
+          displayName: user.displayName || user.username || 'Ami WafaTalk',
+          username: user.username,
+          avatarUrl: user.avatarUrl || null,
+          country: user.country || null,
+        };
+
+        // Case 1: Send in Salon (Broadcast to everyone in the room)
+        if (targetType === 'salon' && payload.salonId) {
+          let receiverData: any = null;
+          if (payload.receiverId && payload.receiverId !== 'all') {
+            const rec = await prisma.user.findUnique({
+              where: { id: payload.receiverId },
+              select: { id: true, displayName: true, username: true, avatarUrl: true },
+            }).catch(() => null);
+            if (rec) receiverData = rec;
+          }
+
+          const giftPayload = {
+            sender: senderData,
+            receiver: receiverData,
+            giftType,
+            costPoints,
+            customMessage,
+            salonId: payload.salonId,
+            timestamp: new Date().toISOString(),
+          };
+
+          // Broadcast to everyone currently in the salon
+          io.to(`salon:${payload.salonId}`).emit('salon:gift', giftPayload);
+
+          // If individual receiver in salon, also notify their personal socket room
+          if (payload.receiverId && payload.receiverId !== 'all') {
+            io.to(`user:${payload.receiverId}`).emit('gift:received', {
+              ...giftPayload,
+              targetType: 'friend',
+            });
+          }
+
+          // Persist to database if registered user
+          if (user.id && !user.id.startsWith('guest-')) {
+            try {
+              await UsersService.sendGift(
+                user.id,
+                payload.salonId,
+                giftType,
+                costPoints,
+                payload.receiverId && payload.receiverId !== 'all' ? payload.receiverId : undefined,
+                customMessage || undefined
+              );
+            } catch (err) {
+              console.warn('DB Gift log error:', err);
+            }
+          }
+        }
+
+        // Case 2: Send to a specific Friend (Direct Gift)
+        else if (targetType === 'friend' && payload.receiverId) {
+          const rec = await prisma.user.findUnique({
+            where: { id: payload.receiverId },
+            select: { id: true, displayName: true, username: true, avatarUrl: true },
+          }).catch(() => null);
+
+          const receiverData: any = rec || { id: payload.receiverId, displayName: 'Ami', username: 'ami', avatarUrl: null };
+
+          const giftPayload = {
+            sender: senderData,
+            receiver: receiverData,
+            giftType,
+            costPoints,
+            customMessage,
+            targetType: 'friend',
+            timestamp: new Date().toISOString(),
+          };
+
+          // Deliver directly to the friend's personal socket room
+          io.to(`user:${payload.receiverId}`).emit('gift:received', giftPayload);
+
+          // Companion auto-reply for demo peers
+          if (['user-alexandre', 'user-sarah', 'user-youssef', 'user-lina', 'user-karim'].includes(payload.receiverId)) {
+            setTimeout(() => {
+              const thankReplies = [
+                `Merci beaucoup pour ce cadeau ! 💖 Ça me fait tellement plaisir.`,
+                `Waaaw merci pour l'attention ! ✨ Tu es adorable.`,
+                `Trop gentil de ta part ! Merci mille fois ! 🎁✨`,
+              ];
+              const randomReply = thankReplies[Math.floor(Math.random() * thankReplies.length)];
+              io.to(`user:${user.id}`).emit('dm:notification', {
+                conversationId: `conv-demo-${payload.receiverId}`,
+                message: {
+                  id: `msg-${Date.now()}`,
+                  conversationId: `conv-demo-${payload.receiverId}`,
+                  senderId: payload.receiverId,
+                  sender: {
+                    id: payload.receiverId,
+                    displayName: receiverData.displayName,
+                    username: receiverData.username || 'ami',
+                    avatarUrl: receiverData.avatarUrl,
+                  },
+                  content: randomReply,
+                  type: 'TEXT',
+                  createdAt: new Date().toISOString(),
+                },
+              });
+            }, 1800);
+          }
+        }
+
+        // Case 3: Send to All Friends ("Tous mes amis")
+        else if (targetType === 'all_friends') {
+          let friendIds: string[] = [];
+          if (user.id && !user.id.startsWith('guest-')) {
+            const friendships = await prisma.friendship.findMany({
+              where: {
+                status: 'ACCEPTED',
+                OR: [{ userId: user.id }, { friendId: user.id }],
+              },
+              select: { userId: true, friendId: true },
+            }).catch(() => []);
+
+            friendIds = friendships.map(f => f.userId === user.id ? f.friendId : f.userId);
+          }
+
+          // Also include demo companion peers
+          const demoFriendIds = ['user-sarah', 'user-youssef', 'user-lina', 'user-karim'];
+          const targetIds = Array.from(new Set([...friendIds, ...demoFriendIds]));
+
+          targetIds.forEach(targetId => {
+            if (targetId !== user.id) {
+              io.to(`user:${targetId}`).emit('gift:received', {
+                sender: senderData,
+                receiver: { id: targetId, displayName: 'Vous' },
+                giftType,
+                costPoints,
+                customMessage,
+                targetType: 'all_friends',
+                timestamp: new Date().toISOString(),
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Error handling gift:send socket event:', err);
+      }
     });
 
     // =========================================================================
