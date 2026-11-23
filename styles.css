@@ -139,7 +139,7 @@ html, body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
   transition: background-color var(--duration-slow) var(--ease-smooth),
               color var(--duration-normal) var(--ease-smooth);
 }
@@ -455,7 +455,7 @@ a {
   background-color: var(--bg-body);
   background-image: radial-gradient(rgba(13, 131, 125, 0.08) 1px, transparent 1px);
   background-size: 28px 28px;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 [data-theme="dark"] .auth-screen {
@@ -2957,7 +2957,7 @@ a {
   min-height: 0;
   padding: 16px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -4384,7 +4384,7 @@ a {
 @media (max-width: 768px) {
   /* Prevent iOS zoom & horizontal overflow */
   html, body {
-    overflow-x: hidden;
+    overflow-x: clip;
     width: 100%;
     -webkit-text-size-adjust: 100%;
   }
@@ -4559,7 +4559,7 @@ a {
   .hub-layout {
     display: flex;
     flex-direction: column;
-    padding: 12px 10px 85px 10px; /* 85px bottom padding for mobile bottom bar */
+    padding: 12px 10px calc(85px + env(safe-area-inset-bottom, 0px)) 10px; /* Space for mobile bottom nav bar */
     gap: 14px;
     width: 100%;
     max-width: 100vw;
@@ -4903,6 +4903,47 @@ a {
     display: none !important;
   }
 
+  /* Tab state: Split Duo (Stage + Chat simultaneous) */
+  .salon-modal-body.show-split .voice-stage-container {
+    display: flex !important;
+    height: 40% !important;
+    flex: none !important;
+    padding: 6px 8px 36px 8px !important;
+    overflow-y: auto !important;
+  }
+
+  .salon-modal-body.show-split .voice-stage-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    padding: 2px !important;
+  }
+
+  .salon-modal-body.show-split .stage-avatar-card {
+    min-height: 80px !important;
+    padding: 6px !important;
+  }
+
+  .salon-modal-body.show-split .stage-avatar-card.has-video {
+    min-height: 100px !important;
+  }
+
+  .salon-modal-body.show-split .voice-controls-bar {
+    bottom: 4px !important;
+    padding: 3px 6px !important;
+    max-width: 290px !important;
+  }
+
+  .salon-modal-body.show-split .voice-ctrl-btn {
+    padding: 3px 4px !important;
+  }
+
+  .salon-modal-body.show-split .salon-chat-panel {
+    display: flex !important;
+    height: 60% !important;
+    flex: 1 !important;
+    border-top: 1px solid var(--border-medium) !important;
+  }
+
   /* Tab state: Chat Active */
   .salon-modal-body.show-chat .voice-stage-container {
     display: none !important;
@@ -4917,13 +4958,13 @@ a {
   }
 
   /* Default split view if no tab class set */
-  .salon-modal-body:not(.show-stage):not(.show-chat) .voice-stage-container {
-    height: 50% !important;
+  .salon-modal-body:not(.show-stage):not(.show-chat):not(.show-split) .voice-stage-container {
+    height: 45% !important;
     flex: none !important;
   }
 
-  .salon-modal-body:not(.show-stage):not(.show-chat) .salon-chat-panel {
-    height: 50% !important;
+  .salon-modal-body:not(.show-stage):not(.show-chat):not(.show-split) .salon-chat-panel {
+    height: 55% !important;
     flex: none !important;
     border-left: none !important;
     border-right: none !important;
@@ -5186,16 +5227,43 @@ a {
     border-radius: 14px !important;
   }
 
-  .active-call-controls {
-    gap: 12px !important;
-    bottom: 20px !important;
-    padding: 8px 14px !important;
+  .active-call-controls,
+  .active-call-controls-bar {
+    gap: 8px !important;
+    bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+    padding: 8px 12px !important;
+    border-radius: 32px !important;
+    width: calc(100% - 24px) !important;
+    max-width: 380px !important;
   }
 
-  .call-control-btn {
-    width: 46px !important;
-    height: 46px !important;
-    font-size: 1.1rem !important;
+  .call-control-btn,
+  .call-ctrl-btn {
+    padding: 6px 8px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .call-ctrl-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .call-ctrl-btn .ctrl-label {
+    font-size: 0.62rem !important;
+  }
+
+  .user-profile-modal-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 92dvh !important;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+    margin-top: auto !important;
+  }
+
+  .user-profile-modal-footer {
+    padding: 10px 14px !important;
+    padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
   }
 
   .incoming-call-card {
@@ -6435,7 +6503,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -7013,6 +7081,34 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
+/* Call Header Top Actions */
+.active-call-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-call-chat-trigger {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(22, 163, 155, 0.2);
+  border: 1px solid rgba(22, 163, 155, 0.45);
+  color: #2dd4bf;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-call-chat-trigger:hover,
+.btn-call-chat-trigger:active {
+  background: var(--teal-primary);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
 /* Call Floating Controls */
 .active-call-controls-bar {
   display: flex;
@@ -7076,7 +7172,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 9999;
+  z-index: 10060;
   width: 300px;
   border-radius: 20px;
   overflow: hidden;
@@ -7363,24 +7459,78 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: scale(1.05);
 }
 
-@media (max-width: 480px) {
+.floating-ctrl-btn.btn-floating-chat {
+  background: rgba(22, 163, 155, 0.22);
+  border-color: rgba(22, 163, 155, 0.5);
+  color: var(--teal-light);
+}
+
+.floating-ctrl-btn.btn-floating-chat:hover,
+.floating-ctrl-btn.btn-floating-chat:active {
+  background: var(--teal-primary);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
   .floating-call-window {
-    width: 250px;
-    bottom: 16px;
-    right: 16px;
+    width: clamp(140px, 44vw, 195px);
+    top: max(68px, calc(env(safe-area-inset-top, 0px) + 54px));
+    right: 12px;
+    bottom: auto;
+    border-radius: 16px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(22, 163, 155, 0.45);
+  }
+  .floating-call-header {
+    padding: 6px 10px;
+  }
+  .floating-call-peer-name {
+    max-width: 75px;
+    font-size: 0.72rem;
+  }
+  .floating-call-timer {
+    font-size: 0.68rem;
+    padding: 1px 5px;
+  }
+  .floating-icon-btn {
+    width: 24px;
+    height: 24px;
   }
   .floating-call-stage {
-    height: 145px;
+    height: 110px;
+  }
+  .floating-salon-stage {
+    height: 110px !important;
+    padding: 8px !important;
+  }
+  .floating-salon-avatar {
+    width: 34px;
+    height: 34px;
+    margin: 0 -4px;
   }
   .floating-local-pip {
-    width: 62px;
-    height: 42px;
+    width: 48px;
+    height: 32px;
+    top: 6px;
+    right: 6px;
+  }
+  .floating-call-controls {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .floating-ctrl-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .floating-ctrl-btn svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
 /* --- Floating Salon Window & Multi-User Voice Stage --- */
 .floating-salon-window {
-  z-index: 9998;
+  z-index: 10055;
   border-color: var(--border-medium);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-medium);
 }

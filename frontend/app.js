@@ -2821,13 +2821,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const salonBody = document.querySelector('.salon-modal-body');
     if (salonBody) {
       salonBody.classList.add('show-stage');
-      salonBody.classList.remove('show-chat');
+      salonBody.classList.remove('show-chat', 'show-split');
     }
     document.getElementById('tabMobileStage')?.classList.add('active');
+    document.getElementById('tabMobileSplit')?.classList.remove('active');
     document.getElementById('tabMobileChat')?.classList.remove('active');
     document.getElementById('mobileChatUnreadDot')?.classList.add('hidden');
 
     liveSalonModal.classList.remove('hidden');
+    pushAppModalState('liveSalon');
     if (btnOpenSalonBansModal) {
       if (isOwner || isSuper) {
         btnOpenSalonBansModal.classList.remove('hidden');
@@ -2916,8 +2918,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Vous avez quitté le salon.', 'coral');
   }
 
-  btnCloseSalonModal?.addEventListener('click', closeLiveSalon);
-  btnLeaveRoom?.addEventListener('click', closeLiveSalon);
+  btnCloseSalonModal?.addEventListener('click', () => {
+    dismissWithHistory(closeLiveSalon);
+  });
+  btnLeaveRoom?.addEventListener('click', () => {
+    dismissWithHistory(closeLiveSalon);
+  });
 
   const btnToggleSalonFullscreen = document.getElementById('btnToggleSalonFullscreen');
   btnToggleSalonFullscreen?.addEventListener('click', () => {
@@ -3021,6 +3027,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function restoreSalonFullScreen() {
     miniSalonWidget?.classList.add('hidden');
     liveSalonModal?.classList.remove('hidden');
+    pushAppModalState('liveSalon');
 
     // Keep full modal voice controls in sync
     btnToggleMic?.classList.toggle('muted', state.isMicMuted);
@@ -3111,7 +3118,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Event Listeners for Mini Salon
-  btnMinimizeSalon?.addEventListener('click', minimizeSalonToFloating);
+  btnMinimizeSalon?.addEventListener('click', () => {
+    dismissWithHistory(minimizeSalonToFloating);
+  });
   btnRestoreSalon?.addEventListener('click', restoreSalonFullScreen);
   btnMiniSalonExpand?.addEventListener('click', restoreSalonFullScreen);
   floatingSalonStage?.addEventListener('click', (e) => {
@@ -5385,6 +5394,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openGiftShop() {
     if (giftShopModal) {
       giftShopModal.classList.remove('hidden');
+      pushAppModalState('giftShop');
       renderGiftShop();
     }
   }
@@ -5398,21 +5408,34 @@ document.addEventListener('DOMContentLoaded', () => {
   btnSidebarGiftTrigger?.addEventListener('click', openGiftShop);
   btnModalGiftTrigger?.addEventListener('click', openGiftShop);
   btnSendCommunityGift?.addEventListener('click', openGiftShop);
-  btnCloseGiftModal?.addEventListener('click', closeGiftShop);
+  btnCloseGiftModal?.addEventListener('click', () => {
+    dismissWithHistory(closeGiftShop);
+  });
+  giftShopModal?.addEventListener('click', (e) => {
+    if (e.target === giftShopModal) dismissWithHistory(closeGiftShop);
+  });
 
   // =========================================================================
   // 8. CREATE SALON MODAL & PRIVACY CONFIGURATION
   // =========================================================================
   btnOpenCreateSalon?.addEventListener('click', () => {
     createSalonModal?.classList.remove('hidden');
+    pushAppModalState('createSalon');
   });
 
   function closeCreateModal() {
     createSalonModal?.classList.add('hidden');
   }
 
-  btnCloseCreateModal?.addEventListener('click', closeCreateModal);
-  btnCancelCreate?.addEventListener('click', closeCreateModal);
+  btnCloseCreateModal?.addEventListener('click', () => {
+    dismissWithHistory(closeCreateModal);
+  });
+  btnCancelCreate?.addEventListener('click', () => {
+    dismissWithHistory(closeCreateModal);
+  });
+  createSalonModal?.addEventListener('click', (e) => {
+    if (e.target === createSalonModal) dismissWithHistory(closeCreateModal);
+  });
 
   // Public vs Private tile selection in Create Modal
   tilePublicSalon?.addEventListener('click', () => {
@@ -6086,6 +6109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePresetSelectionUI(avatar);
 
     profileStatusModal.classList.remove('hidden');
+    pushAppModalState('profileStatus');
   }
 
   function closeProfileStatusModal() {
@@ -6467,11 +6491,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openProfileStatusModal();
   });
 
-  btnCloseProfileModal?.addEventListener('click', closeProfileStatusModal);
-  btnCancelProfileModal?.addEventListener('click', closeProfileStatusModal);
+  btnCloseProfileModal?.addEventListener('click', () => {
+    dismissWithHistory(closeProfileStatusModal);
+  });
+  btnCancelProfileModal?.addEventListener('click', () => {
+    dismissWithHistory(closeProfileStatusModal);
+  });
 
   profileStatusModal?.addEventListener('click', (e) => {
-    if (e.target === profileStatusModal) closeProfileStatusModal();
+    if (e.target === profileStatusModal) dismissWithHistory(closeProfileStatusModal);
   });
 
 
@@ -6563,6 +6591,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passwordUpdateFeedback) passwordUpdateFeedback.className = 'modal-feedback-alert hidden';
 
     settingsModal.classList.remove('hidden');
+    pushAppModalState('settings');
   }
 
   function closeSettingsModal() {
@@ -6950,11 +6979,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openSettingsModal('tabPaneAudio');
   });
 
-  btnCloseSettingsModal?.addEventListener('click', closeSettingsModal);
-  btnDoneSettingsModal?.addEventListener('click', closeSettingsModal);
+  btnCloseSettingsModal?.addEventListener('click', () => {
+    dismissWithHistory(closeSettingsModal);
+  });
+  btnDoneSettingsModal?.addEventListener('click', () => {
+    dismissWithHistory(closeSettingsModal);
+  });
 
   settingsModal?.addEventListener('click', (e) => {
-    if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === settingsModal) dismissWithHistory(closeSettingsModal);
   });
 
   // Escape Key Closes Modals
@@ -8823,9 +8856,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  btnCloseUserProfileModal?.addEventListener('click', closeUserProfileModal);
+  btnCloseUserProfileModal?.addEventListener('click', () => {
+    dismissWithHistory(closeUserProfileModal);
+  });
   userProfileModal?.addEventListener('click', (e) => {
-    if (e.target === userProfileModal) closeUserProfileModal();
+    if (e.target === userProfileModal) dismissWithHistory(closeUserProfileModal);
   });
 
   function formatSocialStatusText(status) {
@@ -9039,6 +9074,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Immediately display initial data
     populateModalUI(initialUser);
     userProfileModal.classList.remove('hidden');
+    pushAppModalState('userProfile');
 
     // Fetch full enriched profile from backend API if available
     if (targetId) {
@@ -9068,9 +9104,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function openDirectChat(friend) {
     if (!friend) return;
 
-    // Check if user is logged in and whether they are accepted friends
+    // Check if user is logged in and whether they are accepted friends (or in active call with peer)
     const isFriend = myFriendsList.some(f => f.id === friend.id || (f.username && friend.username && f.username.toLowerCase() === friend.username.toLowerCase()));
-    if (state.currentUser?.id && !isFriend) {
+    const isInCallWithPeer = currentCallSession && currentCallSession.peer && (currentCallSession.peer.id === friend.id || currentCallSession.peer.name === friend.name || currentCallSession.peer.name === friend.username);
+    if (state.currentUser?.id && !isFriend && !isInCallWithPeer) {
       showToast('Vous devez être amis pour ouvrir une conversation privée.', 'coral');
       return;
     }
@@ -9093,6 +9130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     directChatModal.classList.remove('hidden');
+    pushAppModalState('directChat');
     dmMessagesScroll.innerHTML = '<div class="dm-empty-state"><span class="dm-empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span><p>Chargement du salon privé...</p></div>';
 
     // 2. Fetch or Create Conversation via Backend API
@@ -9880,7 +9918,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Close Direct Chat Modal
-  btnCloseDirectChat?.addEventListener('click', () => {
+  function closeDirectChatModal() {
     if (currentConversation && socket) {
       socket.emit('dm:leave', { conversationId: currentConversation.id });
     }
@@ -9888,6 +9926,15 @@ document.addEventListener('DOMContentLoaded', () => {
     clearDmMediaPreview();
     currentConversation = null;
     currentDmFriend = null;
+  }
+
+  btnCloseDirectChat?.addEventListener('click', () => {
+    dismissWithHistory(closeDirectChatModal);
+  });
+  directChatModal?.addEventListener('click', (e) => {
+    if (e.target === directChatModal) {
+      dismissWithHistory(closeDirectChatModal);
+    }
   });
 
   // Emoji trigger for DMs
@@ -10088,6 +10135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Setup Call Screen UI
     setupCallScreenUI(currentCallSession);
     activeCallModal?.classList.remove('hidden');
+    pushAppModalState('activeCall');
 
     // 4. Start Outgoing Ringing Sound
     playOutgoingCallingSound();
@@ -10147,6 +10195,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupCallScreenUI(currentCallSession);
     activeCallModal?.classList.remove('hidden');
+    pushAppModalState('activeCall');
     playCallConnectedSound();
 
     if (socket && socket.connected) {
@@ -10936,6 +10985,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function restoreCallFullScreen() {
     miniCallWidget?.classList.add('hidden');
     activeCallModal?.classList.remove('hidden');
+    pushAppModalState('activeCall');
 
     if (currentCallSession?.type === 'video') {
       if (remoteVideo) {
@@ -11048,7 +11098,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Floating Window Controls Listeners
-  btnMinimizeCall?.addEventListener('click', minimizeCallToFloating);
+  btnMinimizeCall?.addEventListener('click', () => {
+    dismissWithHistory(minimizeCallToFloating);
+  });
   btnRestoreCall?.addEventListener('click', restoreCallFullScreen);
   btnMiniExpand?.addEventListener('click', restoreCallFullScreen);
 
@@ -11070,7 +11122,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Backdrop overlay click & Escape key minimize
   activeCallModal?.addEventListener('click', (e) => {
     if (e.target === activeCallModal) {
-      minimizeCallToFloating();
+      dismissWithHistory(minimizeCallToFloating);
     }
   });
 
@@ -11112,6 +11164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setMobileNavActive(mobNavFriends);
     hubMainContent?.classList.add('mobile-hidden');
     hubSidebar?.classList.add('mobile-active');
+    pushAppModalState('mobileSidebar');
     renderFriends();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -11129,33 +11182,274 @@ document.addEventListener('DOMContentLoaded', () => {
     profileDropdown?.classList.toggle('hidden');
   });
 
-  // Mobile Live Salon Tabs: Stage vs Chat
+  // Mobile Live Salon Tabs: Stage vs Duo vs Chat
   const tabMobileStage = document.getElementById('tabMobileStage');
+  const tabMobileSplit = document.getElementById('tabMobileSplit');
   const tabMobileChat = document.getElementById('tabMobileChat');
   const mobileChatUnreadDot = document.getElementById('mobileChatUnreadDot');
 
   tabMobileStage?.addEventListener('click', () => {
     tabMobileStage.classList.add('active');
+    tabMobileSplit?.classList.remove('active');
     tabMobileChat?.classList.remove('active');
     const salonBody = document.querySelector('.salon-modal-body');
     if (salonBody) {
       salonBody.classList.add('show-stage');
-      salonBody.classList.remove('show-chat');
+      salonBody.classList.remove('show-chat', 'show-split');
+    }
+  });
+
+  tabMobileSplit?.addEventListener('click', () => {
+    tabMobileSplit?.classList.add('active');
+    tabMobileStage?.classList.remove('active');
+    tabMobileChat?.classList.remove('active');
+    mobileChatUnreadDot?.classList.add('hidden');
+    const salonBody = document.querySelector('.salon-modal-body');
+    if (salonBody) {
+      salonBody.classList.add('show-split');
+      salonBody.classList.remove('show-stage', 'show-chat');
+    }
+    if (chatMessagesScroll) {
+      chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
     }
   });
 
   tabMobileChat?.addEventListener('click', () => {
     tabMobileChat.classList.add('active');
     tabMobileStage?.classList.remove('active');
+    tabMobileSplit?.classList.remove('active');
     mobileChatUnreadDot?.classList.add('hidden');
     const salonBody = document.querySelector('.salon-modal-body');
     if (salonBody) {
       salonBody.classList.add('show-chat');
-      salonBody.classList.remove('show-stage');
+      salonBody.classList.remove('show-stage', 'show-split');
     }
     if (chatMessagesScroll) {
       chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
     }
+  });
+
+  // In-Call Messaging Triggers (Permet d'envoyer des messages tout en restant en appel vidéo)
+  const btnCallTopChat = document.getElementById('btnCallTopChat');
+  const btnCallOpenChat = document.getElementById('btnCallOpenChat');
+  const btnMiniOpenChat = document.getElementById('btnMiniOpenChat');
+
+  function openChatWhileInCall() {
+    if (!currentCallSession) {
+      showToast('Aucun appel en cours.', 'coral');
+      return;
+    }
+
+    // 1. Minimize call to floating PiP window
+    minimizeCallToFloating();
+
+    // 2. Resolve peer friend object
+    const peer = currentCallSession.peer;
+    let targetFriend = myFriendsList.find(f => f.id === peer.id);
+    if (!targetFriend) {
+      targetFriend = {
+        id: peer.id,
+        name: peer.name || 'Ami',
+        username: peer.name || 'ami',
+        avatar: peer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80',
+        country: peer.country || 'MA',
+        _isOnline: true
+      };
+    }
+
+    // 3. Open direct chat conversation
+    openDirectChat(targetFriend);
+    showToast('Discussion privée active • Votre appel reste connecté en fenêtre volante ✨', 'teal');
+  }
+
+  btnCallTopChat?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatWhileInCall();
+  });
+
+  btnCallOpenChat?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatWhileInCall();
+  });
+
+  btnMiniOpenChat?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openChatWhileInCall();
+  });
+
+  // =========================================================================
+  // 14c. MOBILE HISTORY & HARDWARE / BROWSER BACK BUTTON NAVIGATION
+  // =========================================================================
+  let appModalHistoryCount = 0;
+  let isProgrammaticBack = false;
+
+  // Initial State: mark root entry so back navigation knows base state
+  try {
+    if (!window.history.state || !window.history.state.wafatalkModal) {
+      window.history.replaceState({ wafatalkModal: 'home', count: 0 }, '');
+    }
+  } catch (err) { }
+
+  function pushAppModalState(modalName) {
+    try {
+      appModalHistoryCount++;
+      window.history.pushState({ wafatalkModal: modalName, count: appModalHistoryCount }, '');
+    } catch (err) {
+      console.warn('History pushState error:', err);
+    }
+  }
+
+  function dismissWithHistory(closeAction) {
+    if (typeof closeAction === 'function') {
+      closeAction();
+    }
+    if (appModalHistoryCount > 0) {
+      isProgrammaticBack = true;
+      try {
+        window.history.back();
+      } catch (err) {
+        isProgrammaticBack = false;
+        appModalHistoryCount = Math.max(0, appModalHistoryCount - 1);
+      }
+    }
+  }
+
+  function closeTopActiveView() {
+    // 1. Lightbox
+    const dmOverlay = document.querySelector('.dm-lightbox-overlay');
+    if (dmOverlay) {
+      dmOverlay.remove();
+      return true;
+    }
+
+    // 2. Incoming call modal
+    const incomingModal = document.getElementById('incomingCallModal');
+    if (incomingModal && !incomingModal.classList.contains('hidden')) {
+      document.getElementById('btnRejectCall')?.click();
+      return true;
+    }
+
+    // 3. Active Call Fullscreen Modal -> Minimize to floating PiP so call is NOT disconnected!
+    const activeCall = document.getElementById('activeCallModal');
+    if (activeCall && !activeCall.classList.contains('hidden')) {
+      minimizeCallToFloating();
+      return true;
+    }
+
+    // 4. User Profile modal
+    const profileModal = document.getElementById('userProfileModal');
+    if (profileModal && !profileModal.classList.contains('hidden')) {
+      closeUserProfileModal();
+      return true;
+    }
+
+    // 5. Gift shop modal
+    const giftModal = document.getElementById('giftShopModal');
+    if (giftModal && !giftModal.classList.contains('hidden')) {
+      closeGiftShop();
+      return true;
+    }
+
+    // 6. Profile status / bio modal
+    const statusModal = document.getElementById('profileStatusModal');
+    if (statusModal && !statusModal.classList.contains('hidden')) {
+      closeProfileStatusModal();
+      return true;
+    }
+
+    // 7. Create salon modal
+    const createModal = document.getElementById('createSalonModal');
+    if (createModal && !createModal.classList.contains('hidden')) {
+      closeCreateModal();
+      return true;
+    }
+
+    // 8. Settings modal
+    const setModal = document.getElementById('settingsModal');
+    if (setModal && !setModal.classList.contains('hidden')) {
+      closeSettingsModal();
+      return true;
+    }
+
+    // 9. Secondary Modals
+    const bansModal = document.getElementById('salonBansModal');
+    if (bansModal && !bansModal.classList.contains('hidden')) {
+      bansModal.classList.add('hidden');
+      return true;
+    }
+    const shareModal = document.getElementById('salonShareModal');
+    if (shareModal && !shareModal.classList.contains('hidden')) {
+      shareModal.classList.add('hidden');
+      return true;
+    }
+    const privModal = document.getElementById('privateSalonAccessModal');
+    if (privModal && !privModal.classList.contains('hidden')) {
+      privModal.classList.add('hidden');
+      return true;
+    }
+    const terms = document.getElementById('termsModal');
+    if (terms && !terms.classList.contains('hidden')) {
+      terms.classList.add('hidden');
+      return true;
+    }
+    const otp = document.getElementById('emailVerificationModal');
+    if (otp && !otp.classList.contains('hidden')) {
+      otp.classList.add('hidden');
+      return true;
+    }
+    const forgot = document.getElementById('forgotPasswordModal');
+    if (forgot && !forgot.classList.contains('hidden')) {
+      forgot.classList.add('hidden');
+      return true;
+    }
+    const social = document.getElementById('socialAuthModal');
+    if (social && !social.classList.contains('hidden')) {
+      social.classList.add('hidden');
+      return true;
+    }
+
+    // 10. Direct Chat (DM) modal
+    const dmModal = document.getElementById('directChatModal');
+    if (dmModal && !dmModal.classList.contains('hidden')) {
+      closeDirectChatModal();
+      return true;
+    }
+
+    // 11. Live Salon Fullscreen Modal -> Minimize to floating window so audio continues!
+    const salonModal = document.getElementById('liveSalonModal');
+    if (salonModal && !salonModal.classList.contains('hidden')) {
+      minimizeSalonToFloating();
+      return true;
+    }
+
+    // 12. Profile Dropdown
+    const profDrop = document.getElementById('profileDropdown');
+    if (profDrop && !profDrop.classList.contains('hidden')) {
+      profDrop.classList.add('hidden');
+      return true;
+    }
+
+    // 13. Mobile Sidebar (Amis tab active) -> Return to Salons hub
+    const sidebar = document.querySelector('.hub-sidebar');
+    if (sidebar && sidebar.classList.contains('mobile-active')) {
+      mobNavSalons?.click();
+      return true;
+    }
+
+    return false;
+  }
+
+  window.addEventListener('popstate', (e) => {
+    if (appModalHistoryCount > 0) {
+      appModalHistoryCount--;
+    }
+
+    if (isProgrammaticBack) {
+      isProgrammaticBack = false;
+      return;
+    }
+
+    closeTopActiveView();
   });
 
   // =========================================================================
