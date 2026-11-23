@@ -17,6 +17,51 @@ function getSocketClientIp(socket: any): string {
   return (socket.handshake?.address || '127.0.0.1').replace('::ffff:', '');
 }
 
+// Salon Participants Tracker: salonId -> Map<userId, SalonParticipant>
+export interface SalonParticipant {
+  userId: string;
+  socketId: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  country?: string;
+  role: string;
+  badgeType?: 'OWNER' | 'ADMIN' | 'SUPERADMIN' | 'USER';
+  isMuted: boolean;
+  isSpeaking: boolean;
+  isCameraOn: boolean;
+  isScreenSharing: boolean;
+  joinedAt: Date;
+  ipAddress?: string;
+}
+
+export const salonParticipants = new Map<string, Map<string, SalonParticipant>>();
+export const socketSalons = new Map<string, Set<string>>();
+
+/**
+ * Propagate user profile & avatar updates to all active salon rosters and their connected members
+ */
+export function updateUserInActiveSalons(
+  io: any,
+  userId: string,
+  updates: { avatarUrl?: string | null; displayName?: string | null; country?: string | null }
+) {
+  if (!io || !userId) return;
+  for (const [salonId, salonMap] of salonParticipants.entries()) {
+    if (salonMap.has(userId)) {
+      const participant = salonMap.get(userId)!;
+      if (updates.avatarUrl) participant.avatarUrl = updates.avatarUrl;
+      if (updates.displayName) participant.displayName = updates.displayName;
+      if (updates.country) participant.country = updates.country;
+
+      io.to(`salon:${salonId}`).emit('salon:participant_updated', {
+        salonId,
+        participant,
+      });
+    }
+  }
+}
+
 export function setupSocketServer(server: any, jwtVerify: (token: string) => any) {
   const allowedOrigins = env.FRONTEND_URL.split(',').map((u) => u.trim());
 
@@ -67,26 +112,6 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
 
   // Map callId to 45s ringing timeout timer
   const callTimeoutTimers = new Map<string, NodeJS.Timeout>();
-
-  // Salon Participants Tracker: salonId -> Map<userId, SalonParticipant>
-  interface SalonParticipant {
-    userId: string;
-    socketId: string;
-    username: string;
-    displayName: string;
-    avatarUrl?: string;
-    country?: string;
-    role: string;
-    badgeType?: 'OWNER' | 'ADMIN' | 'SUPERADMIN' | 'USER';
-    isMuted: boolean;
-    isSpeaking: boolean;
-    isCameraOn: boolean;
-    isScreenSharing: boolean;
-    joinedAt: Date;
-    ipAddress?: string;
-  }
-  const salonParticipants = new Map<string, Map<string, SalonParticipant>>();
-  const socketSalons = new Map<string, Set<string>>();
 
   // Active Online Users Tracker (Set of userIds currently connected via active sockets)
   const onlineUserIds = new Set<string>();
@@ -153,6 +178,61 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
       socket.emit('presence:initial', {
         onlineUserIds: Array.from(onlineUserIds),
       });
+    });
+
+    // Real-time User Profile & Avatar Update Broadcast across WafaTalk
+    socket.on('user:profile_update', async (data: { avatarUrl?: string; displayName?: string; bio?: string; country?: string; status?: string; socialStatus?: string }) => {
+      try {
+        if (!user.id) return;
+        if (data.avatarUrl) {
+          user.avatarUrl = data.avatarUrl;
+          if (socket.data.user) socket.data.user.avatarUrl = data.avatarUrl;
+        }
+        if (data.displayName) {
+          user.displayName = data.displayName;
+          if (socket.data.user) socket.data.user.displayName = data.displayName;
+        }
+        if (data.country) {
+          user.country = data.country;
+          if (socket.data.user) socket.data.user.country = data.country;
+        }
+
+        // Persist to PostgreSQL via Prisma if registered user
+        if (user.id && !user.id.startsWith('guest-')) {
+          const updateData: any = {};
+          if (data.avatarUrl) updateData.avatarUrl = data.avatarUrl;
+          if (data.displayName) updateData.displayName = data.displayName;
+          if (data.country) updateData.country = data.country;
+          if (data.bio) updateData.bio = data.bio;
+          if (data.socialStatus) updateData.socialStatus = data.socialStatus;
+          if (Object.keys(updateData).length > 0) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: updateData,
+            }).catch(() => {});
+          }
+        }
+
+        // Propagate to all active voice stage salon rooms
+        updateUserInActiveSalons(io, user.id, {
+          avatarUrl: user.avatarUrl,
+          displayName: user.displayName,
+          country: user.country,
+        });
+
+        // Broadcast to all connected clients across the entire application
+        io.emit('user:profile_updated', {
+          userId: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          country: user.country,
+          status: data.status || user.status || 'online',
+          bio: data.bio || user.bio,
+          socialStatus: data.socialStatus,
+        });
+      } catch (err) {
+        console.warn('Error processing user:profile_update socket event:', err);
+      }
     });
 
     // =========================================================================

@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingFriendRequests = []; // received pending requests
   let sentFriendRequests = []; // sent pending requests
   let myFriendsList = []; // accepted friends
+  let cachedExploreUsers = []; // discover members cache
   let currentFriendTab = 'friends'; // 'friends' | 'explore'
   let activeWhisperTarget = null; // { id, name, username, avatar }
 
@@ -2371,12 +2372,14 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingFriendRequests.forEach(req => {
           const sender = req.sender;
           const item = document.createElement('div');
+          if (sender?.id) item.dataset.userId = sender.id;
+          const customSenderAv = (sender?.id && localStorage.getItem(`wafatalk_avatar_${sender.id}`)) || sender?.avatarUrl || sender?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender?.username || 'user')}`;
           item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-muted);';
           item.innerHTML = `
             <div class="pending-user-info" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${sender.displayName || sender.username}">
-              <img src="${sender.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender.username)}`}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customSenderAv}" class="friend-avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <div style="flex:1;min-width:0;">
-                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${sender.displayName || sender.username}</div>
+                <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);" class="friend-name">${sender.displayName || sender.username}</div>
                 <div style="font-size:0.72rem;color:var(--text-muted);">veut être ami avec vous (cliquer pour voir le profil)</div>
               </div>
             </div>
@@ -2417,12 +2420,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusClass = isOnline ? 'online' : 'offline';
         const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
         const flagTag = getFlagImgTag(friend.country, friend.country);
+        const customFriendAv = (friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
         const item = document.createElement('div');
         item.className = `friend-item ${statusClass}`;
+        if (friend.id) item.dataset.userId = friend.id;
         item.innerHTML = `
           <div class="friend-item-left" style="cursor:pointer;flex:1;" title="${statusLabel} — Cliquer pour voir la fiche profil">
             <div class="friend-avatar-wrap">
-              <img src="${friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customFriendAv}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
             </div>
             <div class="friend-meta">
@@ -2490,11 +2495,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      cachedExploreUsers = exploreUsers;
       exploreUsers.forEach(u => {
         const isOnline = activeOnlineUserIds.has(u.id);
         const flagTag = getFlagImgTag(u.country, u.country);
+        const customExploreAv = (u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
         const item = document.createElement('div');
         item.className = `friend-item ${isOnline ? 'online' : 'offline'}`;
+        if (u.id) item.dataset.userId = u.id;
 
         let actionBtn = '';
         if (u.friendStatus === 'friends') {
@@ -2513,7 +2521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `
           <div class="friend-item-left" style="flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${u.name || u.username}">
             <div class="friend-avatar-wrap">
-              <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'}" alt="${u.name || u.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customExploreAv}" alt="${u.name || u.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <span class="friend-status-dot ${isOnline ? 'online' : 'offline'}"></span>
             </div>
             <div class="friend-meta">
@@ -3547,6 +3555,24 @@ document.addEventListener('DOMContentLoaded', () => {
         videoRoleBadge.innerHTML = `${roleInfo.icon} ${roleInfo.label}`;
       }
 
+      // Always update dynamic avatar and name if card already exists
+      const targetStageAvatar = (userId && localStorage.getItem(`wafatalk_avatar_${userId}`)) || p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png';
+      const stageAvatarEl = card.querySelector('.stage-avatar-img');
+      if (stageAvatarEl && stageAvatarEl.getAttribute('src') !== targetStageAvatar) {
+        stageAvatarEl.src = targetStageAvatar;
+      }
+      const stagePosterEl = card.querySelector(`#videoPoster_${userId}`);
+      if (stagePosterEl && stagePosterEl.getAttribute('src') !== targetStageAvatar) {
+        stagePosterEl.src = targetStageAvatar;
+      }
+      const stageNameEl = card.querySelector('.stage-user-name');
+      if (stageNameEl) {
+        const expectedName = escapeHtml(p.displayName || p.name || 'Membre');
+        if (stageNameEl.textContent !== expectedName) {
+          stageNameEl.textContent = expectedName;
+        }
+      }
+
       // Ensure admin trigger button exists if moderator privileges apply
       let triggerBtn = card.querySelector('.stage-admin-trigger');
       if (canAdminModerate && !triggerBtn) {
@@ -4303,8 +4329,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const msgEl = document.createElement('div');
     msgEl.className = `chat-msg ${isFromMe ? 'self' : ''} ${isWhisper ? 'chat-msg-whisper' : ''}`;
     if (message.id) msgEl.dataset.msgId = message.id;
+    const senderUserId = message.user?.id || message.userId || (isFromMe ? state.currentUser?.id : '');
+    if (senderUserId) msgEl.dataset.userId = senderUserId;
     const authorName = isFromMe ? 'Vous' : (message.user?.displayName || message.user?.username || 'Membre');
-    const avatar = message.user?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
+    const storedSenderAvatar = senderUserId ? localStorage.getItem(`wafatalk_avatar_${senderUserId}`) : null;
+    const avatar = storedSenderAvatar || (isFromMe ? (state.currentUser?.avatarUrl || state.currentUser?.avatar) : (message.user?.avatarUrl || message.user?.avatar)) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
     const timeStr = message.time || (message.createdAt ? new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'À l\'instant');
 
     let whisperBadgeHtml = '';
@@ -6330,13 +6359,32 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navUserCountryFlag) navUserCountryFlag.innerHTML = flagImgTag;
       if (menuCountryFlag) menuCountryFlag.innerHTML = flagImgTag;
 
-      // Broadcast presence update via Socket if connected
+      // Broadcast presence and profile update via Socket if connected
       if (socket && socket.connected) {
         socket.emit('presence:set_status', {
           status: activePresenceStatus.toLowerCase(),
           mood: mood,
         });
+        socket.emit('user:profile_update', {
+          avatarUrl: finalAvatar,
+          displayName: displayName,
+          country: country,
+          bio: bio,
+          status: activePresenceStatus.toLowerCase(),
+          socialStatus: socialStatus,
+        });
       }
+
+      // Propagate avatar change instantly across entire client interface
+      applyUserAvatarUpdateAcrossUI({
+        userId: state.currentUser?.id,
+        displayName: displayName,
+        avatarUrl: finalAvatar,
+        country: country,
+        status: activePresenceStatus.toLowerCase(),
+        bio: bio,
+        socialStatus: socialStatus,
+      });
 
       showToast('Profil et photo enregistrés avec succès ! ✨', 'success');
       playTone(520, 'sine', 0.2);
@@ -6370,6 +6418,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         localStorage.setItem('wafatalk_local_users', JSON.stringify(localUsers));
       } catch (e) {}
+
+      if (socket && socket.connected) {
+        socket.emit('presence:set_status', {
+          status: activePresenceStatus.toLowerCase(),
+          mood: mood,
+        });
+        socket.emit('user:profile_update', {
+          avatarUrl: finalAvatar,
+          displayName: displayName,
+          country: country,
+          bio: bio,
+          status: activePresenceStatus.toLowerCase(),
+          socialStatus: socialStatus,
+        });
+      }
+
+      applyUserAvatarUpdateAcrossUI({
+        userId: state.currentUser?.id,
+        displayName: displayName,
+        avatarUrl: finalAvatar,
+        country: country,
+        status: activePresenceStatus.toLowerCase(),
+        bio: bio,
+        socialStatus: socialStatus,
+      });
 
       const navUserName = document.getElementById('navUserName');
       if (navUserName) navUserName.textContent = displayName.split(' ')[0];
@@ -8051,6 +8124,229 @@ document.addEventListener('DOMContentLoaded', () => {
   // (Salon Real-time Media & Mesh State declared at top-level)
 
   // =========================================================================
+  // REAL-TIME AVATAR & PROFILE PROPAGATION CONTROLLER
+  // =========================================================================
+  function applyUserAvatarUpdateAcrossUI(data) {
+    if (!data || !data.userId) return;
+    const uid = data.userId;
+    const newAvatar = data.avatarUrl;
+    const newName = data.displayName;
+    const newCountry = data.country;
+    const newStatus = data.status;
+    const newBio = data.bio;
+    const newSocialStatus = data.socialStatus;
+
+    // 1. Persist in local storage so subsequent views and reloads use it immediately
+    if (newAvatar) {
+      localStorage.setItem(`wafatalk_avatar_${uid}`, newAvatar);
+    }
+    if (newName) {
+      localStorage.setItem(`wafatalk_name_${uid}`, newName);
+    }
+
+    // 2. If it's the current user themselves
+    const isMe = state.currentUser && (state.currentUser.id === uid || state.currentUser.username === uid);
+    if (isMe) {
+      if (newAvatar) {
+        state.currentUser.avatarUrl = newAvatar;
+        state.currentUser.avatar = newAvatar;
+        localStorage.setItem('wafatalk_last_saved_avatar', newAvatar);
+        const navUserAvatar = document.getElementById('navUserAvatar');
+        const mobNavUserAvatar = document.getElementById('mobNavUserAvatar');
+        const profileAvatarPreview = document.getElementById('profileAvatarPreview');
+        if (navUserAvatar) navUserAvatar.src = newAvatar;
+        if (mobNavUserAvatar) mobNavUserAvatar.src = newAvatar;
+        if (profileAvatarPreview) profileAvatarPreview.src = newAvatar;
+      }
+      if (newName) {
+        state.currentUser.displayName = newName;
+        const navUserName = document.getElementById('navUserName');
+        const heroUserGreeting = document.getElementById('heroUserGreeting');
+        const menuFullName = document.getElementById('menuFullName');
+        if (navUserName) navUserName.textContent = newName.split(' ')[0];
+        if (heroUserGreeting) heroUserGreeting.textContent = newName.split(' ')[0];
+        if (menuFullName) menuFullName.textContent = newName;
+      }
+      if (newBio) state.currentUser.bio = newBio;
+      if (newSocialStatus) state.currentUser.socialStatus = newSocialStatus;
+      if (newCountry) {
+        state.currentUser.country = newCountry;
+        const menuCountryName = document.getElementById('menuCountryName');
+        if (menuCountryName) menuCountryName.textContent = newCountry;
+      }
+      localStorage.setItem('wafatalk_user', JSON.stringify(state.currentUser));
+    }
+
+    // 3. Update in Friends List (myFriendsList)
+    let friendListUpdated = false;
+    if (Array.isArray(myFriendsList)) {
+      myFriendsList.forEach(f => {
+        if (f.id === uid || f.userId === uid || (f.username && f.username === uid)) {
+          if (newAvatar) { f.avatar = newAvatar; f.avatarUrl = newAvatar; }
+          if (newName) { f.name = newName; f.displayName = newName; }
+          if (newCountry) f.country = newCountry;
+          if (newBio) f.bio = newBio;
+          if (newSocialStatus) f.socialStatus = newSocialStatus;
+          friendListUpdated = true;
+        }
+      });
+    }
+
+    // 4. Update in Explorer Cached Members (cachedExploreUsers)
+    if (Array.isArray(cachedExploreUsers)) {
+      cachedExploreUsers.forEach(u => {
+        if (u.id === uid || (u.username && u.username === uid)) {
+          if (newAvatar) { u.avatar = newAvatar; u.avatarUrl = newAvatar; }
+          if (newName) { u.name = newName; u.displayName = newName; }
+          if (newCountry) u.country = newCountry;
+          if (newBio) u.bio = newBio;
+          if (newSocialStatus) u.socialStatus = newSocialStatus;
+          friendListUpdated = true;
+        }
+      });
+    }
+
+    // 5. Update in Pending & Sent Requests
+    if (Array.isArray(pendingFriendRequests)) {
+      pendingFriendRequests.forEach(r => {
+        if (r.sender && (r.sender.id === uid || r.sender.username === uid)) {
+          if (newAvatar) { r.sender.avatarUrl = newAvatar; r.sender.avatar = newAvatar; }
+          if (newName) r.sender.displayName = newName;
+          friendListUpdated = true;
+        }
+      });
+    }
+    if (Array.isArray(sentFriendRequests)) {
+      sentFriendRequests.forEach(r => {
+        if (r.receiver && (r.receiver.id === uid || r.receiver.username === uid)) {
+          if (newAvatar) { r.receiver.avatarUrl = newAvatar; r.receiver.avatar = newAvatar; }
+          if (newName) r.receiver.displayName = newName;
+          friendListUpdated = true;
+        }
+      });
+    }
+
+    // 6. Update direct DOM elements in friends or explore list
+    document.querySelectorAll(`.friend-item[data-user-id="${uid}"]`).forEach(item => {
+      const avImg = item.querySelector('.friend-avatar');
+      if (avImg && newAvatar) avImg.src = newAvatar;
+      const nameEl = item.querySelector('.friend-name');
+      if (nameEl && newName) nameEl.textContent = newName;
+      if (newSocialStatus) {
+        const actEl = item.querySelector('.friend-activity');
+        if (actEl && !actEl.classList.contains('online') && !actEl.classList.contains('offline')) {
+          actEl.textContent = `💖 ${newSocialStatus}`;
+        }
+      }
+    });
+
+    // 7. Update in Active Salon Roster (currentSalonRoster) and Voice Stage Grid
+    if (currentSalonRoster && currentSalonRoster.has(uid)) {
+      const p = currentSalonRoster.get(uid);
+      if (p) {
+        if (newAvatar) { p.avatarUrl = newAvatar; p.avatar = newAvatar; }
+        if (newName) p.displayName = isMe ? (newName + ' (Vous)') : newName;
+        if (newCountry) p.country = newCountry;
+      }
+      if (typeof renderVoiceStage === 'function') {
+        renderVoiceStage();
+      }
+    }
+
+    // Direct DOM update on active voice stage cards for this user
+    if (newAvatar) {
+      const stageAvatarEl = document.querySelector(`#stageUser_${uid} .stage-avatar-img`);
+      if (stageAvatarEl) stageAvatarEl.src = newAvatar;
+      const stagePosterEl = document.querySelector(`#videoPoster_${uid}`);
+      if (stagePosterEl) stagePosterEl.src = newAvatar;
+    }
+    if (newName) {
+      const stageNameEl = document.querySelector(`#stageUser_${uid} .stage-user-name`);
+      if (stageNameEl) stageNameEl.textContent = isMe ? (newName + ' (Vous)') : newName;
+    }
+
+    // 8. Update all Salon Chat message avatars from this user in active salon
+    if (newAvatar) {
+      document.querySelectorAll(`.chat-msg[data-user-id="${uid}"] .chat-msg-avatar`).forEach(img => {
+        img.src = newAvatar;
+      });
+    }
+
+    // 9. Update Active Direct Chat (DM) modal if open with this friend
+    if (currentDmFriend && (currentDmFriend.id === uid || currentDmFriend.username === uid)) {
+      if (newAvatar) {
+        currentDmFriend.avatar = newAvatar;
+        currentDmFriend.avatarUrl = newAvatar;
+        const dmFriendAvatar = document.getElementById('dmFriendAvatar');
+        if (dmFriendAvatar) dmFriendAvatar.src = newAvatar;
+      }
+      if (newName) {
+        currentDmFriend.name = newName;
+        currentDmFriend.displayName = newName;
+        const dmFriendName = document.getElementById('dmFriendName');
+        if (dmFriendName) dmFriendName.textContent = newName;
+      }
+    }
+
+    // 10. Update Active User Profile Modal if currently inspecting this user
+    if (currentInspectedUser && (currentInspectedUser.id === uid || currentInspectedUser.username === uid)) {
+      if (newAvatar) {
+        currentInspectedUser.avatar = newAvatar;
+        currentInspectedUser.avatarUrl = newAvatar;
+        const userProfileAvatar = document.getElementById('userProfileAvatar');
+        if (userProfileAvatar) userProfileAvatar.src = newAvatar;
+      }
+      if (newName) {
+        currentInspectedUser.name = newName;
+        currentInspectedUser.displayName = newName;
+        const userProfileName = document.getElementById('userProfileName');
+        if (userProfileName) userProfileName.textContent = newName;
+      }
+      if (newBio) {
+        currentInspectedUser.bio = newBio;
+        const userProfileBio = document.getElementById('userProfileBio');
+        if (userProfileBio) userProfileBio.textContent = newBio;
+      }
+      if (newSocialStatus) {
+        currentInspectedUser.socialStatus = newSocialStatus;
+        const userProfileSocialStatus = document.getElementById('userProfileSocialStatus');
+        if (userProfileSocialStatus && typeof formatSocialStatusText === 'function') {
+          userProfileSocialStatus.textContent = formatSocialStatusText(newSocialStatus);
+        }
+      }
+    }
+
+    // 11. Update Active Call avatar if on call with this user
+    if (currentCallSession && currentCallSession.peer && (currentCallSession.peer.id === uid || currentCallSession.peer.name === uid)) {
+      if (newAvatar) {
+        currentCallSession.peer.avatar = newAvatar;
+        const peerAudioAvatar = document.getElementById('peerAudioAvatar');
+        if (peerAudioAvatar) peerAudioAvatar.src = newAvatar;
+        const remotePlaceholderAvatar = document.getElementById('remotePlaceholderAvatar');
+        if (remotePlaceholderAvatar) remotePlaceholderAvatar.src = newAvatar;
+        const activeCallPeerAvatar = document.getElementById('activeCallPeerAvatar');
+        if (activeCallPeerAvatar) activeCallPeerAvatar.src = newAvatar;
+        const miniCallAvatar = document.getElementById('miniCallAvatar');
+        if (miniCallAvatar) miniCallAvatar.src = newAvatar;
+      }
+      if (newName) {
+        currentCallSession.peer.name = newName;
+        const peerAudioName = document.getElementById('peerAudioName');
+        if (peerAudioName) peerAudioName.textContent = newName;
+        const activeCallPeerName = document.getElementById('activeCallPeerName');
+        if (activeCallPeerName) activeCallPeerName.textContent = newName;
+        const miniCallName = document.getElementById('miniCallName');
+        if (miniCallName) miniCallName.textContent = newName;
+      }
+    }
+
+    // 12. Update Mini Floating Salon Widget
+    if (typeof updateMiniSalonAvatars === 'function') {
+      updateMiniSalonAvatars();
+    }
+  }
+
+  // =========================================================================
   // SOCKET.IO CLIENT INITIALIZATION & ROUTING
   // =========================================================================
   function initSocketConnection(token) {
@@ -8475,6 +8771,21 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(message || `Votre rôle a changé : ${role}`, badgeType === 'ADMIN' ? 'teal' : 'coral');
       }
     });
+
+    // Real-time User Profile & Avatar Update Broadcast across WafaTalk
+    socket.on('user:profile_updated', (data) => {
+      if (!data || !data.userId) return;
+      applyUserAvatarUpdateAcrossUI(data);
+    });
+
+    // Real-time Salon Participant updated (avatar, role, name)
+    socket.on('salon:participant_updated', ({ salonId, participant }) => {
+      if (!state.currentRoom || state.currentRoom.id !== salonId || !participant) return;
+      if (currentSalonRoster) {
+        currentSalonRoster.set(participant.userId, participant);
+        renderVoiceStage();
+      }
+    });
   }
 
   // =========================================================================
@@ -8555,7 +8866,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username)) || u.status === 'online' || Boolean(u._isOnline);
 
       if (userProfileAvatar) {
-        userProfileAvatar.src = u.avatar || u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username || 'user')}`;
+        const customModalAv = (u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username || 'user')}`;
+        userProfileAvatar.src = customModalAv;
       }
       if (userProfileStatusDot) {
         userProfileStatusDot.className = `user-profile-status-indicator ${isOnline ? 'online' : ''}`;
@@ -8738,6 +9050,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.profile) {
+            if (data.profile.avatarUrl && targetId) {
+              localStorage.setItem(`wafatalk_avatar_${targetId}`, data.profile.avatarUrl);
+            }
             populateModalUI(data.profile);
           }
         }

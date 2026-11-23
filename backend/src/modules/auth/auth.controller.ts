@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { AuthService } from './auth.service.js';
+import { updateUserInActiveSalons } from '../../socket/socket.server.js';
 import {
   loginSchema,
   registerSchema,
@@ -232,6 +233,11 @@ export async function authRoutes(fastify: FastifyInstance) {
             status: input.status.toLowerCase(),
           });
         }
+        updateUserInActiveSalons(io, user.id, {
+          avatarUrl: user.avatarUrl,
+          displayName: user.displayName,
+          country: user.country,
+        });
         io.emit('user:profile_updated', {
           userId: user.id,
           displayName: user.displayName,
@@ -239,6 +245,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           country: user.country,
           status: user.status,
           bio: user.bio,
+          socialStatus: user.socialStatus,
         });
       }
 
