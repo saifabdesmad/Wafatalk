@@ -3,7 +3,7 @@ import { prisma } from '../../database/prisma.js';
 export class FriendsService {
   // Send a friend request (check not already friends, not already pending, not self)
   static async sendRequest(senderId: string, receiverId: string) {
-    if (senderId === receiverId) throw new Error('Vous ne pouvez pas vous envoyer une demande à vous-même.');
+    if (senderId === receiverId) throw new Error("Vous ne pouvez pas vous envoyer un clin d'œil à vous-même.");
 
     // Check both users exist
     const receiver = await prisma.user.findUnique({ where: { id: receiverId }, select: { id: true, displayName: true, username: true, avatarUrl: true } });
@@ -13,30 +13,65 @@ export class FriendsService {
     const existing = await prisma.friendship.findUnique({ where: { userId_friendId: { userId: senderId, friendId: receiverId } } });
     if (existing) throw new Error('Vous êtes déjà amis avec cet utilisateur.');
 
-    // Check if request already pending (either direction)
-    const existingReq = await prisma.friendRequest.findFirst({
-      where: {
-        OR: [
-          { senderId, receiverId, status: 'PENDING' },
-          { senderId: receiverId, receiverId: senderId, status: 'PENDING' },
-        ]
-      }
+    // 1. Check if the receiver already sent a PENDING request to sender (reciprocal wink!)
+    const reverseReq = await prisma.friendRequest.findFirst({
+      where: { senderId: receiverId, receiverId: senderId, status: 'PENDING' }
     });
-    if (existingReq) {
-      if (existingReq.senderId === receiverId) {
-        throw new Error("Cet utilisateur vous a déjà envoyé un clin d'œil. Renvoyez-lui un clin d'œil !");
-      }
-      throw new Error("Un clin d'œil est déjà en attente pour cet utilisateur.");
+    if (reverseReq) {
+      // Reciprocal wink -> immediately accept and connect!
+      const acceptedReq = await this.acceptRequest(reverseReq.id, senderId);
+      return acceptedReq;
     }
 
-    const request = await prisma.friendRequest.create({
-      data: { senderId, receiverId },
-      include: {
-        receiver: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
-        sender: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
-      }
+    // 2. Check if a request already exists from sender to receiver
+    const directReq = await prisma.friendRequest.findFirst({
+      where: { senderId, receiverId }
     });
-    return request;
+
+    if (directReq) {
+      if (directReq.status === 'PENDING') {
+        throw new Error("Un clin d'œil est déjà en attente pour cet utilisateur.");
+      }
+
+      // Re-activate previously cancelled, rejected or stale request
+      const updated = await prisma.friendRequest.update({
+        where: { id: directReq.id },
+        data: {
+          status: 'PENDING',
+          updatedAt: new Date(),
+        },
+        include: {
+          receiver: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
+          sender: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
+        }
+      });
+      return updated;
+    }
+
+    // 3. Create fresh request with safe unique-constraint fallback
+    try {
+      const request = await prisma.friendRequest.create({
+        data: { senderId, receiverId, status: 'PENDING' },
+        include: {
+          receiver: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
+          sender: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
+        }
+      });
+      return request;
+    } catch (err: any) {
+      if (err.code === 'P2002' || err.message?.includes('Unique constraint')) {
+        // Direct unique constraint fallback: update existing record to PENDING
+        return await prisma.friendRequest.update({
+          where: { senderId_receiverId: { senderId, receiverId } },
+          data: { status: 'PENDING', updatedAt: new Date() },
+          include: {
+            receiver: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
+            sender: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
+          }
+        });
+      }
+      throw err;
+    }
   }
 
   // Accept a friend request → create bidirectional Friendship

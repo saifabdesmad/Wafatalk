@@ -2636,12 +2636,24 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = '😉 Envoyé';
-        btn.className = 'explore-action-btn explore-wink-sent-btn';
-        btn.dataset.action = 'cancel';
-        btn.dataset.reqid = data.request.id;
-        btn.disabled = false;
-        showToast('😉 Clin d\'œil complice envoyé !', 'teal');
+        if (data.request?.status === 'ACCEPTED') {
+          btn.textContent = 'Message';
+          btn.className = 'explore-action-btn';
+          btn.dataset.action = 'chat';
+          btn.disabled = false;
+          triggerWinkHaptic();
+          playGiftChime();
+          spawnFloatingWink();
+          showToast('✨ Clin d\'œil partagé ! Vous êtes désormais amis.', 'teal');
+          refreshFriendData().then(() => renderFriends());
+        } else {
+          btn.textContent = '😉 Envoyé';
+          btn.className = 'explore-action-btn explore-wink-sent-btn';
+          btn.dataset.action = 'cancel';
+          btn.dataset.reqid = data.request.id;
+          btn.disabled = false;
+          showToast('😉 Clin d\'œil complice envoyé !', 'teal');
+        }
       } else {
         btn.disabled = false;
         btn.textContent = '😉 Clin d\'œil';
@@ -9222,8 +9234,13 @@ document.addEventListener('DOMContentLoaded', () => {
           btnProfileSendWink.disabled = false;
           btnProfileSendWink.onclick = async () => {
             await handleSendFriendRequest(u.id, null, btnProfileSendWink);
-            u.friendStatus = 'request_sent';
-            populateModalUI({ friendStatus: 'request_sent' });
+            if (btnProfileSendWink.textContent.includes('Message') || btnProfileSendWink.textContent.includes('Amis')) {
+              u.friendStatus = 'friends';
+              populateModalUI({ friendStatus: 'friends' });
+            } else {
+              u.friendStatus = 'request_sent';
+              populateModalUI({ friendStatus: 'request_sent' });
+            }
           };
         }
       }

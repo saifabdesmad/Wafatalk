@@ -64,10 +64,15 @@ export async function friendsRoutes(fastify: FastifyInstance) {
 
       // Real-time notification via Socket.IO
       const io = (fastify as any).io;
-      if (io) {
-        io.to(`user:${targetUserId}`).emit('friend:request_received', {
-          request: req,
-        });
+      if (io && req) {
+        if (req.status === 'ACCEPTED') {
+          io.to(`user:${targetUserId}`).emit('friend:request_accepted', { request: req });
+          io.to(`user:${request.user.id}`).emit('friend:request_accepted', { request: req });
+        } else {
+          io.to(`user:${targetUserId}`).emit('friend:request_received', {
+            request: req,
+          });
+        }
       }
 
       return reply.send({ success: true, request: req });
