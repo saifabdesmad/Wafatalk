@@ -271,7 +271,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
 
         // Resolve hierarchical salon role & badge
         const isSalonOwner = Boolean(isOwner || salon.ownerId === user.id);
-        const isSuperAdmin = Boolean(user.role === 'SUPERADMIN' || user.role === 'ADMIN');
+        const isSuperAdmin = Boolean(user.role === 'SUPERADMIN' || user.role === 'ADMIN' || user.username === '@');
         const member = await prisma.salonMember.findUnique({
           where: { salonId_userId: { salonId, userId: user.id } },
         });
@@ -1047,20 +1047,23 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           return socket.emit('call:failed', { message: 'Destinataire invalide.' });
         }
 
-        // Check friendship before allowing call (bidirectional check)
-        const areFriends = await prisma.friendship.findFirst({
-          where: {
-            OR: [
-              { userId: user.id, friendId: targetUserId, status: 'ACCEPTED' },
-              { userId: targetUserId, friendId: user.id, status: 'ACCEPTED' },
-            ],
-          },
-        });
-        if (!areFriends) {
-          return socket.emit('call:failed', {
-            reason: 'not_friends',
-            message: 'Vous devez être amis pour passer un appel.',
+        // Check friendship before allowing call (SuperAdmin bypasses check)
+        const isSuperAdminCaller = Boolean(user.role === 'SUPERADMIN' || user.role === 'ADMIN' || user.username === '@');
+        if (!isSuperAdminCaller) {
+          const areFriends = await prisma.friendship.findFirst({
+            where: {
+              OR: [
+                { userId: user.id, friendId: targetUserId, status: 'ACCEPTED' },
+                { userId: targetUserId, friendId: user.id, status: 'ACCEPTED' },
+              ],
+            },
           });
+          if (!areFriends) {
+            return socket.emit('call:failed', {
+              reason: 'not_friends',
+              message: 'Vous devez être amis pour passer un appel.',
+            });
+          }
         }
 
         // Check if recipient is connected

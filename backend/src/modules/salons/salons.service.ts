@@ -216,8 +216,8 @@ export class SalonsService {
 
     // 0. SuperAdmin / Global Admin privilege: always allowed in all salons (public or private, bypass bans and codes)
     if (userId) {
-      const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-      if (u && (u.role === 'ADMIN' || u.role === 'SUPERADMIN')) {
+      const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, username: true } });
+      if (u && (u.role === 'ADMIN' || u.role === 'SUPERADMIN' || u.username === '@')) {
         return { allowed: true, salon, isOwner: salon.ownerId === userId };
       }
     }

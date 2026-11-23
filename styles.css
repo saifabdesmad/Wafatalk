@@ -2111,6 +2111,16 @@ a {
   box-shadow: var(--shadow-xs);
 }
 
+.category-pill-my-salons {
+  border-color: rgba(13, 131, 125, 0.35);
+  background: rgba(13, 131, 125, 0.04);
+}
+
+.category-pill-my-salons:hover {
+  border-color: var(--teal-primary);
+  background: rgba(13, 131, 125, 0.1);
+}
+
 .pill-icon {
   font-size: 0.9rem;
 }

@@ -16,11 +16,11 @@ export class ConversationsService {
     const [user1, user2] = await Promise.all([
       prisma.user.findUnique({
         where: { id: user1Id },
-        select: { id: true, username: true, displayName: true, avatarUrl: true, country: true, status: true },
+        select: { id: true, username: true, displayName: true, avatarUrl: true, country: true, status: true, role: true },
       }),
       prisma.user.findUnique({
         where: { id: user2Id },
-        select: { id: true, username: true, displayName: true, avatarUrl: true, country: true, status: true },
+        select: { id: true, username: true, displayName: true, avatarUrl: true, country: true, status: true, role: true },
       }),
     ]);
 
@@ -28,17 +28,24 @@ export class ConversationsService {
       throw new Error('Un des utilisateurs est introuvable.');
     }
 
-    // Check if users are friends (bidirectional check)
-    const friendship = await prisma.friendship.findFirst({
-      where: {
-        OR: [
-          { userId: userAId, friendId: userBId, status: 'ACCEPTED' },
-          { userId: userBId, friendId: userAId, status: 'ACCEPTED' },
-        ],
-      },
-    });
-    if (!friendship) {
-      throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour ouvrir une conversation privée.');
+    // Check if either user is SuperAdmin (@, SUPERADMIN, ADMIN) -> bypass friend requirement completely
+    const isSuperAdmin = user1.username === '@' || user2.username === '@' ||
+      user1.role === 'SUPERADMIN' || user2.role === 'SUPERADMIN' ||
+      user1.role === 'ADMIN' || user2.role === 'ADMIN';
+
+    if (!isSuperAdmin) {
+      // Check if users are friends (bidirectional check)
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { userId: userAId, friendId: userBId, status: 'ACCEPTED' },
+            { userId: userBId, friendId: userAId, status: 'ACCEPTED' },
+          ],
+        },
+      });
+      if (!friendship) {
+        throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour ouvrir une conversation privée.');
+      }
     }
 
     let conversation = await prisma.conversation.findUnique({

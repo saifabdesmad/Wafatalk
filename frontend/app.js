@@ -53,6 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let dmIsLoadingOlder = false;
   let dmUnreadScrolledCount = 0;
 
+  // SuperAdmin Detection Helper (@, SUPERADMIN, ADMIN)
+  function isSuperAdminUser(user) {
+    if (!user) return false;
+    return user.username === '@' || user.role === 'SUPERADMIN' || user.role === 'ADMIN';
+  }
+
   // Backend API Base Configuration (Local Dev auto-switch & Production IONOS VPS)
   const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
     ? 'http://127.0.0.1:4000/api'
@@ -2214,21 +2220,69 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!salonsGrid) return;
     salonsGrid.innerHTML = '';
 
+    const myId = state.currentUser?.id;
+    const myUsername = state.currentUser?.username;
+
     const filtered = salonsData.filter(s => {
-      const matchesCategory = state.activeCategory === 'all' || s.category === state.activeCategory;
+      let matchesCategory = false;
+      if (state.activeCategory === 'all') {
+        matchesCategory = true;
+      } else if (state.activeCategory === 'my_salons' || state.activeCategory === 'mine') {
+        matchesCategory = Boolean(myId && (s.ownerId === myId || s.owner?.id === myId || s.isOwner || (myUsername && (s.ownerUsername === myUsername || s.owner?.username === myUsername))));
+      } else {
+        matchesCategory = s.category === state.activeCategory;
+      }
       const matchesSearch = s.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
         s.topic.toLowerCase().includes(state.searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
 
     if (salonCountBadge) {
-      salonCountBadge.textContent = `${filtered.length} Salon${filtered.length > 1 ? 's' : ''} disponible${filtered.length > 1 ? 's' : ''}`;
+      if (state.activeCategory === 'my_salons' || state.activeCategory === 'mine') {
+        salonCountBadge.textContent = `${filtered.length} Salon${filtered.length > 1 ? 's' : ''} créé${filtered.length > 1 ? 's' : ''} par vous`;
+      } else {
+        salonCountBadge.textContent = `${filtered.length} Salon${filtered.length > 1 ? 's' : ''} disponible${filtered.length > 1 ? 's' : ''}`;
+      }
     }
 
     if (filtered.length === 0) {
+      if (state.activeCategory === 'my_salons' || state.activeCategory === 'mine') {
+        if (!state.currentUser?.id) {
+          salonsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-medium);">
+              <div style="font-size: 2.5rem; margin-bottom: 12px;">🔒</div>
+              <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">Connectez-vous pour voir vos salons</h4>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">Vous devez être connecté pour accéder à la liste de vos salons personnels créés par vous.</p>
+              <button type="button" class="btn btn-primary btn-sm" id="btnGoToLoginFromSalons">Se connecter</button>
+            </div>
+          `;
+          document.getElementById('btnGoToLoginFromSalons')?.addEventListener('click', () => {
+            window.location.hash = '';
+            document.getElementById('authScreen')?.classList.add('active');
+            document.getElementById('hubScreen')?.classList.remove('active');
+          });
+        } else {
+          salonsGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-medium);">
+              <div style="font-size: 2.5rem; margin-bottom: 12px;">🏠</div>
+              <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">Vous n'avez pas encore créé de salon</h4>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">Créez votre propre salon vocal, chill ou privé en un clic !</p>
+              <button type="button" class="btn btn-primary btn-sm" id="btnEmptyCreateSalon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Créer un Salon
+              </button>
+            </div>
+          `;
+          document.getElementById('btnEmptyCreateSalon')?.addEventListener('click', () => {
+            document.getElementById('btnOpenCreateSalon')?.click();
+          });
+        }
+        return;
+      }
+
       salonsGrid.innerHTML = `
         <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-medium);">
-          <div style="font-size: 2.5rem; margin-bottom: 12px;"></div>
+          <div style="font-size: 2.5rem; margin-bottom: 12px;">🔍</div>
           <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;">Aucun salon trouvé</h4>
           <p style="color: var(--text-muted); font-size: 0.9rem;">Essayez un autre mot-clé ou créez votre propre salon maintenant !</p>
         </div>
@@ -2241,6 +2295,8 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'salon-card';
       card.dataset.id = salon.id;
 
+      const isMySalon = Boolean(salon.isOwner || (myId && (salon.ownerId === myId || salon.owner?.id === myId)));
+
       card.innerHTML = `
         <div class="salon-card-banner" style="background: ${salon.bannerBg};">
           <div class="salon-banner-overlay"></div>
@@ -2248,7 +2304,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="live-dot pulse"></span>
             <span>${salon.isLive ? 'EN DIRECT' : 'SALON RÉSERVÉ'}</span>
           </span>
-          ${salon.isPrivate ? '<span class="salon-card-badge" style="background: rgba(242, 91, 62, 0.35); border-color: rgba(242, 91, 62, 0.6); color: #fff;"> PRIVÉ</span>' : ''}
+          ${salon.isPrivate ? '<span class="salon-card-badge" style="background: rgba(242, 91, 62, 0.35); border-color: rgba(242, 91, 62, 0.6); color: #fff;">🔒 PRIVÉ</span>' : ''}
+          ${isMySalon ? '<span class="salon-card-badge" style="background: rgba(13, 131, 125, 0.45); border-color: rgba(13, 131, 125, 0.8); color: #fff; font-weight: 700;">👑 MON SALON</span>' : ''}
           <span class="salon-card-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
             <span>${salon.participantsCount}</span>
@@ -2568,7 +2625,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (u.id) item.dataset.userId = u.id;
 
         let actionBtn = '';
-        if (u.friendStatus === 'friends') {
+        const isSuperAdminViewer = isSuperAdminUser(state.currentUser);
+        if (isSuperAdminViewer) {
+          actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message direct (SuperAdmin)">Message</button>`;
+        } else if (u.friendStatus === 'friends') {
           actionBtn = `<button class="explore-action-btn" data-action="chat" data-uid="${u.id}" title="Envoyer un message">Message</button>`;
         } else if (u.friendStatus === 'request_sent') {
           actionBtn = `<button class="explore-action-btn explore-wink-sent-btn" data-action="cancel" data-reqid="${u.requestId}" title="Annuler le clin d'œil">😉 Envoyé</button>`;
@@ -2789,11 +2849,12 @@ document.addEventListener('DOMContentLoaded', () => {
   async function openLiveSalon(salon, accessCode, inviteToken) {
     if (!salon) return;
 
-    // Check if private and not owner
+    // Check if private and not owner (SuperAdmin bypasses all access codes)
     const myId = state.currentUser?.id;
     const isOwner = Boolean(salon.isOwner || (salon.ownerId && myId && salon.ownerId === myId));
+    const isSuperAdmin = isSuperAdminUser(state.currentUser);
 
-    if (salon.isPrivate && !isOwner) {
+    if (salon.isPrivate && !isOwner && !isSuperAdmin) {
       // 1. If neither code nor token was provided, prompt user
       if (!accessCode && !salon.accessCode && !inviteToken) {
         openPrivateSalonPrompt(salon);
@@ -9696,7 +9757,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (btnProfileStartChat) {
         btnProfileStartChat.onclick = () => {
-          if (isFriend) {
+          if (isFriend || isSuperAdminUser(state.currentUser)) {
             closeUserProfileModal();
             openDirectChat(u);
           } else {
@@ -9751,10 +9812,11 @@ document.addEventListener('DOMContentLoaded', () => {
   async function openDirectChat(friend) {
     if (!friend) return;
 
-    // Check if user is logged in and whether they are accepted friends (or in active call with peer)
+    // Check if user is logged in and whether they are accepted friends (or in active call with peer, or SuperAdmin)
     const isFriend = myFriendsList.some(f => f.id === friend.id || (f.username && friend.username && f.username.toLowerCase() === friend.username.toLowerCase()));
     const isInCallWithPeer = currentCallSession && currentCallSession.peer && (currentCallSession.peer.id === friend.id || currentCallSession.peer.name === friend.name || currentCallSession.peer.name === friend.username);
-    if (state.currentUser?.id && !isFriend && !isInCallWithPeer) {
+    const isSuperAdmin = isSuperAdminUser(state.currentUser);
+    if (state.currentUser?.id && !isFriend && !isInCallWithPeer && !isSuperAdmin) {
       showToast('Vous devez être amis pour ouvrir une conversation privée.', 'coral');
       return;
     }
@@ -10754,9 +10816,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Check if friends before calling (authoritative check done by backend; only block client-side if friend list is loaded)
+    // Check if friends before calling (authoritative check done by backend; SuperAdmin bypasses)
     const isFriend = myFriendsList.some(f => f.id === currentDmFriend.id || (f.username && currentDmFriend.username && f.username.toLowerCase() === currentDmFriend.username.toLowerCase()));
-    if (state.currentUser?.id && !isFriend && myFriendsList.length > 0) {
+    const isSuperAdminCaller = isSuperAdminUser(state.currentUser);
+    if (state.currentUser?.id && !isFriend && myFriendsList.length > 0 && !isSuperAdminCaller) {
       showToast('Vous devez être amis pour passer un appel.', 'coral');
       return;
     }
