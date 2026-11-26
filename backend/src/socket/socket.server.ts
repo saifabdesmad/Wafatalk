@@ -19,6 +19,38 @@ function getSocketClientIp(socket: any): string {
   return (socket.handshake?.address || '127.0.0.1').replace('::ffff:', '');
 }
 
+export interface SalonGiftToken {
+  giftType: string;
+  icon: string;
+  name: string;
+  senderId: string;
+  senderName: string;
+  timestamp: string;
+}
+
+const GIFT_META_MAP: Record<string, { icon: string; name: string }> = {
+  coffee: { icon: '☕', name: 'Café Douceur' },
+  croissant: { icon: '🥐', name: 'Croissant Chaud' },
+  heart: { icon: '💖', name: 'Coup de Cœur' },
+  bubble_tea: { icon: '🧋', name: 'Boba Tea Festif' },
+  cocktail: { icon: '🍹', name: 'Cocktail Sunset' },
+  star: { icon: '⭐', name: 'Étoile Filante' },
+  playlist: { icon: '🎵', name: 'Mixtape Secrète' },
+  chocolates: { icon: '🍫', name: 'Boîte de Pralines' },
+  red_rose: { icon: '🌹', name: 'Rose Éternelle' },
+  cinema_tickets: { icon: '🍿', name: 'Soirée Ciné Popcorn' },
+  magic_box: { icon: '🎁', name: 'Coffret Mystère' },
+  rooftop_date: { icon: '🌃', name: 'Rendez-vous Rooftop' },
+  candle_dinner: { icon: '🕯️', name: 'Dîner aux Chandelles' },
+  museum_pass: { icon: '🎨', name: 'Échappée Musée & Expo' },
+  vip_crown: { icon: '👑', name: 'Couronne Prestige' },
+  stargazing: { icon: '🔭', name: 'Nuit sous les Étoiles' },
+  hot_air_balloon: { icon: '🎈', name: 'Vol en Montgolfière' },
+  diamond: { icon: '💎', name: 'Diamant Éternel' },
+  rocket: { icon: '🚀', name: 'Fusée Stellaire' },
+  island_trip: { icon: '🏝️', name: 'Escapade Sur Île Privée' },
+};
+
 // Salon Participants Tracker: salonId -> Map<userId, SalonParticipant>
 export interface SalonParticipant {
   userId: string;
@@ -33,6 +65,7 @@ export interface SalonParticipant {
   isSpeaking: boolean;
   isCameraOn: boolean;
   isScreenSharing: boolean;
+  receivedGifts?: SalonGiftToken[];
   joinedAt: Date;
   ipAddress?: string;
 }
@@ -293,6 +326,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           badgeType = 'ADMIN';
         }
 
+        const existingParticipant = salonMap.get(user.id);
         const participant: SalonParticipant = {
           userId: user.id,
           socketId: socket.id,
@@ -306,6 +340,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           isSpeaking: false,
           isCameraOn: false,
           isScreenSharing: false,
+          receivedGifts: existingParticipant?.receivedGifts || [],
           joinedAt: new Date(),
           ipAddress: clientIp,
         };
@@ -899,25 +934,57 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           country: user.country || null,
         };
 
-        // Case 1: Send in Salon (Broadcast to everyone in the room)
+        // Case 1: Send in Salon (Broadcast to everyone in the room & persist badge on receiver's stage card)
         if (targetType === 'salon' && payload.salonId) {
+          const salonMap = salonParticipants.get(payload.salonId);
+          const giftMeta = GIFT_META_MAP[giftType] || { icon: '🎁', name: 'Cadeau WafaTalk' };
+          const nowIso = new Date().toISOString();
+
           let receiverData: any = null;
+          let receiverGifts: SalonGiftToken[] = [];
+
           if (payload.receiverId && payload.receiverId !== 'all') {
             const rec = await prisma.user.findUnique({
               where: { id: payload.receiverId },
               select: { id: true, displayName: true, username: true, avatarUrl: true },
             }).catch(() => null);
-            if (rec) receiverData = rec;
+            const salonRec = salonMap?.get(payload.receiverId);
+            if (rec) {
+              receiverData = { ...rec, avatarUrl: resolveAvatarUrl(rec.avatarUrl, rec.displayName || rec.username) };
+            } else if (salonRec) {
+              receiverData = {
+                id: salonRec.userId,
+                displayName: salonRec.displayName,
+                username: salonRec.username,
+                avatarUrl: salonRec.avatarUrl || null,
+              };
+            }
+
+            if (salonRec) {
+              const token: SalonGiftToken = {
+                giftType,
+                icon: giftMeta.icon,
+                name: giftMeta.name,
+                senderId: user.id,
+                senderName: senderData.displayName,
+                timestamp: nowIso,
+              };
+              salonRec.receivedGifts = [token, ...(salonRec.receivedGifts || [])].slice(0, 12);
+              receiverGifts = salonRec.receivedGifts;
+            }
           }
 
           const giftPayload = {
             sender: senderData,
             receiver: receiverData,
             giftType,
+            giftIcon: giftMeta.icon,
+            giftName: giftMeta.name,
             costPoints,
             customMessage,
             salonId: payload.salonId,
-            timestamp: new Date().toISOString(),
+            receiverGifts,
+            timestamp: nowIso,
           };
 
           // Broadcast to everyone currently in the salon

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css?v=20261126b">
+  <link rel="stylesheet" href="styles.css?v=20261127">
 </head>
 <body>
 
@@ -862,6 +862,22 @@
 
         <!-- Right Side: Call Stage (Unified Equal Stage Grid) -->
         <div class="voice-stage-container">
+          <!-- In-Salon Social Gift Spotlight Banner (floats cleanly without shifting cards) -->
+          <div class="salon-gift-spotlight hidden" id="salonGiftSpotlight" aria-live="polite">
+            <div class="sgs-avatars">
+              <img src="" alt="" class="sgs-avatar" id="sgsSenderAvatar">
+              <span class="sgs-gift-badge" id="sgsGiftIcon">🌹</span>
+              <img src="" alt="" class="sgs-avatar" id="sgsReceiverAvatar">
+            </div>
+            <div class="sgs-copy">
+              <div class="sgs-headline" id="sgsHeadline"></div>
+              <div class="sgs-sub" id="sgsSubtext"></div>
+            </div>
+            <button type="button" class="sgs-cta-btn" id="btnSpotlightQuickGift" title="Offrir un cadeau dans ce salon">
+              <span>🎁 Offrir</span>
+            </button>
+          </div>
+
           <div class="voice-stage-grid" id="voiceStageGrid">
             <!-- Populated dynamically via app.js - all members equal -->
           </div>
@@ -2858,6 +2874,6 @@
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
   <!-- Main JavaScript File -->
-  <script src="app.js?v=20261126b"></script>
+  <script src="app.js?v=20261127"></script>
 </body>
 </html>

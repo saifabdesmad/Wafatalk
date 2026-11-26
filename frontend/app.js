@@ -3534,6 +3534,7 @@ document.addEventListener('DOMContentLoaded', () => {
     miniSalonWidget?.classList.add('hidden');
     salonBansModal?.classList.add('hidden');
     btnOpenSalonBansModal?.classList.add('hidden');
+    document.getElementById('salonGiftSpotlight')?.classList.add('hidden');
     state.currentRoom = null;
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
@@ -4046,6 +4047,80 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function openGiftShopForSalonUser(participant) {
+    if (participant && participant.userId && participant.userId !== state.currentUser?.id) {
+      activeDirectUser = {
+        id: participant.userId,
+        userId: participant.userId,
+        name: (participant.displayName || participant.username || 'Membre').replace(/\s*\(Vous\)$/, ''),
+        username: participant.username || 'membre',
+        avatar: participant.avatarUrl || participant.avatar,
+      };
+    }
+    if (typeof openGiftShop === 'function') {
+      openGiftShop();
+    } else {
+      document.getElementById('btnOpenGiftShop')?.click();
+    }
+  }
+
+  function renderStageGiftBadgesForCard(card, participant, userId, animateGiftType = null) {
+    if (!card) return;
+    const container = card.querySelector('.stage-gift-badges');
+    if (!container) return;
+
+    const gifts = Array.isArray(participant?.receivedGifts) ? participant.receivedGifts : [];
+    if (gifts.length === 0) {
+      if (container.innerHTML !== '') container.innerHTML = '';
+      return;
+    }
+
+    // Group by giftType preserving most-recent order
+    const grouped = [];
+    const byType = new Map();
+    for (const g of gifts) {
+      const key = g.giftType || g.icon || 'gift';
+      if (!byType.has(key)) {
+        const entry = {
+          giftType: g.giftType,
+          icon: g.icon || GIFTS_CATALOG.find(c => c.id === g.giftType)?.icon || '🎁',
+          name: g.name || GIFTS_CATALOG.find(c => c.id === g.giftType)?.name || 'Cadeau',
+          count: 1,
+          latestSender: g.senderName || 'Un ami',
+        };
+        byType.set(key, entry);
+        grouped.push(entry);
+      } else {
+        byType.get(key).count++;
+      }
+    }
+
+    const sig = grouped.map(e => `${e.giftType}:${e.count}:${e.latestSender}`).join('|') + `|${animateGiftType || ''}`;
+    if (container.dataset.giftSig === sig && !animateGiftType) return;
+    container.dataset.giftSig = sig;
+
+    const visible = grouped.slice(0, 3);
+    const extraCount = grouped.length - visible.length;
+
+    container.innerHTML = visible.map((entry, idx) => {
+      const isArriving = animateGiftType && entry.giftType === animateGiftType && idx === 0;
+      const tip = `${entry.icon} ${entry.name} • Offert par ${entry.latestSender} (Cliquer pour offrir un cadeau)`;
+      return `
+        <span class="stage-gift-badge-pill${isArriving ? ' is-arriving' : ''}" title="${escapeHtml(tip)}" data-gift-target="${escapeHtml(userId)}">
+          <span class="stage-gift-icon-char">${entry.icon}</span>
+          ${entry.count > 1 ? `<span class="stage-gift-count">×${entry.count}</span>` : ''}
+        </span>
+      `;
+    }).join('') + (extraCount > 0 ? `<span class="stage-gift-badge-pill" title="+${extraCount} autre(s) cadeau(x)">+${extraCount}</span>` : '');
+
+    container.querySelectorAll('.stage-gift-badge-pill').forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openGiftShopForSalonUser(participant);
+      });
+    });
+  }
+
   // D. Render Voice & Video Stage Grid (Targeted updates preserving playing videos)
   function renderVoiceStage() {
     if (!voiceStageGrid) return;
@@ -4104,7 +4179,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <img src="${resolveSafeAvatar(p.avatarUrl || p.avatar, p.displayName || p.name || 'Membre')}" class="stage-video-poster" id="videoPoster_${userId}" alt="">
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
-              <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+              <div class="stage-name-row stage-name-row-video">
+                <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+                <span class="stage-gift-badges" data-user-id="${userId}"></span>
+              </div>
               <span class="stage-role-pill ${roleInfo.badgeClass}">${roleInfo.icon} ${roleInfo.label}</span>
             </div>
           `;
@@ -4160,8 +4238,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
             ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">️</button>` : ''}
-            <div style="display: flex; align-items: center; gap: 5px;">
+            <div class="stage-name-row">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
+              <span class="stage-gift-badges" data-user-id="${userId}"></span>
               <span>${flagImg}</span>
             </div>
             <span class="stage-role-pill ${roleInfo.badgeClass}">${roleInfo.icon} ${roleInfo.label}</span>
@@ -4204,6 +4283,9 @@ document.addEventListener('DOMContentLoaded', () => {
           stageNameEl.textContent = expectedName;
         }
       }
+
+      // Update persistent gift badges next to participant's username
+      renderStageGiftBadgesForCard(card, p, userId);
 
       // Ensure admin trigger button exists if moderator privileges apply
       let triggerBtn = card.querySelector('.stage-admin-trigger');
@@ -5774,6 +5856,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const opt = document.createElement('option');
             opt.value = `salon_user:${user.userId}`;
             opt.textContent = `🎙️ ${user.displayName || user.username} (${user.role || 'Membre'})`;
+            if (activeDirectUser && (activeDirectUser.id === user.userId || activeDirectUser.userId === user.userId || activeDirectUser.username === user.username)) {
+              opt.selected = true;
+            }
             optgroupSalon.appendChild(opt);
           }
         });
@@ -5947,15 +6032,41 @@ document.addEventListener('DOMContentLoaded', () => {
       targetUserId = recipientVal;
     }
 
-    // 3. Emit real-time WebSocket gift event so the receiver(s) get the graphic animation!
+    // 3. Emit real-time WebSocket gift event so everyone in salon / receiver gets the graphic animation & badge!
     if (socket && socket.connected) {
       socket.emit('gift:send', {
         giftType: gift.id,
+        giftIcon: gift.icon,
+        giftName: gift.name,
         targetType: targetType,
         salonId: state.currentRoom?.id,
         receiverId: targetUserId,
         customMessage: noteToDisplay,
         costPoints: gift.points
+      });
+    } else if (targetType === 'salon' && state.currentRoom) {
+      // Offline / standalone demo fallback: update salon badge, spotlight & chat locally
+      const salonTarget = targetUserId ? currentSalonRoster.get(targetUserId) : null;
+      handleSalonGiftBroadcast({
+        sender: {
+          id: state.currentUser?.id || 'self',
+          displayName: state.currentUser?.displayName || state.currentUser?.username || 'Vous',
+          username: state.currentUser?.username || 'vous',
+          avatarUrl: state.currentUser?.avatarUrl || state.currentUser?.avatar,
+        },
+        receiver: salonTarget ? {
+          id: salonTarget.userId,
+          displayName: salonTarget.displayName,
+          username: salonTarget.username,
+          avatarUrl: salonTarget.avatarUrl,
+        } : null,
+        giftType: gift.id,
+        giftIcon: gift.icon,
+        giftName: gift.name,
+        costPoints: gift.points,
+        customMessage: noteToDisplay,
+        timestamp: new Date().toISOString(),
+        skipGraphicForSender: true,
       });
     }
 
@@ -6100,6 +6211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeGiftShop() {
     if (giftShopModal) giftShopModal.classList.add('hidden');
     closePersonalizeDrawer();
+    activeDirectUser = null;
   }
 
   btnOpenGiftShop?.addEventListener('click', openGiftShop);
@@ -8885,6 +8997,185 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('giftCelebrationBackdrop')?.addEventListener('click', dismissGiftCelebration);
   document.getElementById('giftCelebrationWrapper')?.addEventListener('click', dismissGiftCelebration);
 
+  // =========================================================================
+  // IN-SALON GIFT SPOTLIGHT & STAGE RECEIVER BADGE CONTROLLER
+  // =========================================================================
+  let salonSpotlightTimer = null;
+
+  function triggerSalonGiftShowcase({ sender, receiver, gift, customMessage }) {
+    const spotlight = document.getElementById('salonGiftSpotlight');
+    if (!spotlight || !state.currentRoom) return;
+
+    const senderName = (sender?.displayName || sender?.username || 'Un membre').replace(/\s*\(Vous\)$/, '');
+    const isAllSalon = !receiver || !receiver.id;
+    const receiverName = isAllSalon
+      ? 'tout le salon'
+      : (receiver.displayName || receiver.username || 'un membre').replace(/\s*\(Vous\)$/, '');
+
+    const senderAvEl = document.getElementById('sgsSenderAvatar');
+    const receiverAvEl = document.getElementById('sgsReceiverAvatar');
+    const iconEl = document.getElementById('sgsGiftIcon');
+    const headlineEl = document.getElementById('sgsHeadline');
+    const subEl = document.getElementById('sgsSubtext');
+    const ctaBtn = document.getElementById('btnSpotlightQuickGift');
+
+    if (senderAvEl) {
+      senderAvEl.src = resolveSafeAvatar(sender?.avatarUrl || sender?.avatar, senderName);
+      senderAvEl.alt = senderName;
+    }
+    if (receiverAvEl) {
+      if (isAllSalon) {
+        receiverAvEl.src = getDicebearInitialsAvatar(state.currentRoom?.name || 'Salon', '0d837d');
+        receiverAvEl.alt = 'Salon';
+      } else {
+        receiverAvEl.src = resolveSafeAvatar(receiver?.avatarUrl || receiver?.avatar, receiverName);
+        receiverAvEl.alt = receiverName;
+      }
+    }
+    if (iconEl) iconEl.textContent = gift.icon || '🎁';
+    if (headlineEl) {
+      headlineEl.innerHTML = `<strong>${escapeHtml(senderName)}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> à <strong>${escapeHtml(receiverName)}</strong>`;
+    }
+    if (subEl) {
+      const note = (customMessage || gift.accroche || '').trim();
+      subEl.textContent = note ? `« ${note} »` : '';
+      subEl.style.display = note ? '' : 'none';
+    }
+    if (ctaBtn) {
+      ctaBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!isAllSalon && receiver?.id && receiver.id !== state.currentUser?.id) {
+          openGiftShopForSalonUser({
+            userId: receiver.id,
+            displayName: receiverName,
+            username: receiver.username || receiverName,
+            avatarUrl: receiver.avatarUrl || receiver.avatar,
+          });
+        } else {
+          openGiftShopForSalonUser(null);
+        }
+      };
+    }
+
+    if (salonSpotlightTimer) {
+      clearTimeout(salonSpotlightTimer);
+      salonSpotlightTimer = null;
+    }
+
+    spotlight.classList.remove('hidden', 'is-exiting');
+    // Restart entrance animation cleanly
+    spotlight.style.animation = 'none';
+    void spotlight.offsetWidth;
+    spotlight.style.animation = '';
+
+    salonSpotlightTimer = setTimeout(() => {
+      spotlight.classList.add('is-exiting');
+      setTimeout(() => {
+        spotlight.classList.add('hidden');
+        spotlight.classList.remove('is-exiting');
+      }, 280);
+    }, 5500);
+  }
+
+  function handleSalonGiftBroadcast({
+    sender,
+    receiver,
+    giftType,
+    giftIcon,
+    giftName,
+    costPoints,
+    customMessage,
+    receiverGifts,
+    timestamp,
+    skipGraphicForSender = false,
+  }) {
+    const myId = state.currentUser?.id;
+    const isSelfSender = Boolean(sender && myId && sender.id === myId);
+    const senderName = isSelfSender ? 'Vous' : (sender?.displayName || sender?.username || 'Un ami');
+    const receiverName = receiver?.displayName || receiver?.username || 'tout le salon';
+    const catalogGift = GIFTS_CATALOG.find(g => g.id === giftType) || GIFTS_CATALOG[0];
+    const gift = {
+      ...catalogGift,
+      id: giftType || catalogGift.id,
+      icon: giftIcon || catalogGift.icon,
+      name: giftName || catalogGift.name,
+    };
+    const messageText = customMessage || gift.accroche;
+
+    // 1. Update receiver's persistent gift badges inside currentSalonRoster & stage card
+    if (receiver?.id && currentSalonRoster.has(receiver.id)) {
+      const targetParticipant = currentSalonRoster.get(receiver.id);
+      if (Array.isArray(receiverGifts) && receiverGifts.length > 0) {
+        targetParticipant.receivedGifts = receiverGifts;
+      } else {
+        const newToken = {
+          giftType: gift.id,
+          icon: gift.icon,
+          name: gift.name,
+          senderId: sender?.id || 'self',
+          senderName: sender?.displayName || sender?.username || 'Un ami',
+          timestamp: timestamp || new Date().toISOString(),
+        };
+        targetParticipant.receivedGifts = [newToken, ...(targetParticipant.receivedGifts || [])].slice(0, 12);
+      }
+
+      const card = document.getElementById(`stageUser_${receiver.id}`);
+      if (card) {
+        renderStageGiftBadgesForCard(card, targetParticipant, receiver.id, gift.id);
+        card.classList.remove('is-gift-gleam');
+        void card.offsetWidth;
+        card.classList.add('is-gift-gleam');
+        setTimeout(() => card.classList.remove('is-gift-gleam'), 1350);
+      }
+    }
+
+    // 2. Show non-intrusive Stage Spotlight Banner to EVERYONE in the salon (social proof loop!)
+    triggerSalonGiftShowcase({ sender, receiver, gift, customMessage: messageText });
+
+    // 3. Append visible celebration card in salon chat for EVERYONE in the salon
+    if (chatMessagesScroll) {
+      const giftEl = document.createElement('div');
+      giftEl.className = 'chat-gift-announcement';
+      giftEl.innerHTML = `
+        <div class="chat-gift-icon-bubble">${gift.icon}</div>
+        <div class="chat-gift-content">
+          <div class="chat-gift-headline"><strong>${escapeHtml(sender?.displayName || sender?.username || 'Vous')}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> (${escapeHtml(receiverName)}) !</div>
+          <div class="chat-gift-note">« ${escapeHtml(messageText)} »</div>
+        </div>
+      `;
+      chatMessagesScroll.appendChild(giftEl);
+      chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
+    }
+
+    // 4. Full-screen celebration graphic, toast, sound & 1h notification (skip duplicate graphic for sender since confirm button already fired it)
+    if (!isSelfSender && !skipGraphicForSender) {
+      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
+
+      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
+        NotificationManager.addNotification({
+          type: 'gift',
+          title: sender?.displayName || sender?.username || 'Un ami',
+          message: `${gift.icon} a offert ${gift.name} à ${receiverName} ! ${messageText ? `« ${messageText} »` : ''}`,
+          avatarUrl: sender?.avatarUrl || sender?.avatar || null,
+          icon: gift.icon || '🎁',
+          metadata: {
+            sender,
+            receiver,
+            gift,
+            costPoints,
+            customMessage: messageText,
+          }
+        });
+      }
+
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([100, 60, 160]); } catch (e) {}
+      }
+
+      showToast(`🎁 ${senderName} a offert ${gift.name} à ${receiverName} !`, 'amber');
+    }
+  }
+
   // Expose for testing & celebration integration
   window.triggerGiftCelebrationGraphic = triggerGiftCelebrationGraphic;
   window.GIFTS_CATALOG = GIFTS_CATALOG;
@@ -9769,59 +10060,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // SALON GROUP SOCKET EVENTS (MULTI-USER ROSTER, AUDIO/VIDEO MESH & CHAT)
     // =========================================================================
-    // Real-time Salon Gift Celebration Received from another member
-    socket.on('salon:gift', ({ sender, receiver, giftType, costPoints, customMessage }) => {
-      // Don't duplicate if sender is ourself (sender already saw celebration immediately on send)
-      if (sender && state.currentUser && sender.id === state.currentUser.id) return;
-
-      const senderName = sender?.displayName || sender?.username || 'Un ami';
-      const receiverName = receiver?.displayName || receiver?.username || 'tout le salon';
-      const gift = GIFTS_CATALOG.find(g => g.id === giftType) || GIFTS_CATALOG[0];
-      const messageText = customMessage || gift.accroche;
-
-      // 1. Trigger festive graphic motion and sound on receiver end
-      triggerGiftCelebrationGraphic(gift, senderName, receiverName, messageText);
-
-      // Add to dynamic notification center (persists for 1 hour)
-      if (typeof NotificationManager !== 'undefined' && NotificationManager) {
-        NotificationManager.addNotification({
-          type: 'gift',
-          title: senderName,
-          message: `${gift.icon} a offert ${gift.name} à ${receiverName} ! ${messageText ? `« ${messageText} »` : ''}`,
-          avatarUrl: sender?.avatarUrl || sender?.avatar || null,
-          icon: gift.icon || '🎁',
-          metadata: {
-            sender,
-            receiver,
-            gift,
-            costPoints,
-            customMessage: messageText,
-          }
-        });
-      }
-
-      // 2. Playful haptic vibration
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        try { navigator.vibrate([100, 60, 160]); } catch (e) {}
-      }
-
-      // 3. Show toast
-      showToast(`🎁 ${senderName} a offert ${gift.name} à ${receiverName} !`, 'amber');
-
-      // 4. Append celebration announcement in salon chat
-      if (chatMessagesScroll) {
-        const giftEl = document.createElement('div');
-        giftEl.className = 'chat-gift-announcement';
-        giftEl.innerHTML = `
-          <div class="chat-gift-icon-bubble">${gift.icon}</div>
-          <div class="chat-gift-content">
-            <div class="chat-gift-headline"><strong>${escapeHtml(senderName)}</strong> a offert <strong>${escapeHtml(gift.name)}</strong> (${escapeHtml(receiverName)}) !</div>
-            <div class="chat-gift-note">« ${escapeHtml(messageText)} »</div>
-          </div>
-        `;
-        chatMessagesScroll.appendChild(giftEl);
-        chatMessagesScroll.scrollTop = chatMessagesScroll.scrollHeight;
-      }
+    // Real-time Salon Gift Celebration Received (broadcast to everyone in salon)
+    socket.on('salon:gift', (payload) => {
+      if (!payload) return;
+      handleSalonGiftBroadcast(payload);
     });
 
     // Real-time Direct Gift Received from a Friend or "Tous mes amis"

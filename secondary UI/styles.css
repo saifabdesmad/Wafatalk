@@ -10757,3 +10757,304 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-color: var(--teal-primary);
   color: var(--teal-primary);
 }
+
+/* ========================================================================= */
+/* IN-SALON GIFT SPOTLIGHT & PERSISTENT RECEIVER STAGE BADGES (NO SLOP)      */
+/* ========================================================================= */
+.salon-gift-spotlight {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 7px 9px 7px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 22, 0.92);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(245, 158, 11, 0.16);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: sgsSlideIn 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.salon-gift-spotlight.hidden {
+  display: none !important;
+}
+
+.salon-gift-spotlight.is-exiting {
+  animation: sgsSlideOut 0.28s ease-in forwards;
+}
+
+@keyframes sgsSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes sgsSlideOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.96);
+  }
+}
+
+.sgs-avatars {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sgs-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  background: #0d837d;
+}
+
+.sgs-gift-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 -6px;
+  z-index: 2;
+  border-radius: 50%;
+  background: #ffffff;
+  font-size: 0.92rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+  animation: sgsIconSpring 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
+@keyframes sgsIconSpring {
+  0% { transform: scale(0.4) rotate(-14deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.sgs-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.sgs-headline {
+  font-size: 0.79rem;
+  font-weight: 500;
+  color: rgba(248, 250, 252, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgs-headline strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.sgs-sub {
+  font-size: 0.7rem;
+  color: rgba(248, 250, 252, 0.68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgs-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--teal-primary, #0d837d);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.sgs-cta-btn:hover {
+  background: #14a39b;
+  transform: translateY(-1px);
+}
+
+.sgs-cta-btn:active {
+  transform: scale(0.95);
+}
+
+/* Name Row + Persistent Gift Badges beside Receiver Username */
+.stage-name-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 100%;
+}
+
+.stage-name-row-video {
+  justify-content: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.stage-gift-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.stage-gift-badges:empty {
+  display: none;
+}
+
+.stage-gift-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--bg-surface-elevated, #ffffff);
+  color: var(--text-primary);
+  border: 1px solid rgba(242, 91, 62, 0.28);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.stage-gift-badge-pill:hover {
+  transform: translateY(-1.5px) scale(1.06);
+  border-color: rgba(242, 91, 62, 0.6);
+  box-shadow: 0 4px 12px rgba(242, 91, 62, 0.18);
+}
+
+.stage-avatar-card.has-video .stage-gift-badge-pill {
+  background: rgba(15, 23, 22, 0.8);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.stage-gift-icon-char {
+  display: inline-block;
+  font-size: 0.86rem;
+  line-height: 1;
+  animation: stageGiftSway 4.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.stage-gift-count {
+  font-size: 0.67rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.stage-gift-badge-pill.is-arriving {
+  animation: stageGiftArrive 0.62s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes stageGiftArrive {
+  0% {
+    opacity: 0;
+    transform: scale(0.25) translateY(10px) rotate(-16deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.22) translateY(-3px) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes stageGiftSway {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-1.5px) rotate(4deg); }
+}
+
+/* Single luxurious diagonal light sweep on receiver card when gift arrives */
+.stage-avatar-card.is-gift-gleam {
+  border-color: rgba(245, 158, 11, 0.65) !important;
+}
+
+.stage-avatar-card.is-gift-gleam::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 215, 130, 0.34) 50%, transparent 80%);
+  transform: translateX(-110%);
+  animation: stageCardGleamSweep 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 4;
+}
+
+@keyframes stageCardGleamSweep {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(120%); }
+}
+
+@media (max-width: 640px) {
+  .salon-gift-spotlight {
+    top: 10px;
+    padding: 6px 8px;
+    gap: 8px;
+    width: calc(100% - 16px);
+  }
+  .sgs-avatar {
+    width: 24px;
+    height: 24px;
+  }
+  .sgs-gift-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 0.8rem;
+  }
+  .sgs-headline {
+    font-size: 0.74rem;
+  }
+  .sgs-sub {
+    display: none;
+  }
+  .sgs-cta-btn {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salon-gift-spotlight,
+  .sgs-gift-badge,
+  .stage-gift-icon-char,
+  .stage-gift-badge-pill.is-arriving,
+  .stage-avatar-card.is-gift-gleam::after {
+    animation: none !important;
+  }
+}
