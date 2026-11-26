@@ -13,6 +13,7 @@ import { friendsRoutes } from './modules/friends/friends.controller.js';
 import { setupSocketServer } from './socket/socket.server.js';
 import { prisma } from './database/prisma.js';
 import { ConversationsService } from './modules/conversations/conversations.service.js';
+import { generateInitialsSvg } from './utils/avatar.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -138,6 +139,17 @@ async function buildApp() {
     smtpConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
     timestamp: new Date().toISOString(),
   }));
+
+  // Official DiceBear Initials SVG endpoint (supports ?seed=...&bg=...)
+  fastify.get('/api/avatars/initials', async (request: any, reply: any) => {
+    const query = (request.query || {}) as { seed?: string; bg?: string };
+    const seed = (query.seed || 'WT').toString().slice(0, 80);
+    const svg = generateInitialsSvg(seed, query.bg);
+    return reply
+      .header('Content-Type', 'image/svg+xml; charset=utf-8')
+      .header('Cache-Control', 'public, max-age=31536000, immutable')
+      .send(svg);
+  });
 
   // Dynamic WebRTC ICE/STUN/TURN Configuration Endpoint for crystal-clear WAN / Cross-Country connectivity
   fastify.get('/api/rtc-config', async () => {

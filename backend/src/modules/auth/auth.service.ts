@@ -11,6 +11,7 @@ import {
   ResetPasswordInput,
 } from './auth.schema.js';
 import { MailerService } from '../email/mailer.service.js';
+import { generateInitialsDataUri, resolveAvatarUrl } from '../../utils/avatar.js';
 
 export class AuthService {
   static async sendVerificationCode(input: SendVerificationInput) {
@@ -148,7 +149,7 @@ export class AuthService {
         email: cleanEmail,
         displayName,
         passwordHash,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername)}`,
+        avatarUrl: generateInitialsDataUri(displayName || cleanUsername),
         birthDate,
         country,
         isEmailVerified: true,
@@ -211,7 +212,7 @@ export class AuthService {
         email: cleanEmail,
         displayName,
         passwordHash,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername)}`,
+        avatarUrl: generateInitialsDataUri(displayName || cleanUsername),
         birthDate,
         country,
         isEmailVerified: false,
@@ -271,7 +272,7 @@ export class AuthService {
       username: user.username,
       email: user.email,
       displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: resolveAvatarUrl(user.avatarUrl, user.displayName || user.username),
       bio: user.bio,
       birthDate: user.birthDate,
       country: user.country,
@@ -312,7 +313,7 @@ export class AuthService {
           email: cleanEmail,
           displayName: displayName || baseUsername,
           passwordHash: randomPassword,
-          avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`,
+          avatarUrl: avatarUrl || generateInitialsDataUri(displayName || username),
           status: 'ONLINE',
           wafaPoints: 150,
           role: 'USER',
@@ -330,7 +331,7 @@ export class AuthService {
       username: user.username,
       email: user.email,
       displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: resolveAvatarUrl(user.avatarUrl, user.displayName || user.username),
       bio: user.bio,
       birthDate: user.birthDate,
       country: user.country,
@@ -370,7 +371,10 @@ export class AuthService {
     });
 
     if (!user) throw new Error('Utilisateur non trouvé.');
-    return user;
+    return {
+      ...user,
+      avatarUrl: resolveAvatarUrl(user.avatarUrl, user.displayName || user.username),
+    };
   }
 
   static async updateProfile(userId: string, input: UpdateProfileInput) {

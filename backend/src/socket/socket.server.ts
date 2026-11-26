@@ -7,6 +7,7 @@ import { MessagesService } from '../modules/messages/messages.service.js';
 import { ConversationsService } from '../modules/conversations/conversations.service.js';
 import { SalonsService } from '../modules/salons/salons.service.js';
 import { UsersService } from '../modules/users/users.service.js';
+import { resolveAvatarUrl } from '../utils/avatar.js';
 
 function getSocketClientIp(socket: any): string {
   const forwarded = socket.handshake?.headers?.['x-forwarded-for'];
@@ -139,6 +140,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
 
       if (!user) return next(new Error('Utilisateur non trouvé'));
 
+      user.avatarUrl = resolveAvatarUrl(user.avatarUrl, user.displayName || user.username);
       socket.data.user = user;
       next();
     } catch (err) {
@@ -296,7 +298,7 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           socketId: socket.id,
           username: user.username,
           displayName: user.displayName || user.username || 'Membre WafaTalk',
-          avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+          avatarUrl: resolveAvatarUrl(user.avatarUrl, user.displayName || user.username),
           country: user.country || 'FR',
           role: effectiveRole,
           badgeType,

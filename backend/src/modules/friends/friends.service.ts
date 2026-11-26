@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma.js';
+import { resolveAvatarUrl } from '../../utils/avatar.js';
 
 export class FriendsService {
   // Send a friend request (check not already friends, not already pending, not self)
@@ -244,7 +245,7 @@ export class FriendsService {
       id: r.blocked.id,
       username: r.blocked.username,
       name: r.blocked.displayName || r.blocked.username,
-      avatar: r.blocked.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(r.blocked.username)}`,
+      avatar: resolveAvatarUrl(r.blocked.avatarUrl, r.blocked.displayName || r.blocked.username),
       country: r.blocked.country || 'FR',
       blockedAt: r.createdAt,
     }));
@@ -312,7 +313,7 @@ export class FriendsService {
         id: f.friend.id,
         username: f.friend.username,
         name: f.friend.displayName || f.friend.username,
-        avatar: f.friend.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.friend.username)}`,
+        avatar: resolveAvatarUrl(f.friend.avatarUrl, f.friend.displayName || f.friend.username),
         country: f.friend.country || 'FR',
         status: f.friend.status.toLowerCase(),
         bio: f.friend.bio || "Membre actif de WafaTalk ✨",
@@ -427,7 +428,7 @@ export class FriendsService {
         id: u.id,
         username: u.username,
         name: u.displayName || u.username,
-        avatar: u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username)}`,
+        avatar: resolveAvatarUrl(u.avatarUrl, u.displayName || u.username),
         country: u.country || 'FR',
         status: u.status.toLowerCase(),
         role: u.role === 'ADMIN' ? 'Admin WafaTalk' : u.role === 'MODERATOR' ? 'Modérateur' : 'Membre',
@@ -489,7 +490,7 @@ export class FriendsService {
       id: user.id,
       username: user.username,
       name: user.displayName || user.username,
-      avatar: user.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`,
+      avatar: resolveAvatarUrl(user.avatarUrl, user.displayName || user.username),
       country: user.country || 'FR',
       status: user.status.toLowerCase(),
       role: user.role === 'SUPERADMIN' ? 'SuperAdmin' : user.role === 'ADMIN' ? 'Admin WafaTalk' : user.role === 'MODERATOR' ? 'Modérateur' : 'Membre',

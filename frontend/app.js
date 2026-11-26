@@ -62,6 +62,91 @@ document.addEventListener('DOMContentLoaded', () => {
     return user.username === '@' || user.role === 'SUPERADMIN' || user.role === 'ADMIN';
   }
 
+  // =========================================================================
+  // OFFICIAL DICEBEAR INITIALS AVATAR GENERATOR
+  // =========================================================================
+  const DICEBEAR_INITIALS_COLORS = [
+    'e53935', 'd81b60', '8e24aa', '5e35b1',
+    '3949ab', '1e88e5', '039be5', '00acc1',
+    '00897b', '43a047', '7cb342', 'c0ca33',
+    'fdd835', 'ffb300', 'fb8c00', 'f4511e',
+  ];
+
+  const WAFATALK_INITIALS_PRESETS = [
+    { bg: '0d837d', label: 'Teal Wafa' },
+    { bg: 'f4511e', label: 'Corail Sunset' },
+    { bg: '3949ab', label: 'Indigo Royal' },
+    { bg: '8e24aa', label: 'Violet Profond' },
+    { bg: '039be5', label: 'Océan Azur' },
+    { bg: '43a047', label: 'Émeraude' },
+    { bg: 'ffb300', label: 'Ambre Doré' },
+    { bg: 'd81b60', label: 'Rose Framboise' },
+  ];
+
+  function dicebearXorshift(val) {
+    val ^= val << 13;
+    val ^= val >> 17;
+    val ^= val << 5;
+    return val;
+  }
+
+  function dicebearPickBg(seed) {
+    let hash = 0;
+    const s = String(seed || '').slice(0, 1024);
+    for (let i = 0; i < s.length; i++) {
+      hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
+      hash = dicebearXorshift(hash);
+    }
+    let v = hash || 1;
+    v = dicebearXorshift(v);
+    const idx = Math.floor(((v - (-2147483648)) / (2147483647 - (-2147483648))) * DICEBEAR_INITIALS_COLORS.length);
+    return DICEBEAR_INITIALS_COLORS[Math.max(0, Math.min(DICEBEAR_INITIALS_COLORS.length - 1, idx))];
+  }
+
+  function extractDicebearInitials(seed) {
+    const raw = String(seed || 'WT').trim();
+    if (!raw) return 'WT';
+    const cleaned = raw.replace(/@.*/, '').replace(/[`´‘’'ʼ]/g, '');
+    let words = cleaned.match(/([A-Za-zÀ-ÖØ-öø-ÿ]+)/g);
+    if (!words) {
+      words = raw.replace(/[`´‘’'ʼ]/g, '').match(/([A-Za-zÀ-ÖØ-öø-ÿ]+)/g);
+    }
+    if (!words || words.length === 0) {
+      return raw.slice(0, 2).toUpperCase() || 'WT';
+    }
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  }
+
+  function getDicebearInitialsAvatar(seed = 'WT', customBgHex = null) {
+    const cleanSeed = String(seed || 'WT').trim() || 'WT';
+    const bgHex = customBgHex ? String(customBgHex).replace(/^#/, '') : dicebearPickBg(cleanSeed);
+    const chars = extractDicebearInitials(cleanSeed);
+    const safeChars = chars.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="#${bgHex}" width="100" height="100"/><text x="50%" y="50%" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="44" font-weight="600" fill="#ffffff" text-anchor="middle" dy="15.664">${safeChars}</text></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  function isLegacyBadAvatar(url) {
+    if (!url || typeof url !== 'string' || !url.trim()) return true;
+    const lower = url.toLowerCase();
+    return (
+      lower.includes('api.dicebear.com/7.x/bottts') ||
+      lower.includes('api.dicebear.com/7.x/avataaars') ||
+      lower.includes('dicebear.com/7.x/bottts') ||
+      lower.includes('images.unsplash.com/photo-15')
+    );
+  }
+
+  function resolveSafeAvatar(avatarUrl, fallbackName = 'WT') {
+    if (avatarUrl && !isLegacyBadAvatar(avatarUrl)) {
+      return avatarUrl;
+    }
+    return getDicebearInitialsAvatar(fallbackName || 'WT');
+  }
+
   // Backend API Base Configuration (Local Dev auto-switch & Production IONOS VPS)
   const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
     ? 'http://127.0.0.1:4000/api'
@@ -160,10 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 8,
       bannerBg: 'linear-gradient(135deg, #0d837d, #14a39b)',
       avatars: [
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
+        getDicebearInitialsAvatar('Sarah B.'),
+        getDicebearInitialsAvatar('Youssef K.'),
+        getDicebearInitialsAvatar('Lina M.'),
+        getDicebearInitialsAvatar('Karim D.'),
       ]
     },
     {
@@ -176,9 +261,9 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 14,
       bannerBg: 'linear-gradient(135deg, #f25b3e, #ff7a59)',
       avatars: [
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80',
+        getDicebearInitialsAvatar('Marc A.'),
+        getDicebearInitialsAvatar('Amine R.'),
+        getDicebearInitialsAvatar('Emma L.'),
       ]
     },
     {
@@ -191,9 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 11,
       bannerBg: 'linear-gradient(135deg, #f8b84e, #ea580c)',
       avatars: [
-        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80',
+        getDicebearInitialsAvatar('Nadia S.'),
+        getDicebearInitialsAvatar('Sarah B.'),
+        getDicebearInitialsAvatar('Youssef K.'),
       ]
     },
     {
@@ -206,8 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 9,
       bannerBg: 'linear-gradient(135deg, #094a46, #0d837d)',
       avatars: [
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80',
+        getDicebearInitialsAvatar('Karim D.'),
+        getDicebearInitialsAvatar('Wafa Admin'),
       ]
     },
     {
@@ -220,8 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 5,
       bannerBg: 'linear-gradient(135deg, #1f2937, #374151)',
       avatars: [
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80',
+        getDicebearInitialsAvatar('Sarah B.'),
+        getDicebearInitialsAvatar('Lina M.'),
       ]
     },
     {
@@ -234,9 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 16,
       bannerBg: 'linear-gradient(135deg, #10b981, #0d837d)',
       avatars: [
-        'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80',
+        getDicebearInitialsAvatar('Emma L.'),
+        getDicebearInitialsAvatar('Youssef K.'),
+        getDicebearInitialsAvatar('Marc A.'),
       ]
     }
   ];
@@ -1243,18 +1328,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getPersistentUserAvatar(user) {
     if (!user) return null;
-    const customAvatar = (user.id && localStorage.getItem(`wafatalk_avatar_${user.id}`)) ||
-      (user.username && localStorage.getItem(`wafatalk_avatar_${user.username.toLowerCase()}`)) ||
-      (user.email && localStorage.getItem(`wafatalk_avatar_${user.email.toLowerCase()}`)) ||
-      (user.avatarUrl && !user.avatarUrl.includes('dicebear') && !user.avatarUrl.includes('photo-1535713875002') ? null : localStorage.getItem('wafatalk_last_saved_avatar'));
-    return customAvatar || null;
+    const keys = [
+      user.id && `wafatalk_avatar_${user.id}`,
+      user.username && `wafatalk_avatar_${user.username.toLowerCase()}`,
+      user.email && `wafatalk_avatar_${user.email.toLowerCase()}`,
+    ].filter(Boolean);
+    for (const k of keys) {
+      const val = localStorage.getItem(k);
+      if (val && !isLegacyBadAvatar(val)) return val;
+    }
+    const lastSaved = localStorage.getItem('wafatalk_last_saved_avatar');
+    if (lastSaved && !isLegacyBadAvatar(lastSaved) && (!user.avatarUrl || isLegacyBadAvatar(user.avatarUrl))) {
+      return lastSaved;
+    }
+    return null;
   }
 
   function setAuthSession(token, user) {
     const customAvatar = getPersistentUserAvatar(user);
-    if (customAvatar && (!user.avatarUrl || user.avatarUrl.includes('dicebear') || user.avatarUrl.includes('photo-1535713875002'))) {
+    const fallbackSeed = user.displayName || user.name || user.username || 'WT';
+    if (customAvatar && (!user.avatarUrl || isLegacyBadAvatar(user.avatarUrl))) {
       user.avatarUrl = customAvatar;
       user.avatar = customAvatar;
+    } else if (!user.avatarUrl || isLegacyBadAvatar(user.avatarUrl)) {
+      const initialsAv = getDicebearInitialsAvatar(fallbackSeed);
+      user.avatarUrl = initialsAv;
+      user.avatar = initialsAv;
     }
     localStorage.setItem('wafatalk_token', token);
     localStorage.setItem('wafatalk_user', JSON.stringify(user));
@@ -1280,7 +1379,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Successful Login Transition to Hub
   function authenticateUser(userData, playFx = true) {
     const customAvatar = getPersistentUserAvatar(userData);
-    if (customAvatar && (!userData.avatarUrl || userData.avatarUrl.includes('dicebear') || userData.avatarUrl.includes('photo-1535713875002'))) {
+    const displayName = userData.displayName || userData.name || userData.username || 'Ami WafaTalk';
+    if (customAvatar && (!userData.avatarUrl || isLegacyBadAvatar(userData.avatarUrl))) {
       userData.avatarUrl = customAvatar;
       userData.avatar = customAvatar;
     }
@@ -1289,9 +1389,10 @@ document.addEventListener('DOMContentLoaded', () => {
       state.userPoints = userData.wafaPoints;
     }
 
-    const displayName = userData.displayName || userData.name || 'Ami WafaTalk';
     const email = userData.email || '';
-    const avatar = userData.avatarUrl || userData.avatar || customAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80';
+    const avatar = resolveSafeAvatar(userData.avatarUrl || userData.avatar || customAvatar, displayName);
+    userData.avatarUrl = avatar;
+    userData.avatar = avatar;
 
     const finalizeUi = () => {
       authScreen.classList.remove('active');
@@ -1425,7 +1526,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           const customAvatar = getPersistentUserAvatar(data.user);
-          if (customAvatar && (!data.user.avatarUrl || data.user.avatarUrl.includes('dicebear') || data.user.avatarUrl.includes('photo-1535713875002'))) {
+          if (customAvatar && (!data.user.avatarUrl || isLegacyBadAvatar(data.user.avatarUrl))) {
             data.user.avatarUrl = customAvatar;
             data.user.avatar = customAvatar;
           }
@@ -1492,7 +1593,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && data.user && data.token) {
           const user = data.user;
           const customAvatar = getPersistentUserAvatar(user);
-          if (customAvatar && (!user.avatarUrl || user.avatarUrl.includes('dicebear') || user.avatarUrl.includes('photo-1535713875002'))) {
+          if (customAvatar && (!user.avatarUrl || isLegacyBadAvatar(user.avatarUrl))) {
             user.avatarUrl = customAvatar;
             user.avatar = customAvatar;
           }
@@ -1710,7 +1811,7 @@ document.addEventListener('DOMContentLoaded', () => {
         country: country,
         countryName: countryName,
         isEmailVerified: true,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername)}`,
+        avatarUrl: getDicebearInitialsAvatar(username || cleanUsername),
         wafaPoints: 150,
         role: 'USER',
         status: 'ONLINE',
@@ -1974,7 +2075,7 @@ document.addEventListener('DOMContentLoaded', () => {
           username: email.split('@')[0],
           displayName: email.split('@')[0],
           email: email,
-          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
+          avatarUrl: getDicebearInitialsAvatar(email.split('@')[0] || email),
           country: 'FR',
           wafaPoints: 200,
           role: 'USER',
@@ -2007,6 +2108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const icon = document.getElementById('socialModalIcon');
     const nameEl = document.getElementById('socialAccountName');
     const emailEl = document.getElementById('socialAccountEmail');
+    const avatarEl = document.getElementById('socialAccountAvatar');
+    if (avatarEl) avatarEl.src = getDicebearInitialsAvatar(provider);
     const emailLabel = document.getElementById('customSocialEmailLabel');
     const emailInput = document.getElementById('customSocialEmail');
     const dividerText = document.getElementById('socialDividerText');
@@ -2060,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', () => {
           provider,
           email,
           displayName,
-          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(displayName || email)}`
+          avatarUrl: getDicebearInitialsAvatar(displayName || email)
         })
       });
 
@@ -2088,7 +2191,7 @@ document.addEventListener('DOMContentLoaded', () => {
           username: cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user',
           email: cleanEmail,
           displayName: displayName || cleanEmail.split('@')[0],
-          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(displayName || cleanEmail)}`,
+          avatarUrl: getDicebearInitialsAvatar(displayName || cleanEmail),
           wafaPoints: 150,
           role: 'USER',
           status: 'ONLINE',
@@ -2195,8 +2298,8 @@ document.addEventListener('DOMContentLoaded', () => {
             participantsCount: bs._count?.members || bs.participantsCount || 1,
             bannerBg: bs.bannerBg || 'linear-gradient(135deg, #0d837d, #14a39b)',
             avatars: bs.avatars || [
-              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
-              'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80'
+              getDicebearInitialsAvatar(bs.name || 'WafaTalk'),
+              getDicebearInitialsAvatar(bs.owner?.displayName || bs.owner?.username || 'Ami')
             ]
           };
           if (idx !== -1) {
@@ -2501,11 +2604,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const sender = req.sender;
           const item = document.createElement('div');
           if (sender?.id) item.dataset.userId = sender.id;
-          const customSenderAv = (sender?.id && localStorage.getItem(`wafatalk_avatar_${sender.id}`)) || sender?.avatarUrl || sender?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(sender?.username || 'user')}`;
+          const senderNameFallback = sender?.displayName || sender?.username || 'user';
+          const customSenderAv = resolveSafeAvatar((sender?.id && localStorage.getItem(`wafatalk_avatar_${sender.id}`)) || sender?.avatarUrl || sender?.avatar, senderNameFallback);
           item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:var(--bg-muted);';
           item.innerHTML = `
             <div class="pending-user-info" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${sender.displayName || sender.username}">
-              <img src="${customSenderAv}" class="friend-avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customSenderAv}" class="friend-avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
               <div style="flex:1;min-width:0;">
                 <div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);" class="friend-name">${sender.displayName || sender.username}</div>
                 <div style="font-size:0.72rem;color:var(--text-muted);">😉 Vous a envoyé un clin d'œil complice</div>
@@ -2555,7 +2659,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusClass = isOnline ? 'online' : 'offline';
         const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
         const flagTag = getFlagImgTag(friend.country, friend.country);
-        const customFriendAv = (friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+        const friendNameFallback = friend.name || friend.username || 'Ami';
+        const customFriendAv = resolveSafeAvatar((friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl, friendNameFallback);
         const favBadge = friend.isFavorite ? `<span class="friend-fav-star" title="Ami favori">⭐</span>` : '';
         const callsMutedBadge = friend.callsBlocked ? `<span class="friend-calls-muted-badge" title="Appels bloqués">🔕</span>` : '';
         const item = document.createElement('div');
@@ -2564,7 +2669,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `
           <div class="friend-item-left" style="cursor:pointer;flex:1;min-width:0;" title="${statusLabel} — Cliquer pour voir la fiche profil">
             <div class="friend-avatar-wrap">
-              <img src="${customFriendAv}" alt="${escapeHtml(friend.name || friend.username)}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customFriendAv}" alt="${escapeHtml(friend.name || friend.username)}" class="friend-avatar">
               <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
             </div>
             <div class="friend-meta">
@@ -2617,7 +2722,7 @@ document.addEventListener('DOMContentLoaded', () => {
           row.className = 'blocked-user-row';
           row.innerHTML = `
             <div class="blocked-user-info">
-              <img src="${bu.avatar}" alt="${escapeHtml(bu.name)}" class="blocked-user-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${resolveSafeAvatar(bu.avatar, bu.name || bu.username)}" alt="${escapeHtml(bu.name)}" class="blocked-user-avatar">
               <span class="blocked-user-name">${escapeHtml(bu.name || bu.username)}</span>
             </div>
             <button type="button" class="btn-unblock-mini">Débloquer</button>
@@ -2671,7 +2776,7 @@ document.addEventListener('DOMContentLoaded', () => {
       exploreUsers.forEach(u => {
         const isOnline = activeOnlineUserIds.has(u.id);
         const flagTag = getFlagImgTag(u.country, u.country);
-        const customExploreAv = (u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+        const customExploreAv = resolveSafeAvatar((u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl, u.name || u.username);
         const item = document.createElement('div');
         item.className = `friend-item ${isOnline ? 'online' : 'offline'}`;
         if (u.id) item.dataset.userId = u.id;
@@ -2696,7 +2801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `
           <div class="friend-item-left" style="flex:1;min-width:0;cursor:pointer;" title="Cliquer pour voir la fiche profil de ${u.name || u.username}">
             <div class="friend-avatar-wrap">
-              <img src="${customExploreAv}" alt="${u.name || u.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customExploreAv}" alt="${u.name || u.username}" class="friend-avatar">
               <span class="friend-status-dot ${isOnline ? 'online' : 'offline'}"></span>
             </div>
             <div class="friend-meta">
@@ -2932,13 +3037,13 @@ document.addEventListener('DOMContentLoaded', () => {
     anchorBtn.classList.add('active');
 
     const friendName = friend.name || friend.username || 'Ami WafaTalk';
-    const customAv = (friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+    const customAv = resolveSafeAvatar((friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl, friendName);
     const isFav = Boolean(friend.isFavorite);
     const isCallsBlocked = Boolean(friend.callsBlocked);
 
     menu.innerHTML = `
       <div class="fcm-header">
-        <img src="${customAv}" alt="${escapeHtml(friendName)}" class="fcm-header-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+        <img src="${customAv}" alt="${escapeHtml(friendName)}" class="fcm-header-avatar">
         <div class="fcm-header-meta">
           <div class="fcm-header-name">${escapeHtml(friendName)}</div>
           <div class="fcm-header-sub">${isFav ? '⭐ Ami favori' : 'Ami WafaTalk'}${isCallsBlocked ? ' • 🔕 Appels bloqués' : ''}</div>
@@ -3289,7 +3394,7 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'self-' + Date.now(),
       username: 'invite',
       displayName: 'Invité',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+      avatarUrl: getDicebearInitialsAvatar('Invité'),
       role: selfRole,
       badgeType: selfBadge,
       country: 'FR',
@@ -3509,7 +3614,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const img = document.createElement('img');
       img.className = `floating-salon-avatar${user.isSpeaking ? ' speaking' : ''}`;
       img.dataset.userId = user.userId;
-      img.src = user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+      img.src = resolveSafeAvatar(user.avatarUrl, user.displayName || user.username || 'Participant');
       img.alt = user.displayName || 'Participant';
       img.title = user.displayName || 'Participant';
       miniSalonAvatars.appendChild(img);
@@ -3996,7 +4101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
             ${canAdminModerate ? `<button type="button" class="stage-admin-trigger" data-user-id="${userId}" title="Gérer ce participant">️</button>` : ''}
             <div class="stage-video-loading" id="videoLoading_${userId}"><span class="badge-dot pulse"></span> Connexion HD...</div>
-            <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" class="stage-video-poster" id="videoPoster_${userId}" alt="" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+            <img src="${resolveSafeAvatar(p.avatarUrl || p.avatar, p.displayName || p.name || 'Membre')}" class="stage-video-poster" id="videoPoster_${userId}" alt="">
             <video class="stage-video-stream" id="videoEl_${userId}" autoplay playsinline muted></video>
             <div class="stage-video-overlay">
               <span class="stage-user-name">${escapeHtml(p.displayName || p.name || 'Membre')}</span>
@@ -4050,7 +4155,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const flagImg = getFlagImgTag(p.country || 'FR', p.country || 'FR');
           card.innerHTML = `
             <div class="stage-avatar-img-wrap">
-              <img src="${p.avatarUrl || p.avatar || 'assets/wafatalk-icon.png'}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${resolveSafeAvatar(p.avatarUrl || p.avatar, p.displayName || p.name || 'Membre')}" alt="${escapeHtml(p.displayName || p.name || 'Membre')}" class="stage-avatar-img">
               <span class="stage-avatar-ring-badge ${roleInfo.badgeClass}" title="${roleInfo.label}">${roleInfo.icon}</span>
             </div>
             ${p.isMuted ? '<span class="stage-mute-badge" title="Micro coupé"></span>' : ''}
@@ -4860,7 +4965,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (senderUserId) msgEl.dataset.userId = senderUserId;
     const authorName = isFromMe ? 'Vous' : (message.user?.displayName || message.user?.username || 'Membre');
     const storedSenderAvatar = senderUserId ? localStorage.getItem(`wafatalk_avatar_${senderUserId}`) : null;
-    const avatar = storedSenderAvatar || (isFromMe ? (state.currentUser?.avatarUrl || state.currentUser?.avatar) : (message.user?.avatarUrl || message.user?.avatar)) || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80';
+    const rawSenderAvatar = storedSenderAvatar || (isFromMe ? (state.currentUser?.avatarUrl || state.currentUser?.avatar) : (message.user?.avatarUrl || message.user?.avatar));
+    const avatar = resolveSafeAvatar(rawSenderAvatar, isFromMe ? (state.currentUser?.displayName || state.currentUser?.username || 'Vous') : authorName);
     const timeStr = message.time || (message.createdAt ? new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'À l\'instant');
 
     let whisperBadgeHtml = '';
@@ -4875,7 +4981,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     msgEl.innerHTML = `
-      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'" style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">
+      <img src="${avatar}" class="chat-msg-avatar" alt="${escapeHtml(authorName)}" style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">
       <div class="chat-msg-body">
         <div class="chat-msg-author">
           <strong style="${!isFromMe ? 'cursor:pointer;' : ''}" title="${!isFromMe ? 'Cliquer pour chuchoter en privé' : ''}">${escapeHtml(authorName)}</strong>
@@ -6089,7 +6195,7 @@ document.addEventListener('DOMContentLoaded', () => {
       participantsCount: 1,
       bannerBg: 'linear-gradient(135deg, #0d837d, #f25b3e)',
       avatars: [
-        state.currentUser?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80'
+        resolveSafeAvatar(state.currentUser?.avatarUrl || state.currentUser?.avatar, state.currentUser?.displayName || state.currentUser?.username || name)
       ]
     };
 
@@ -6840,12 +6946,12 @@ document.addEventListener('DOMContentLoaded', () => {
           tagLabel = '😉 Clin d\'œil';
         }
 
-        const avatarSrc = n.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+        const avatarSrc = resolveSafeAvatar(n.avatarUrl, n.title || 'WafaTalk');
 
         html += `
           <div class="notif-card-item notif-${n.type}" data-notif-id="${n.id}">
             <div class="notif-card-avatar-wrap">
-              <img src="${avatarSrc}" alt="${escapeHtml(n.title)}" class="notif-card-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${avatarSrc}" alt="${escapeHtml(n.title)}" class="notif-card-avatar">
               <span class="notif-type-badge">${n.icon || '🔔'}</span>
             </div>
             <div class="notif-card-body">
@@ -6994,7 +7100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayName = user.displayName || user.name || user.username || 'Ami WafaTalk';
     const username = user.username || 'utilisateur';
     const savedAvatar = getPersistentUserAvatar(user);
-    const avatar = user.avatarUrl || user.avatar || savedAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80';
+    const avatar = resolveSafeAvatar(user.avatarUrl || user.avatar || savedAvatar, displayName);
     const bio = user.bio || '';
     const country = user.country || 'France';
     const status = (user.status || 'ONLINE').toUpperCase();
@@ -7034,8 +7140,8 @@ document.addEventListener('DOMContentLoaded', () => {
       profileSaveFeedback.textContent = '';
     }
 
-    // Mark preset selected if matching
-    updatePresetSelectionUI(avatar);
+    // Populate DiceBear Initials preset buttons dynamically & mark selected
+    renderAvatarPresets(displayName, avatar);
 
     profileStatusModal.classList.remove('hidden');
     pushAppModalState('profileStatus');
@@ -7058,6 +7164,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderAvatarPresets(seedName, selectedUrl = activeProfileAvatar) {
+    if (!avatarPresetsGrid) return;
+    const cleanSeed = (seedName || state.currentUser?.displayName || state.currentUser?.username || 'WT').trim() || 'WT';
+    avatarPresetsGrid.innerHTML = WAFATALK_INITIALS_PRESETS.map((preset) => {
+      const svgUrl = getDicebearInitialsAvatar(cleanSeed, preset.bg);
+      const isSelected = selectedUrl === svgUrl;
+      return `
+        <button type="button" class="avatar-preset-btn${isSelected ? ' selected' : ''}" data-url="${svgUrl}" data-bg="${preset.bg}" title="${escapeHtml(preset.label)}">
+          <img src="${svgUrl}" alt="${escapeHtml(preset.label)}">
+        </button>
+      `;
+    }).join('');
+  }
+
   function updatePresetSelectionUI(url) {
     const presetBtns = avatarPresetsGrid?.querySelectorAll('.avatar-preset-btn');
     presetBtns?.forEach(btn => {
@@ -7074,8 +7194,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (url) {
       activeProfileAvatar = url;
       if (profileAvatarPreview) profileAvatarPreview.src = url;
-      if (profileAvatarUrlInput) profileAvatarUrlInput.value = url;
+      if (profileAvatarUrlInput) profileAvatarUrlInput.value = url.startsWith('data:') ? '' : url;
       updatePresetSelectionUI(url);
+    }
+  });
+
+  // Live-update initials presets when display name changes
+  profileDisplayNameInput?.addEventListener('input', (e) => {
+    const newName = e.target.value.trim() || state.currentUser?.username || 'WT';
+    const selectedBg = avatarPresetsGrid?.querySelector('.avatar-preset-btn.selected')?.getAttribute('data-bg');
+    if (selectedBg) {
+      const updatedUrl = getDicebearInitialsAvatar(newName, selectedBg);
+      activeProfileAvatar = updatedUrl;
+      if (profileAvatarPreview) profileAvatarPreview.src = updatedUrl;
+      renderAvatarPresets(newName, updatedUrl);
+    } else {
+      renderAvatarPresets(newName, activeProfileAvatar);
     }
   });
 
@@ -8078,13 +8212,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const sender = request?.sender || {};
       const senderName = sender.displayName || sender.username || 'Un membre';
-      const senderAvatar = sender.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+      const senderAvatar = resolveSafeAvatar(sender.avatarUrl, senderName);
 
       const card = document.createElement('div');
       card.id = 'activeWinkToast';
       card.className = 'wink-toast-card';
       card.innerHTML = `
-        <img src="${senderAvatar}" alt="${senderName}" class="wink-toast-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+        <img src="${senderAvatar}" alt="${senderName}" class="wink-toast-avatar">
         <div class="wink-toast-content">
           <div class="wink-toast-title">
             <span>😉 Clin d'œil reçu !</span>
@@ -10006,7 +10140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isOnline = activeOnlineUserIds.has(u.id) || (u.username && activeOnlineUserIds.has(u.username)) || u.status === 'online' || Boolean(u._isOnline);
 
       if (userProfileAvatar) {
-        const customModalAv = (u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.username || 'user')}`;
+        const customModalAv = resolveSafeAvatar((u.id && localStorage.getItem(`wafatalk_avatar_${u.id}`)) || u.avatar || u.avatarUrl, u.name || u.displayName || u.username);
         userProfileAvatar.src = customModalAv;
       }
       if (userProfileStatusDot) {
@@ -10239,7 +10373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!directChatModal) return;
 
     // 1. Populate UI Header
-    if (dmFriendAvatar) dmFriendAvatar.src = friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+    if (dmFriendAvatar) dmFriendAvatar.src = resolveSafeAvatar(friend.avatar || friend.avatarUrl, friend.name || friend.username || 'Ami');
     if (dmFriendName) dmFriendName.textContent = friend.name || friend.username || 'Ami WafaTalk';
     if (dmFriendFlag) dmFriendFlag.innerHTML = getFlagImgTag(friend.country, friend.country);
     const isOnline = activeOnlineUserIds.has(friend.id) || (friend.username && activeOnlineUserIds.has(friend.username)) || Boolean(friend._isOnline);
@@ -11293,7 +11427,7 @@ document.addEventListener('DOMContentLoaded', () => {
       peer: {
         id: caller.id,
         name: caller.displayName || caller.username,
-        avatar: caller.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80',
+        avatar: resolveSafeAvatar(caller.avatarUrl, caller.displayName || caller.username),
       },
       type,
       isCaller: false,
@@ -11683,7 +11817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const avatarImg = new Image();
     avatarImg.crossOrigin = 'anonymous';
-    avatarImg.src = peer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200';
+    avatarImg.src = resolveSafeAvatar(peer.avatar, peer.name || peer.displayName || 'Correspondant');
 
     let angle = 0;
     const render = () => {
@@ -11826,7 +11960,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeCallPeerName) activeCallPeerName.textContent = session.peer.name;
 
     // Audio Stage Setup
-    if (localAudioAvatar) localAudioAvatar.src = state.currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+    if (localAudioAvatar) localAudioAvatar.src = resolveSafeAvatar(state.currentUser?.avatarUrl, state.currentUser?.displayName || state.currentUser?.username || 'Moi');
     if (peerAudioAvatar) peerAudioAvatar.src = session.peer.avatar;
     if (peerAudioName) peerAudioName.textContent = session.peer.name;
 
@@ -12378,7 +12512,7 @@ document.addEventListener('DOMContentLoaded', () => {
         id: peer.id,
         name: peer.name || 'Ami',
         username: peer.name || 'ami',
-        avatar: peer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80',
+        avatar: resolveSafeAvatar(peer.avatar, peer.name || 'Ami'),
         country: peer.country || 'MA',
         _isOnline: true
       };

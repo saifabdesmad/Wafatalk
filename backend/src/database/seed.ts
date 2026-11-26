@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma.js';
+import { generateInitialsDataUri } from '../utils/avatar.js';
 
 async function main() {
   console.log('🌱 Starting WafaTalk database seed...');
@@ -16,7 +17,7 @@ async function main() {
       email: 'admin@wafatalk.com',
       displayName: 'Wafa Admin',
       passwordHash,
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      avatarUrl: generateInitialsDataUri('Wafa Admin'),
       bio: 'Espace officiel WafaTalk ✨',
       wafaPoints: 1000,
       status: 'ONLINE',
@@ -33,7 +34,7 @@ async function main() {
       email: 'sarah@wafatalk.com',
       displayName: 'Sarah B.',
       passwordHash,
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
+      avatarUrl: generateInitialsDataUri('Sarah B.'),
       bio: 'Modératrice & mélomane 🎧',
       wafaPoints: 320,
       status: 'IN_SALON',
@@ -50,7 +51,7 @@ async function main() {
       email: 'youssef@wafatalk.com',
       displayName: 'Youssef K.',
       passwordHash,
-      avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=80',
+      avatarUrl: generateInitialsDataUri('Youssef K.'),
       bio: 'Gamer et amateur de thé à la menthe 🍵',
       wafaPoints: 210,
       status: 'ONLINE',
@@ -66,7 +67,7 @@ async function main() {
       email: 'lina@wafatalk.com',
       displayName: 'Lina M.',
       passwordHash,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80',
+      avatarUrl: generateInitialsDataUri('Lina M.'),
       bio: 'En jam acoustique permanente 🎸',
       wafaPoints: 540,
       status: 'IN_SALON',
@@ -82,7 +83,7 @@ async function main() {
       email: 'karim@wafatalk.com',
       displayName: 'Karim D.',
       passwordHash,
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
+      avatarUrl: generateInitialsDataUri('Karim D.'),
       bio: 'Codeur nocturne & dev IA',
       wafaPoints: 180,
       status: 'IDLE',
