@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css?v=20261122c">
+  <link rel="stylesheet" href="styles.css?v=20261126">
 </head>
 <body>
 
@@ -2852,6 +2852,22 @@
     </div>
   </div>
 
+  <!-- Floating 3-Dots Friend Context Menu -->
+  <div id="friendContextMenu" class="friend-context-menu hidden" role="menu" aria-hidden="true"></div>
+
+  <!-- Custom Styled Confirmation Modal (Unfriend / Block) -->
+  <div class="modal-overlay hidden" id="wafatalkConfirmModal" role="dialog" aria-modal="true" style="z-index: 10050;">
+    <div class="modal-container glass-panel confirm-dialog-card">
+      <div class="confirm-dialog-icon" id="confirmDialogIcon">⚠️</div>
+      <h3 class="confirm-dialog-title" id="confirmDialogTitle">Confirmer l'action</h3>
+      <p class="confirm-dialog-message" id="confirmDialogMessage">Êtes-vous sûr de vouloir continuer ?</p>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="btn btn-secondary" id="btnConfirmCancel">Annuler</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmProceed">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
@@ -2859,6 +2875,6 @@
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
   <!-- Main JavaScript File -->
-  <script src="app.js?v=20261123"></script>
+  <script src="app.js?v=20261126"></script>
 </body>
 </html>

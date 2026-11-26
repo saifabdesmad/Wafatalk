@@ -41,6 +41,8 @@ model User {
   directMessages         DirectMessage[]
   callsMade              CallSession[]   @relation("CallsMade")
   callsReceived          CallSession[]   @relation("CallsReceived")
+  blockedUsers           BlockedUser[]   @relation("UsersBlocked")
+  blockedBy              BlockedUser[]   @relation("BlockedByUsers")
 }
 
 model EmailVerification {
@@ -121,16 +123,31 @@ model Message {
 }
 
 model Friendship {
-  userId    String
-  friendId  String
-  status    String   @default("ACCEPTED") // ACCEPTED, BLOCKED
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId       String
+  friendId     String
+  status       String   @default("ACCEPTED") // ACCEPTED, BLOCKED
+  isFavorite   Boolean  @default(false)
+  callsBlocked Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user      User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
-  friend    User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+  user         User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend       User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
 
   @@id([userId, friendId])
+}
+
+model BlockedUser {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker   User     @relation("UsersBlocked", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlockedByUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }
 
 model FriendRequest {

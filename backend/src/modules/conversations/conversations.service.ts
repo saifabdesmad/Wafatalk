@@ -33,6 +33,19 @@ export class ConversationsService {
       user1.role === 'SUPERADMIN' || user2.role === 'SUPERADMIN' ||
       user1.role === 'ADMIN' || user2.role === 'ADMIN';
 
+    // Check if either user blocked the other (SuperAdmin bypasses unless explicitly needed, still enforce block between normal users)
+    const blockExists = await prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { blockerId: userAId, blockedId: userBId },
+          { blockerId: userBId, blockedId: userAId },
+        ],
+      },
+    });
+    if (blockExists && !isSuperAdmin) {
+      throw new Error('USER_BLOCKED: Impossible d\'ouvrir cette conversation car un utilisateur est bloqué.');
+    }
+
     if (!isSuperAdmin) {
       // Check if users are friends (bidirectional check)
       const friendship = await prisma.friendship.findFirst({
@@ -235,12 +248,36 @@ export class ConversationsService {
 
     const targetUserId = conv.user1Id === senderId ? conv.user2Id : conv.user1Id;
 
-    // Check friendship before sending message
-    const areFriends = await prisma.friendship.findUnique({
-      where: { userId_friendId: { userId: senderId, friendId: targetUserId } }
+    const [senderUser, targetUser] = await Promise.all([
+      prisma.user.findUnique({ where: { id: senderId }, select: { username: true, role: true } }),
+      prisma.user.findUnique({ where: { id: targetUserId }, select: { username: true, role: true } }),
+    ]);
+
+    const isSuperAdmin = senderUser?.username === '@' || targetUser?.username === '@' ||
+      senderUser?.role === 'SUPERADMIN' || targetUser?.role === 'SUPERADMIN' ||
+      senderUser?.role === 'ADMIN' || targetUser?.role === 'ADMIN';
+
+    // Check block status
+    const blockExists = await prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { blockerId: senderId, blockedId: targetUserId },
+          { blockerId: targetUserId, blockedId: senderId },
+        ],
+      },
     });
-    if (!areFriends) {
-      throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour envoyer un message.');
+    if (blockExists && !isSuperAdmin) {
+      throw new Error('USER_BLOCKED: Vous ne pouvez pas envoyer de message à cet utilisateur (bloqué).');
+    }
+
+    if (!isSuperAdmin) {
+      // Check friendship before sending message
+      const areFriends = await prisma.friendship.findUnique({
+        where: { userId_friendId: { userId: senderId, friendId: targetUserId } }
+      });
+      if (!areFriends) {
+        throw new Error('FRIENDS_REQUIRED: Vous devez être amis pour envoyer un message.');
+      }
     }
 
     const message = await prisma.directMessage.create({

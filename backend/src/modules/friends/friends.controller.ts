@@ -124,11 +124,73 @@ export async function friendsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // GET /api/friends/blocked — get blocked users list
+  fastify.get('/blocked', async (request: any, reply: FastifyReply) => {
+    try {
+      const blockedUsers = await FriendsService.getBlockedUsers(request.user.id);
+      return reply.send({ success: true, blockedUsers });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
+  // PATCH /api/friends/:friendId/favorite — toggle favorite status
+  fastify.patch('/:friendId/favorite', async (request: any, reply: FastifyReply) => {
+    try {
+      const { friendId } = request.params as { friendId: string };
+      const result = await FriendsService.toggleFavorite(request.user.id, friendId);
+      return reply.send({ success: true, ...result });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
+  // PATCH /api/friends/:friendId/block-calls — toggle call block status
+  fastify.patch('/:friendId/block-calls', async (request: any, reply: FastifyReply) => {
+    try {
+      const { friendId } = request.params as { friendId: string };
+      const result = await FriendsService.toggleCallBlock(request.user.id, friendId);
+      return reply.send({ success: true, ...result });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
+  // POST /api/friends/block/:targetUserId — block user
+  fastify.post('/block/:targetUserId', async (request: any, reply: FastifyReply) => {
+    try {
+      const { targetUserId } = request.params as { targetUserId: string };
+      await FriendsService.blockUser(request.user.id, targetUserId);
+      const io = (fastify as any).io;
+      if (io) {
+        io.to(`user:${targetUserId}`).emit('friend:removed', { userId: request.user.id });
+      }
+      return reply.send({ success: true });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
+  // DELETE /api/friends/block/:targetUserId — unblock user
+  fastify.delete('/block/:targetUserId', async (request: any, reply: FastifyReply) => {
+    try {
+      const { targetUserId } = request.params as { targetUserId: string };
+      await FriendsService.unblockUser(request.user.id, targetUserId);
+      return reply.send({ success: true });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+  });
+
   // DELETE /api/friends/:friendId — unfriend
   fastify.delete('/:friendId', async (request: any, reply: FastifyReply) => {
     try {
       const { friendId } = request.params as { friendId: string };
       await FriendsService.removeFriend(request.user.id, friendId);
+      const io = (fastify as any).io;
+      if (io) {
+        io.to(`user:${friendId}`).emit('friend:removed', { userId: request.user.id });
+      }
       return reply.send({ success: true });
     } catch (error: any) {
       return reply.code(400).send({ success: false, message: error.message });

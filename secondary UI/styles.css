@@ -10427,3 +10427,333 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     transform: none !important;
   }
 }
+
+/* ========================================================================= */
+/* 3-DOTS FRIEND OPTIONS MENU, FAVORITES, CALL-MUTE & CONFIRM DIALOG         */
+/* ========================================================================= */
+.friend-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+  flex-shrink: 0;
+}
+
+.friend-more-btn:hover,
+.friend-more-btn.active {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+.friend-more-btn:active {
+  transform: scale(0.92);
+}
+
+.friend-fav-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  line-height: 1;
+  color: #f59e0b;
+  filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.3));
+}
+
+.friend-calls-muted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+  padding: 1px 5px;
+  border-radius: 6px;
+  margin-left: 4px;
+}
+
+.friend-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 238px;
+  max-width: calc(100vw - 24px);
+  padding: 6px;
+  border-radius: var(--radius-lg, 16px);
+  background: var(--bg-surface-elevated, #ffffff);
+  border: 1px solid var(--border-medium, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.22), 0 4px 14px rgba(13, 131, 125, 0.1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: friendMenuIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.friend-context-menu.hidden {
+  display: none !important;
+}
+
+@keyframes friendMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fcm-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px 9px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fcm-header-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.fcm-header-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.fcm-header-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fcm-header-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.fcm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.83rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.fcm-item:hover {
+  background: var(--bg-muted);
+}
+
+.fcm-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.fcm-item.fcm-item-fav-active .fcm-item-icon {
+  color: #f59e0b;
+}
+
+.fcm-item.fcm-item-muted-active .fcm-item-icon {
+  color: #f97316;
+}
+
+.fcm-item.fcm-item-warning {
+  color: #ea580c;
+}
+
+.fcm-item.fcm-item-warning .fcm-item-icon {
+  color: #ea580c;
+}
+
+.fcm-item.fcm-item-warning:hover {
+  background: rgba(234, 88, 12, 0.1);
+}
+
+.fcm-item.fcm-item-danger {
+  color: #ef4444;
+}
+
+.fcm-item.fcm-item-danger .fcm-item-icon {
+  color: #ef4444;
+}
+
+.fcm-item.fcm-item-danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.fcm-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 6px;
+}
+
+/* Custom Confirmation Dialog */
+.confirm-dialog-card {
+  max-width: 390px;
+  width: calc(100vw - 32px);
+  padding: 24px 22px 20px;
+  text-align: center;
+  border-radius: var(--radius-xl, 20px);
+}
+
+.confirm-dialog-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.confirm-dialog-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.confirm-dialog-message {
+  font-size: 0.88rem;
+  line-height: 1.48;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.confirm-dialog-actions .btn {
+  flex: 1;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+/* Blocked Users Footer Toggle & List in Sidebar */
+.blocked-users-drawer-wrap {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.blocked-users-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.blocked-users-toggle-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+.blocked-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 4px 2px;
+}
+
+.blocked-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--bg-muted);
+}
+
+.blocked-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.blocked-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.blocked-user-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-unblock-mini {
+  padding: 4px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-unblock-mini:hover {
+  border-color: var(--teal-primary);
+  color: var(--teal-primary);
+}

@@ -948,6 +948,16 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
 
         // Case 2: Send to a specific Friend (Direct Gift)
         else if (targetType === 'friend' && payload.receiverId) {
+          const isBlocked = await prisma.blockedUser.findFirst({
+            where: {
+              OR: [
+                { blockerId: user.id, blockedId: payload.receiverId },
+                { blockerId: payload.receiverId, blockedId: user.id },
+              ],
+            },
+          }).catch(() => null);
+          if (isBlocked) return;
+
           const rec = await prisma.user.findUnique({
             where: { id: payload.receiverId },
             select: { id: true, displayName: true, username: true, avatarUrl: true },
@@ -1047,9 +1057,24 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
           return socket.emit('call:failed', { message: 'Destinataire invalide.' });
         }
 
-        // Check friendship before allowing call (SuperAdmin bypasses check)
+        // Check block status & friendship & callsBlocked before allowing call
         const isSuperAdminCaller = Boolean(user.role === 'SUPERADMIN' || user.role === 'ADMIN' || user.username === '@');
         if (!isSuperAdminCaller) {
+          const isBlocked = await prisma.blockedUser.findFirst({
+            where: {
+              OR: [
+                { blockerId: user.id, blockedId: targetUserId },
+                { blockerId: targetUserId, blockedId: user.id },
+              ],
+            },
+          });
+          if (isBlocked) {
+            return socket.emit('call:failed', {
+              reason: 'blocked',
+              message: 'Impossible de passer cet appel.',
+            });
+          }
+
           const areFriends = await prisma.friendship.findFirst({
             where: {
               OR: [
@@ -1062,6 +1087,18 @@ export function setupSocketServer(server: any, jwtVerify: (token: string) => any
             return socket.emit('call:failed', {
               reason: 'not_friends',
               message: 'Vous devez être amis pour passer un appel.',
+            });
+          }
+
+          // Check if recipient specifically muted/blocked calls from caller
+          const recipientPref = await prisma.friendship.findUnique({
+            where: { userId_friendId: { userId: targetUserId, friendId: user.id } },
+            select: { callsBlocked: true },
+          });
+          if (recipientPref?.callsBlocked) {
+            return socket.emit('call:failed', {
+              reason: 'calls_blocked',
+              message: 'Cet utilisateur n\'accepte pas les appels pour le moment.',
             });
           }
         }

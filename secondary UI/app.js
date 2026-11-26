@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingFriendRequests = []; // received pending requests
   let sentFriendRequests = []; // sent pending requests
   let myFriendsList = []; // accepted friends
+  let blockedUsersList = []; // blocked users
+  let isBlockedListExpanded = false;
+  let activeFriendMenuTargetId = null;
   let cachedExploreUsers = []; // discover members cache
   let currentFriendTab = 'friends'; // 'friends' | 'explore'
   let activeWhisperTarget = null; // { id, name, username, avatar }
@@ -2413,10 +2416,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = getAuthToken();
     if (!token) return;
     try {
-      const [friendsRes, pendingRes, sentRes] = await Promise.all([
+      const [friendsRes, pendingRes, sentRes, blockedRes] = await Promise.all([
         fetch(`${API_BASE_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_BASE_URL}/friends/requests/pending`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_BASE_URL}/friends/requests/sent`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/friends/blocked`, { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
       if (friendsRes.ok) {
         const d = await friendsRes.json();
@@ -2429,6 +2433,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sentRes.ok) {
         const d = await sentRes.json();
         if (d.success) sentFriendRequests = d.requests || [];
+      }
+      if (blockedRes.ok) {
+        const d = await blockedRes.json();
+        if (d.success) blockedUsersList = d.blockedUsers || [];
       }
       // Update badge
       const badge = document.getElementById('friendReqBadge');
@@ -2532,52 +2540,96 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-weight:600;margin-bottom:4px;color:var(--text-primary);">Aucun ami pour l'instant</div>
           <div style="font-size:0.75rem;">Explorez les membres pour envoyer des demandes d'amitié.</div>
         </div>`;
-        return;
       }
 
-      myFriendsList.forEach(friend => {
+      // Sort favorites first, then online, then name
+      const sortedFriends = [...myFriendsList].sort((a, b) => {
+        if (Boolean(a.isFavorite) !== Boolean(b.isFavorite)) return a.isFavorite ? -1 : 1;
+        const aOn = activeOnlineUserIds.has(a.id) ? 1 : 0;
+        const bOn = activeOnlineUserIds.has(b.id) ? 1 : 0;
+        return bOn - aOn;
+      });
+
+      sortedFriends.forEach(friend => {
         const isOnline = activeOnlineUserIds.has(friend.id);
         const statusClass = isOnline ? 'online' : 'offline';
         const statusLabel = isOnline ? 'En ligne' : 'Hors ligne';
         const flagTag = getFlagImgTag(friend.country, friend.country);
         const customFriendAv = (friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+        const favBadge = friend.isFavorite ? `<span class="friend-fav-star" title="Ami favori">⭐</span>` : '';
+        const callsMutedBadge = friend.callsBlocked ? `<span class="friend-calls-muted-badge" title="Appels bloqués">🔕</span>` : '';
         const item = document.createElement('div');
         item.className = `friend-item ${statusClass}`;
         if (friend.id) item.dataset.userId = friend.id;
         item.innerHTML = `
-          <div class="friend-item-left" style="cursor:pointer;flex:1;" title="${statusLabel} — Cliquer pour voir la fiche profil">
+          <div class="friend-item-left" style="cursor:pointer;flex:1;min-width:0;" title="${statusLabel} — Cliquer pour voir la fiche profil">
             <div class="friend-avatar-wrap">
-              <img src="${customFriendAv}" alt="${friend.name || friend.username}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <img src="${customFriendAv}" alt="${escapeHtml(friend.name || friend.username)}" class="friend-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
               <span class="friend-status-dot ${statusClass}" title="${statusLabel}"></span>
             </div>
             <div class="friend-meta">
-              <div style="display:flex;align-items:center;gap:5px;">
-                <span class="friend-name">${friend.name || friend.username}</span>
-                <span style="display:inline-flex;align-items:center;">${flagTag}</span>
+              <div style="display:flex;align-items:center;gap:5px;min-width:0;">
+                ${favBadge}
+                <span class="friend-name">${escapeHtml(friend.name || friend.username)}</span>
+                <span style="display:inline-flex;align-items:center;flex-shrink:0;">${flagTag}</span>
               </div>
               <span class="friend-activity ${statusClass}">
                 <span class="activity-status-dot ${statusClass}"></span>
-                ${statusLabel}
+                ${statusLabel}${callsMutedBadge}
               </span>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button type="button" class="friend-action-btn" title="Envoyer un message" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:none;background:var(--bg-muted);color:var(--text-secondary);cursor:pointer;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            </button>
-            <button type="button" class="friend-unfriend-btn" title="Retirer de la liste d'amis" style="background:transparent;border:none;color:var(--text-muted);font-size:0.75rem;cursor:pointer;padding:4px 6px;border-radius:6px;opacity:0.6;transition:color 0.15s, opacity 0.15s;" onmouseover="this.style.opacity=1;this.style.color='#ef4444'" onmouseout="this.style.opacity=0.6;this.style.color='var(--text-muted)'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
+          <button type="button" class="friend-more-btn" title="Options pour ${escapeHtml(friend.name || friend.username)}" aria-label="Options ami">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <circle cx="12" cy="19" r="2"></circle>
+            </svg>
+          </button>
         `;
         item.querySelector('.friend-item-left').addEventListener('click', () => openUserProfileModal(friend));
-        item.querySelector('.friend-action-btn').addEventListener('click', () => openDirectChat(friend));
-        item.querySelector('.friend-unfriend-btn').addEventListener('click', (e) => {
+        const moreBtn = item.querySelector('.friend-more-btn');
+        moreBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          handleUnfriend(friend.id, friend.name || friend.username);
+          openFriendContextMenu(friend, moreBtn);
         });
         friendsList.appendChild(item);
       });
+
+      // Blocked users drawer at bottom of Friends tab if any exist
+      if (blockedUsersList.length > 0) {
+        const drawerWrap = document.createElement('div');
+        drawerWrap.className = 'blocked-users-drawer-wrap';
+        drawerWrap.innerHTML = `
+          <button type="button" class="blocked-users-toggle-btn">
+            <span>🚫 Utilisateurs bloqués (${blockedUsersList.length})</span>
+            <span>${isBlockedListExpanded ? '▲' : '▼'}</span>
+          </button>
+          <div class="blocked-users-list ${isBlockedListExpanded ? '' : 'hidden'}"></div>
+        `;
+        const listEl = drawerWrap.querySelector('.blocked-users-list');
+        drawerWrap.querySelector('.blocked-users-toggle-btn').addEventListener('click', () => {
+          isBlockedListExpanded = !isBlockedListExpanded;
+          renderFriends();
+        });
+        blockedUsersList.forEach(bu => {
+          const row = document.createElement('div');
+          row.className = 'blocked-user-row';
+          row.innerHTML = `
+            <div class="blocked-user-info">
+              <img src="${bu.avatar}" alt="${escapeHtml(bu.name)}" class="blocked-user-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+              <span class="blocked-user-name">${escapeHtml(bu.name || bu.username)}</span>
+            </div>
+            <button type="button" class="btn-unblock-mini">Débloquer</button>
+          `;
+          row.querySelector('.btn-unblock-mini').addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleUnblockUser(bu.id, bu.name || bu.username);
+          });
+          listEl.appendChild(row);
+        });
+        friendsList.appendChild(drawerWrap);
+      }
 
     } else {
       // ── EXPLORER TAB ────────────────────────────────────
@@ -2804,8 +2856,271 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Custom Styled Confirmation Modal (replaces native browser confirm())
+  function openWafatalkConfirmDialog({ icon = '⚠️', title = 'Confirmer', message = '', confirmText = 'Confirmer', confirmClass = 'btn-danger' }) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('wafatalkConfirmModal');
+      const iconEl = document.getElementById('confirmDialogIcon');
+      const titleEl = document.getElementById('confirmDialogTitle');
+      const msgEl = document.getElementById('confirmDialogMessage');
+      const btnCancel = document.getElementById('btnConfirmCancel');
+      const btnProceed = document.getElementById('btnConfirmProceed');
+
+      if (!modal || !btnCancel || !btnProceed) {
+        resolve(window.confirm(message || title));
+        return;
+      }
+
+      if (iconEl) iconEl.textContent = icon;
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      btnProceed.textContent = confirmText;
+      btnProceed.className = `btn ${confirmClass}`;
+
+      modal.classList.remove('hidden');
+
+      const cleanup = (result) => {
+        modal.classList.add('hidden');
+        btnCancel.onclick = null;
+        btnProceed.onclick = null;
+        modal.onclick = null;
+        resolve(result);
+      };
+
+      btnCancel.onclick = () => cleanup(false);
+      btnProceed.onclick = () => cleanup(true);
+      modal.onclick = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+    });
+  }
+
+  function closeFriendContextMenu() {
+    const menu = document.getElementById('friendContextMenu');
+    if (menu) {
+      menu.classList.add('hidden');
+      menu.setAttribute('aria-hidden', 'true');
+      menu.innerHTML = '';
+    }
+    document.querySelectorAll('.friend-more-btn.active').forEach(b => b.classList.remove('active'));
+    activeFriendMenuTargetId = null;
+  }
+
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('friendContextMenu');
+    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !e.target.closest('.friend-more-btn')) {
+      closeFriendContextMenu();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeFriendContextMenu();
+  });
+  friendsList?.addEventListener('scroll', closeFriendContextMenu, { passive: true });
+
+  function openFriendContextMenu(friend, anchorBtn) {
+    const menu = document.getElementById('friendContextMenu');
+    if (!menu || !friend) return;
+
+    // Toggle if clicking same button while open
+    if (!menu.classList.contains('hidden') && activeFriendMenuTargetId === friend.id) {
+      closeFriendContextMenu();
+      return;
+    }
+
+    closeFriendContextMenu();
+    activeFriendMenuTargetId = friend.id;
+    anchorBtn.classList.add('active');
+
+    const friendName = friend.name || friend.username || 'Ami WafaTalk';
+    const customAv = (friend.id && localStorage.getItem(`wafatalk_avatar_${friend.id}`)) || friend.avatar || friend.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80';
+    const isFav = Boolean(friend.isFavorite);
+    const isCallsBlocked = Boolean(friend.callsBlocked);
+
+    menu.innerHTML = `
+      <div class="fcm-header">
+        <img src="${customAv}" alt="${escapeHtml(friendName)}" class="fcm-header-avatar" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'">
+        <div class="fcm-header-meta">
+          <div class="fcm-header-name">${escapeHtml(friendName)}</div>
+          <div class="fcm-header-sub">${isFav ? '⭐ Ami favori' : 'Ami WafaTalk'}${isCallsBlocked ? ' • 🔕 Appels bloqués' : ''}</div>
+        </div>
+      </div>
+
+      <button type="button" class="fcm-item" data-fcm="message">
+        <span class="fcm-item-icon">💬</span>
+        <span>Envoyer un message</span>
+      </button>
+      <button type="button" class="fcm-item" data-fcm="call-audio">
+        <span class="fcm-item-icon">📞</span>
+        <span>Appel audio</span>
+      </button>
+      <button type="button" class="fcm-item" data-fcm="call-video">
+        <span class="fcm-item-icon">📹</span>
+        <span>Appel vidéo</span>
+      </button>
+      <button type="button" class="fcm-item" data-fcm="gift">
+        <span class="fcm-item-icon">🎁</span>
+        <span>Envoyer un cadeau</span>
+      </button>
+      <button type="button" class="fcm-item" data-fcm="profile">
+        <span class="fcm-item-icon">👤</span>
+        <span>Voir le profil</span>
+      </button>
+
+      <div class="fcm-divider"></div>
+
+      <button type="button" class="fcm-item ${isFav ? 'fcm-item-fav-active' : ''}" data-fcm="favorite">
+        <span class="fcm-item-icon">${isFav ? '★' : '⭐'}</span>
+        <span>${isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}</span>
+      </button>
+      <button type="button" class="fcm-item ${isCallsBlocked ? 'fcm-item-muted-active' : ''}" data-fcm="block-calls">
+        <span class="fcm-item-icon">${isCallsBlocked ? '🔔' : '🔕'}</span>
+        <span>${isCallsBlocked ? 'Autoriser ses appels' : 'Bloquer ses appels'}</span>
+      </button>
+
+      <div class="fcm-divider"></div>
+
+      <button type="button" class="fcm-item fcm-item-warning" data-fcm="unfriend">
+        <span class="fcm-item-icon">🗑️</span>
+        <span>Retirer de la liste d'amis</span>
+      </button>
+      <button type="button" class="fcm-item fcm-item-danger" data-fcm="block">
+        <span class="fcm-item-icon">🚫</span>
+        <span>Bloquer cet utilisateur</span>
+      </button>
+    `;
+
+    // Wire menu actions
+    menu.querySelector('[data-fcm="message"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      openDirectChat(friend);
+    });
+    menu.querySelector('[data-fcm="call-audio"]')?.addEventListener('click', async () => {
+      closeFriendContextMenu();
+      await openDirectChat(friend);
+      if (currentConversation && currentDmFriend?.id === friend.id) {
+        initiateCall('audio');
+      }
+    });
+    menu.querySelector('[data-fcm="call-video"]')?.addEventListener('click', async () => {
+      closeFriendContextMenu();
+      await openDirectChat(friend);
+      if (currentConversation && currentDmFriend?.id === friend.id) {
+        initiateCall('video');
+      }
+    });
+    menu.querySelector('[data-fcm="gift"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      activeDirectUser = friend;
+      openGiftShop();
+    });
+    menu.querySelector('[data-fcm="profile"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      openUserProfileModal(friend);
+    });
+    menu.querySelector('[data-fcm="favorite"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      handleToggleFavoriteFriend(friend);
+    });
+    menu.querySelector('[data-fcm="block-calls"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      handleToggleCallBlockFriend(friend);
+    });
+    menu.querySelector('[data-fcm="unfriend"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      handleUnfriend(friend.id, friendName);
+    });
+    menu.querySelector('[data-fcm="block"]')?.addEventListener('click', () => {
+      closeFriendContextMenu();
+      handleBlockUser(friend.id, friendName);
+    });
+
+    // Show offscreen briefly to measure, then clamp accurately within viewport
+    menu.style.visibility = 'hidden';
+    menu.classList.remove('hidden');
+    menu.setAttribute('aria-hidden', 'false');
+
+    const btnRect = anchorBtn.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let left = btnRect.right - menuRect.width;
+    if (left < 10) left = 10;
+    if (left + menuRect.width > vw - 10) left = vw - menuRect.width - 10;
+
+    let top = btnRect.bottom + 6;
+    if (top + menuRect.height > vh - 12) {
+      top = btnRect.top - menuRect.height - 6;
+      if (top < 10) top = Math.max(10, vh - menuRect.height - 12);
+    }
+
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
+    menu.style.visibility = 'visible';
+  }
+
+  async function handleToggleFavoriteFriend(friend) {
+    const token = getAuthToken();
+    if (!token || !friend?.id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/${friend.id}/favorite`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const friendName = friend.name || friend.username || 'Cet ami';
+        showToast(
+          data.isFavorite
+            ? `⭐ ${friendName} ajouté aux favoris !`
+            : `${friendName} retiré des favoris.`,
+          data.isFavorite ? 'teal' : 'orange'
+        );
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Impossible de modifier les favoris.', 'coral');
+      }
+    } catch (e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleToggleCallBlockFriend(friend) {
+    const token = getAuthToken();
+    if (!token || !friend?.id) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/${friend.id}/block-calls`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const friendName = friend.name || friend.username || 'Cet ami';
+        showToast(
+          data.callsBlocked
+            ? `🔕 Appels de ${friendName} bloqués.`
+            : `🔔 Appels de ${friendName} de nouveau autorisés.`,
+          data.callsBlocked ? 'orange' : 'teal'
+        );
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Impossible de modifier les appels.', 'coral');
+      }
+    } catch (e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
   async function handleUnfriend(friendId, friendName) {
-    if (!confirm(`Voulez-vous vraiment retirer ${friendName} de vos amis ?`)) return;
+    const confirmed = await openWafatalkConfirmDialog({
+      icon: '🗑️',
+      title: `Retirer ${friendName} ?`,
+      message: `${friendName} sera retiré de votre liste d'amis. Vous pourrez toujours lui renvoyer un clin d'œil plus tard.`,
+      confirmText: 'Retirer de mes amis',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) return;
+
     const token = getAuthToken();
     if (!token) return;
     try {
@@ -2815,12 +3130,73 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       if (data.success) {
+        myFriendsList = myFriendsList.filter(f => f.id !== friendId);
+        if (currentDmFriend && currentDmFriend.id === friendId) {
+          directChatModal?.classList.add('hidden');
+          currentDmFriend = null;
+          currentConversation = null;
+        }
         showToast(`${friendName} a été retiré de vos amis.`, 'orange');
         await renderFriends();
       } else {
-        showToast(data.message || 'Erreur.', 'coral');
+        showToast(data.message || 'Erreur lors de la suppression.', 'coral');
       }
     } catch(e) {
+      showToast('Erreur réseau lors de la suppression.', 'coral');
+    }
+  }
+
+  async function handleBlockUser(targetId, targetName) {
+    const confirmed = await openWafatalkConfirmDialog({
+      icon: '🚫',
+      title: `Bloquer ${targetName} ?`,
+      message: `${targetName} sera retiré de vos amis et ne pourra plus vous envoyer de messages, de clins d'œil ni vous appeler.`,
+      confirmText: 'Bloquer définitivement',
+      confirmClass: 'btn-danger',
+    });
+    if (!confirmed) return;
+
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/block/${targetId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        myFriendsList = myFriendsList.filter(f => f.id !== targetId);
+        if (currentDmFriend && currentDmFriend.id === targetId) {
+          directChatModal?.classList.add('hidden');
+          currentDmFriend = null;
+          currentConversation = null;
+        }
+        showToast(`🚫 ${targetName} a été bloqué.`, 'coral');
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Impossible de bloquer cet utilisateur.', 'coral');
+      }
+    } catch (e) {
+      showToast('Erreur réseau.', 'coral');
+    }
+  }
+
+  async function handleUnblockUser(targetId, targetName) {
+    const token = getAuthToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/block/${targetId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`🔓 ${targetName} a été débloqué.`, 'teal');
+        await renderFriends();
+      } else {
+        showToast(data.message || 'Erreur lors du déblocage.', 'coral');
+      }
+    } catch (e) {
       showToast('Erreur réseau.', 'coral');
     }
   }
@@ -9044,6 +9420,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // WebRTC: Incoming Call Ringing
     socket.on('call:incoming', ({ callId, conversationId, caller, type }) => {
+      const callerId = caller?.id;
+      const isBlockedCaller = callerId && blockedUsersList.some(b => b.id === callerId);
+      const friendEntry = callerId && myFriendsList.find(f => f.id === callerId);
+      if (isBlockedCaller || friendEntry?.callsBlocked) {
+        socket.emit('call:reject', { callId, reason: 'calls_blocked' });
+        return;
+      }
       handleIncomingCallAlert({ callId, conversationId, caller, type });
     });
 
@@ -9218,6 +9601,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      refreshFriendData().then(() => renderFriends());
+    });
+
+    socket.on('friend:removed', ({ userId }) => {
+      if (userId) {
+        myFriendsList = myFriendsList.filter(f => f.id !== userId);
+        if (currentDmFriend && currentDmFriend.id === userId) {
+          directChatModal?.classList.add('hidden');
+          currentDmFriend = null;
+          currentConversation = null;
+          showToast('Cette conversation n\'est plus disponible.', 'orange');
+        }
+      }
       refreshFriendData().then(() => renderFriends());
     });
 
@@ -9711,7 +10107,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const isFriend = u.friendStatus === 'friends' || myFriendsList.some(f => f.id === u.id || (f.username && u.username && f.username.toLowerCase() === u.username.toLowerCase()));
 
       if (btnProfileSendWink) {
-        if (isFriend) {
+        if (u.isBlockedByMe) {
+          btnProfileSendWink.innerHTML = '<span>🔓 Débloquer</span>';
+          btnProfileSendWink.className = 'btn btn-secondary';
+          btnProfileSendWink.disabled = false;
+          btnProfileSendWink.onclick = async () => {
+            await handleUnblockUser(u.id, u.name || u.username);
+            u.isBlockedByMe = false;
+            populateModalUI({ isBlockedByMe: false, friendStatus: 'none' });
+          };
+        } else if (isFriend) {
           btnProfileSendWink.innerHTML = '<span>🤝 Amis</span>';
           btnProfileSendWink.className = 'btn btn-secondary';
           btnProfileSendWink.disabled = true;
