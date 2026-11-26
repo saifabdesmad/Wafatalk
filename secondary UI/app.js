@@ -3254,13 +3254,13 @@ document.addEventListener('DOMContentLoaded', () => {
       inviteToken: inviteToken || salon.inviteToken,
     };
 
-    // Reset controls UI
-    state.isMicMuted = false;
+    // Reset controls UI — mic starts CLOSED by default; user can open/close it freely
+    state.isMicMuted = true;
     isSalonCamActive = false;
-    btnToggleMic?.classList.remove('muted');
-    btnToggleMic?.querySelector('.mic-on-icon')?.classList.remove('hidden');
-    btnToggleMic?.querySelector('.mic-off-icon')?.classList.add('hidden');
-    if (btnToggleMic) btnToggleMic.querySelector('.ctrl-label').textContent = 'Micro';
+    btnToggleMic?.classList.add('muted');
+    btnToggleMic?.querySelector('.mic-on-icon')?.classList.add('hidden');
+    btnToggleMic?.querySelector('.mic-off-icon')?.classList.remove('hidden');
+    if (btnToggleMic) btnToggleMic.querySelector('.ctrl-label').textContent = 'Coupé';
 
     btnToggleSalonVideo?.classList.remove('active');
     btnToggleSalonVideo?.querySelector('.cam-on-icon')?.classList.remove('hidden');
@@ -3303,7 +3303,7 @@ document.addEventListener('DOMContentLoaded', () => {
       role: selfRole,
       badgeType: selfBadge,
       country: selfUser.country || 'FR',
-      isMuted: false,
+      isMuted: state.isMicMuted,
       isSpeaking: false,
       isCameraOn: false,
     });
@@ -3367,6 +3367,12 @@ document.addEventListener('DOMContentLoaded', () => {
       salonLocalStream = createSyntheticStream(false);
       salonLocalAudioTrack = salonLocalStream.getAudioTracks()[0];
       setupSalonVoiceActivityDetector();
+    }
+
+    // Mic starts CLOSED on entry: disable the local audio track so peers don't hear us
+    // (unmute via btnToggleMic re-enables it; sendrecv transceivers need no renegotiation)
+    if (salonLocalAudioTrack) {
+      salonLocalAudioTrack.enabled = false;
     }
 
     // Join Socket Salon Room with accessCode / inviteToken
